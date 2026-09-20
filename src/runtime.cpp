@@ -30,6 +30,7 @@ struct graph_state {
     ggml_context* ctx = nullptr;
     ggml_gallocr_t allocator = nullptr;
     ggml_cgraph* graph = nullptr;
+    tensor *lengths = nullptr;
     tensor *ids = nullptr, *types = nullptr, *markers = nullptr, *cls = nullptr;
     tensor *global_mask = nullptr, *local_mask = nullptr, *logits = nullptr, *pooled = nullptr;
     tensor *action_input = nullptr, *action_output = nullptr;
@@ -304,18 +305,26 @@ struct runtime::impl {
             s.cls = input_tensor(GGML_TYPE_I32, {s.batch});
             // Flash attention requires mask query rows padded to a multiple of 64.
             auto mask_rows = flash ? ((s.length + 63) / 64) * 64 : s.length;
-            s.global_mask = input_tensor(flash ? GGML_TYPE_F16 : GGML_TYPE_F32, {s.length, mask_rows, 1, s.batch});
-            s.local_mask = input_tensor(flash ? GGML_TYPE_F16 : GGML_TYPE_F32, {s.length, mask_rows, 1, s.batch});
+            s.lengths = input_tensor(GGML_TYPE_I32, {s.batch});
+            s.global_mask = attention_mask(ctx,s.lengths,s.length,mask_rows,false,flash);
+            s.local_mask = attention_mask(ctx,s.lengths,s.length,mask_rows,true,flash);
             auto h = norm(ctx, ggml_get_rows(ctx, w("encoder.embeddings.tok_embeddings.weight"), s.ids), "encoder.embeddings.norm");
             trace("embedding", h);
             for (int layer = 0; layer < layers; ++layer) {
                 auto prefix = "encoder.layers." + std::to_string(layer);
                 h = ggml_add(ctx, h, attention(s, layer == 0 ? h : norm(ctx, h, prefix + ".attn_norm"), prefix, layer, false));
-                auto gated = linear(ctx, norm(ctx, h, prefix + ".mlp_norm"), prefix + ".mlp.Wi");
-                auto first = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], 0));
-                auto second = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], intermediate * sizeof(float)));
-                auto activation = rounded(ctx, ggml_mul(ctx, gelu(ctx, first), second));
-                h = ggml_add(ctx, h, linear(ctx, activation, prefix + ".mlp.Wo"));
+                if (tensor_core) {
+                    auto normalized=norm(ctx,h,prefix+".mlp_norm");
+                    auto products=ggml_mul_mat(ctx,w(prefix+".mlp.Wi.weight"),split_f16(ctx,normalized));
+                    auto projected=ggml_mul_mat(ctx,w(prefix+".mlp.Wo.weight"),mlp_split_f16(ctx,products));
+                    h=ggml_add(ctx,h,merge_f16(ctx,projected));
+                } else {
+                    auto gated = linear(ctx, norm(ctx, h, prefix + ".mlp_norm"), prefix + ".mlp.Wi");
+                    auto first = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], 0));
+                    auto second = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], intermediate * sizeof(float)));
+                    auto activation = rounded(ctx, ggml_mul(ctx, gelu(ctx, first), second));
+                    h = ggml_add(ctx, h, linear(ctx, activation, prefix + ".mlp.Wo"));
+                }
                 trace("encoder-" + std::to_string(layer), h);
             }
             h = norm(ctx, h, "encoder.final_norm");
@@ -392,24 +401,7 @@ struct runtime::impl {
             std::fill_n(types.begin() + cls[row], input.length, input.types[row]);
         }
         put(s.types, types); put(s.cls, cls);
-        auto fill_mask = [&](tensor* t, bool local) {
-            std::vector<float> mask(ggml_nelements(t), -INFINITY);
-            for (int row = 0; row < input.size; ++row)
-                for (int q = 0; q < input.length; ++q) {
-                    for (int k = 0; k < input.lengths[row]; ++k)
-                        if (!local || std::abs(q-k) <= 64)
-                            mask[(row*t->ne[1]+q)*input.length+k] = 0;
-                    // Padded query rows never contribute to valid tokens. Give
-                    // all-masked padded rows one valid key to avoid 0/0 softmax.
-                    if (local && q >= input.lengths[row]+64)
-                        mask[(row*t->ne[1]+q)*input.length] = 0;
-                }
-            if (t->type == GGML_TYPE_F16) {
-                std::vector<ggml_fp16_t> half(mask.size());
-                ggml_fp32_to_fp16_row(mask.data(), half.data(), mask.size()); put(t, half);
-            } else put(t, mask);
-        };
-        fill_mask(s.global_mask, false); fill_mask(s.local_mask, true);
+        put(s.lengths, input.lengths);
         auto start = std::chrono::steady_clock::now();
         if (ggml_backend_graph_compute(backend, s.graph) != GGML_STATUS_SUCCESS) throw std::runtime_error("Encoder computation failed");
         raw_result result;

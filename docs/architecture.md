@@ -28,7 +28,10 @@ an inclusive half-window of 64 elsewhere. Global and local rotary frequency
 bases are 160000 and 10000. Rotary tables are persistent graph inputs, protected
 from temporary-buffer reuse. Padded query rows receive a harmless valid key when
 needed to avoid an all-masked softmax; padded keys remain excluded from valid
-queries at every layer.
+queries at every layer. Mask generation runs on the selected backend from a small
+vector of sequence lengths; quadratic host-side masks are not constructed or
+transferred. Masks are regenerated for every call, including graph replay with
+changed lengths.
 
 Encoder outputs receive a question-type embedding and two pre-normalized
 transformer layers. A normalized MLP scores option markers. The action MLP uses
@@ -52,6 +55,8 @@ weights exactly and splits FP32 activations into a leading FP16 component and a
 scaled residual. One packed Tensor Core multiplication computes both products
 with FP32 accumulation and output; a fused kernel combines them. This is an
 approximation to FP32 activations, evaluated against the public output tolerance.
+The encoder MLP fuses product recombination, exact-erf GELU gating, and activation
+splitting into one kernel, avoiding the intermediate activation copies.
 The scorer and action projections remain FP32. Nonfinite results are rejected by
 acceptance testing; BF16 remains experimental.
 

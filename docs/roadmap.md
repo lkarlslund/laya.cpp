@@ -6,6 +6,8 @@ Implemented:
 - ggml CUDA encoder, typed decision layers, scorer, and action head.
 - Strict FP32 execution with persistent weights and reusable compute graphs.
 - Compensated Tensor Core projections, fused Q/K/V rotary packing, and adaptive FP32 attention.
+- Fused encoder MLP processing and backend-generated dynamic attention masks.
+- Direct native-build comparisons with preserved libraries and acceptance gates.
 - Fixed 250-question corpus, tokenizer fixtures, numerical validation, and batch sweeps.
 
 Next optimization targets, each subject to the same correctness gate:

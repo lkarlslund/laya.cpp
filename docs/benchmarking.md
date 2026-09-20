@@ -73,3 +73,20 @@ operating points and must not be presented as interchangeable.
 The smaller `smoke.json` corpus and `benchmarks/run.py` remain useful for quick
 single-request baseline measurements. Detailed reports are stored in ignored
 `results/`.
+
+## Comparing native builds
+
+Preserve the earlier executable together with its own shared libraries. Ensure
+its runtime library paths resolve to that snapshot, then compare it with a new
+build that has passed acceptance:
+
+```sh
+python benchmarks/compare_native.py --before /path/to/previous/laya-cli \
+  --validation results/validation.json
+```
+
+Both builds use the optimized CUDA mode, identical request groups, and alternating
+timing order. Each group must meet the output tolerance before its speedup is
+reported. The report records both build fingerprints and requires a matching
+acceptance report for the new build. This separates incremental native improvements
+from changes in hardware contention between measurements.

@@ -1,0 +1,214 @@
+{
+  "measurement_date": "2026-09-20",
+  "previous_source_revision": "e71c846febcfc7e5e21d19a3d48013b758cf60a0",
+  "source_state": "Fused MLP and device-mask working tree before commit; exact binary fingerprints recorded.",
+  "shared_gpu": true,
+  "validation": {
+    "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+    "precision": "fp32",
+    "native_build_sha256": "04c3bc154675e0446cf6d4e92ce1aa34f52c5482a5114d8f66392456a6b44b0e",
+    "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+    "torch": "2.11.0+cu130",
+    "fused_attention": true,
+    "tensor_core_fp32": true,
+    "acceptance": "exact_categories_absolute_numeric_0.0001",
+    "raw_atol": 0.001,
+    "raw_rtol": 1e-05,
+    "answer_atol": 0.0001,
+    "passed": true,
+    "batches": [
+      {
+        "batch_size": 1,
+        "questions": 250,
+        "max_logit_error": 0.000316619873046875,
+        "max_action_error": 0.04150390625,
+        "failures": [],
+        "answer_failures": []
+      },
+      {
+        "batch_size": 2,
+        "questions": 250,
+        "max_logit_error": 0.0007543563842773438,
+        "max_action_error": 0.0615234375,
+        "failures": [],
+        "answer_failures": []
+      },
+      {
+        "batch_size": 4,
+        "questions": 250,
+        "max_logit_error": 0.0008020401000976562,
+        "max_action_error": 0.06787109375,
+        "failures": [],
+        "answer_failures": []
+      },
+      {
+        "batch_size": 8,
+        "questions": 250,
+        "max_logit_error": 0.00035572052001953125,
+        "max_action_error": 0.0859375,
+        "failures": [],
+        "answer_failures": []
+      }
+    ]
+  },
+  "native_comparison": {
+    "before_sha256": "7fe1121d69227165a0c34e6054d095994586ebd22bd0ad836c4135f886ff1182",
+    "after_sha256": "04c3bc154675e0446cf6d4e92ce1aa34f52c5482a5114d8f66392456a6b44b0e",
+    "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+    "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+    "torch": "2.11.0+cu130",
+    "iterations": 5,
+    "warmup": 3,
+    "rows": [
+      {
+        "batch_size": 1,
+        "before": {
+          "p50_ms": 2.4861455,
+          "p95_ms": 9.12202035,
+          "questions_per_second": 293.93389266054527
+        },
+        "after": {
+          "p50_ms": 2.229921,
+          "p95_ms": 7.122398,
+          "questions_per_second": 343.65259872436116
+        },
+        "failures": [],
+        "speedup": 1.1691492791586116
+      },
+      {
+        "batch_size": 2,
+        "before": {
+          "p50_ms": 3.698983,
+          "p95_ms": 22.916425399999998,
+          "questions_per_second": 236.66269450801113
+        },
+        "after": {
+          "p50_ms": 3.319105,
+          "p95_ms": 20.0469812,
+          "questions_per_second": 278.89308355217486
+        },
+        "failures": [],
+        "speedup": 1.1784412584837456
+      },
+      {
+        "batch_size": 4,
+        "before": {
+          "p50_ms": 14.227069,
+          "p95_ms": 69.54318520000001,
+          "questions_per_second": 214.55008801659042
+        },
+        "after": {
+          "p50_ms": 11.515123,
+          "p95_ms": 58.4471346,
+          "questions_per_second": 230.6718306179036
+        },
+        "failures": [],
+        "speedup": 1.0751420926943014
+      },
+      {
+        "batch_size": 8,
+        "before": {
+          "p50_ms": 28.0952015,
+          "p95_ms": 77.34166839999999,
+          "questions_per_second": 230.53500069679572
+        },
+        "after": {
+          "p50_ms": 25.839727,
+          "p95_ms": 60.965587299999996,
+          "questions_per_second": 259.66760336893606
+        },
+        "failures": [],
+        "speedup": 1.1263695429504699
+      }
+    ],
+    "passed": true
+  },
+  "fp32_baseline_sweep": {
+    "schema_version": 2,
+    "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+    "model_revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+    "torch": "2.11.0+cu130",
+    "precision": "fp32",
+    "iterations": 5,
+    "fused_attention": true,
+    "tensor_core_fp32": true,
+    "native_build_sha256": "04c3bc154675e0446cf6d4e92ce1aa34f52c5482a5114d8f66392456a6b44b0e",
+    "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+    "warmup": 3,
+    "batch_sizes": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "rows": [
+      {
+        "batch_size": 1,
+        "baseline": {
+          "p50_ms": 7.060715492116287,
+          "p95_ms": 15.556071369792333,
+          "questions_per_second": 117.73442053917898
+        },
+        "native": {
+          "p50_ms": 2.331178,
+          "p95_ms": 7.54965125,
+          "questions_per_second": 326.2361094866329
+        },
+        "failures": [],
+        "speedup": 2.7709492941197253
+      },
+      {
+        "batch_size": 2,
+        "baseline": {
+          "p50_ms": 10.385487985331565,
+          "p95_ms": 28.719513420946896,
+          "questions_per_second": 152.37733758583386
+        },
+        "native": {
+          "p50_ms": 3.273269,
+          "p95_ms": 14.8292824,
+          "questions_per_second": 373.208630520162
+        },
+        "failures": [],
+        "speedup": 2.449239738881343
+      },
+      {
+        "batch_size": 4,
+        "baseline": {
+          "p50_ms": 32.36823697807267,
+          "p95_ms": 99.4143066869583,
+          "questions_per_second": 114.18653587315866
+        },
+        "native": {
+          "p50_ms": 20.067897,
+          "p95_ms": 66.4442508,
+          "questions_per_second": 187.1043514958417
+        },
+        "failures": [],
+        "speedup": 1.6385850579063197
+      },
+      {
+        "batch_size": 8,
+        "baseline": {
+          "p50_ms": 23.549090488813818,
+          "p95_ms": 99.96362296806183,
+          "questions_per_second": 221.21794498690974
+        },
+        "native": {
+          "p50_ms": 12.469324,
+          "p95_ms": 62.3879788,
+          "questions_per_second": 385.33296517943654
+        },
+        "failures": [],
+        "speedup": 1.7418702863469693
+      }
+    ],
+    "passed": true,
+    "project_revision": "e71c846febcfc7e5e21d19a3d48013b758cf60a0",
+    "ggml_revision": "456172ec733a135778adcd32d00e576a58232e45",
+    "baseline_revision": "d113dca2512fb3eaca313534bc54c7162d87c1d4"
+  }
+}
