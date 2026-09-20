@@ -1,0 +1,65 @@
+{
+  "complete": true,
+  "variants": [
+    {
+      "variant": "english",
+      "passed": true,
+      "questions": 250,
+      "batch_sizes": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "jev_concurrency": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "comparison": "exact public JSON, with canonical HTTP model identity",
+      "clean_shutdown": true
+    },
+    {
+      "variant": "multilingual",
+      "passed": true,
+      "questions": 250,
+      "batch_sizes": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "jev_concurrency": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "comparison": "exact public JSON, with canonical HTTP model identity",
+      "clean_shutdown": true
+    },
+    {
+      "variant": "typed-decisions",
+      "passed": true,
+      "questions": 250,
+      "batch_sizes": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "jev_concurrency": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "comparison": "exact public JSON, with canonical HTTP model identity",
+      "clean_shutdown": true
+    }
+  ],
+  "native_sha256": "7b4cf20fb07ecb1db7055a760bcfa7bee3ead7a48032a77382b0fd33b1f6a224",
+  "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+  "direct_model_path": false
+}

@@ -1,3 +1,6 @@
 [submodule "third_party/ggml"]
 	path = third_party/ggml
 	url = https://github.com/ggml-org/ggml
+[submodule "third_party/cpp-httplib"]
+	path = third_party/cpp-httplib
+	url = https://github.com/yhirose/cpp-httplib.git

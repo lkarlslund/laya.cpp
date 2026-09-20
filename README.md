@@ -59,6 +59,17 @@ per input line and keeps weights resident between calls. A request contains
 Use `--raw` to inspect uncalibrated logits and `--prepare` to inspect input tensors.
 The executable does not require Python, PyTorch, or an inference server.
 
+For native HTTP serving with the JEV-compatible `POST /v1/systemone` endpoint:
+
+```sh
+build-cuda/bin/laya-cli --server --port 8080 --variant english \
+  --tensor-core-fp32 --flash-fp32
+```
+
+The default listener is `127.0.0.1:8080`. It also provides `/health`, `/v1/models`,
+and `/predict` for batched requests. See [HTTP serving](docs/http.md) for request
+examples, model aliases, concurrency, limits and optional bearer authentication.
+
 ## Models and tooling
 
 The optional Python tooling requirements are in `requirements-bench.txt`:

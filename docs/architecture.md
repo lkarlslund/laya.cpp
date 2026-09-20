@@ -80,6 +80,11 @@ corresponding graph; repeated shapes reuse allocations and ggml CUDA Graphs.
 Weights stay resident. Calls to one agent must be serialized by the caller.
 There is no automatic CPU fallback on a CUDA error.
 
+The HTTP mode uses the pinned cpp-httplib dependency for parsing and connections.
+A bounded worker pool handles HTTP requests; a mutex serializes prediction calls
+on the resident agent. `/v1/systemone` returns the JEV answer envelope and
+`/predict` exposes native request batches. See [HTTP serving](http.md).
+
 For layer diagnostics, set `LAYA_TRACE_DIR` to an output directory. Intermediate
 FP32 tensors are written as row-major `.f32` files after inference. This mode
 retains additional activations and is unsuitable for performance measurement.
