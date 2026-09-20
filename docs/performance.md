@@ -1,50 +1,50 @@
 # RTX performance
 
-The latest optimization fuses encoder MLP product recombination, exact-erf GELU
-gating, and activation splitting. Attention masks are now generated on the device
-from sequence lengths, avoiding quadratic CPU work and host-to-device mask copies.
-The run command is unchanged: `--tensor-core-fp32 --flash-fp32`.
+The 2026-09-20 rerun supersedes the earlier measurements affected by GPU contention.
+The RTX PRO 6000 Blackwell reported 0% compute utilization before starting. Another
+model remained resident in VRAM; per-process utilization was unavailable, so this
+was not a verified exclusive-device run. Aggregate telemetry was recorded every
+500 ms. The configured power limit was 450 W; software power limiting was active
+and hardware thermal slowdown inactive in two spot checks.
 
-## Incremental improvement
+The implementation is `08fa472`, using `--tensor-core-fp32 --flash-fp32`. No runtime
+code changed for this rerun. Both comparisons used five warmups and ten timed
+iterations per request group, with alternating backend order.
 
-Measured on 2026-09-20 on an RTX PRO 6000 Blackwell Workstation Edition, comparing
-against the preceding native build (`e71c846`). Both executables retained their own
-shared libraries. Each received the same requests, with alternating timing order.
+## FP32 comparison
 
-| Batch | Previous native questions/s | Updated native questions/s | Throughput gain |
-|---:|---:|---:|---:|
-| 1 | 293.9 | 343.7 | 16.9% |
-| 2 | 236.7 | 278.9 | 17.8% |
-| 4 | 214.6 | 230.7 | 7.5% |
-| 8 | 230.5 | 259.7 | 12.6% |
-
-The GPU was shared with another active application. Contention varied substantially
-during these runs; use the paired comparison above for the incremental improvement.
-Do not multiply these ratios by historical results to estimate an isolated speedup.
-
-## Fresh FP32 comparison
-
-A separate sweep compared the updated native executable against an FP32 baseline
-with autocast and TF32 disabled. It does not establish a speedup over BF16 execution.
+The baseline uses FP32 with autocast and TF32 disabled. These figures do not
+establish a speedup over default BF16 execution.
 
 | Batch | FP32 baseline questions/s | Native questions/s | Throughput speedup |
 |---:|---:|---:|---:|
-| 1 | 117.7 | 326.2 | 2.77× |
-| 2 | 152.4 | 373.2 | 2.45× |
-| 4 | 114.2 | 187.1 | 1.64× |
-| 8 | 221.2 | 385.3 | 1.74× |
+| 1 | 148.5 | 350.6 | 2.36× |
+| 2 | 201.3 | 441.4 | 2.19× |
+| 4 | 228.7 | 446.5 | 1.95× |
+| 8 | 226.9 | 394.4 | 1.74× |
 
-All 250 fixed questions passed at every listed batch size: exact categorical
-outputs and numeric absolute error no greater than 0.0001. Tokenization and batch
-input tensors matched exactly. Repeated graph execution returned identical
-outputs. Raw tensor differences remain diagnostic, rather than bitwise identity
-claims. Dedicated CPU and CUDA tests cover the fused MLP and changing mask lengths
-across graph replays, including short, padded, and maximum-length sequences.
+## Last optimization versus the previous native build
 
-Both sweeps used three warmups and five timed iterations per request group.
-Times include preprocessing and output construction; loading and JSON transport
-are excluded. Throughput includes the full corpus, long inputs, and partial batches.
+Both native executables retained their own shared libraries. The previous build
+is `e71c846`; the current build adds fused encoder MLP processing and device-side
+attention mask generation. Each received identical request groups.
 
-See [latest measurement metadata](measurements/rtx-pro-6000-fused-mlp.json),
-[earlier measurements](measurements/rtx-pro-6000-fp32.json), and
-[benchmarking instructions](benchmarking.md) for reproduction details.
+| Batch | Previous native questions/s | Current native questions/s | Throughput gain |
+|---:|---:|---:|---:|
+| 1 | 301.1 | 345.1 | 14.6% |
+| 2 | 370.7 | 424.1 | 14.4% |
+| 4 | 373.6 | 436.0 | 16.7% |
+| 8 | 333.5 | 387.1 | 16.1% |
+
+All 250 questions passed again at every batch size: exact categorical outputs and
+numeric absolute error no greater than 0.0001. The sweeps also required the existing
+passing validation report to match the executable, weights, corpus, and settings.
+
+Times include preprocessing and output construction; model loading and JSON
+transport are excluded. Throughput includes the full corpus, long inputs, and
+partial batches. Aggregate throughput and p50 latency summarize different aspects
+of this mixed workload.
+
+See [rerun metadata](measurements/rtx-pro-6000-rerun.json),
+[superseded measurements](measurements/rtx-pro-6000-fused-mlp.json), and
+[benchmarking instructions](benchmarking.md) for reproducibility details.
