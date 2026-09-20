@@ -17,7 +17,7 @@ Next optimization targets, each subject to the same correctness gate:
 1. Fuse full-precision normalization and projection work without reducing accuracy.
 2. Move action statistics onto the device to remove the intermediate host round trip.
 3. Add a bounded cache for multiple sequence shapes and measure mixed workloads.
-4. Bring BF16 through acceptance before enabling it by default.
+4. Match the BF16 baseline at BF16 precision, then optimize that path before promoting it.
 5. Package the C++ API with installation targets and evaluate optional model routing.
 
 Quantization and approximate arithmetic require separate accuracy evaluation.

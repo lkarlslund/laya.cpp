@@ -36,6 +36,12 @@ identity or a proof for every possible input. The report preserves observed
 maximum raw errors and every failing case. BF16 has a separate experimental mode
 and must pass its own gates before it can become a supported default.
 
+Correctness is defined at matching precision: native FP32 is compared with the
+FP32 baseline, and native BF16 with the BF16 baseline. Different answers between
+FP32 and BF16 do not, by themselves, indicate a porting bug. The objective is to
+preserve the model's behavior at the selected precision, not to require every
+mode to reproduce higher-precision arithmetic.
+
 Tokenizer tests additionally cover 253 fixtures including added tokens,
 whitespace, combining characters, multiple scripts, emoji, and control characters.
 They run through CTest when the local tokenizer model is present.
@@ -115,3 +121,27 @@ long-state coverage. Run it independently with:
 python benchmarks/models.py --cases tests/model-requests.json \
   --batch-sizes 1 2 --output results/model-edges
 ```
+
+## Precision study
+
+```sh
+python benchmarks/precision_study.py
+```
+
+The study checks both native modes against their matching baselines on all three
+checkpoints and all 250 questions at batches 1, 2, 4 and 8. It records numeric
+errors, category changes, metadata agreement and repeated-call stability.
+Cross-precision baseline drift is recorded separately and does not affect a
+native mode's acceptance result.
+
+Each group receives three warmups and five timed iterations by default. The
+execution order rotates between the native candidate, the FP32 baseline and the
+BF16 baseline. Timing includes preprocessing, inference and output formatting;
+loading, native JSON transport and correctness checks are excluded. Public
+baseline formatting is independently checked before timing its batched formatter.
+
+Failing candidates are timed for diagnosis but have no accepted speedup and are
+not eligible for deployment. This study does not weaken the validation gates in
+`validate.py` or `sweep.py`. Detailed outputs stay in ignored `results/`.
+Exit status zero means the study completed, not that every mode passed; consult
+the per-mode results and `eligible_modes` in its reports.

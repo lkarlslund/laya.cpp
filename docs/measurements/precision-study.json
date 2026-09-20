@@ -1,0 +1,1183 @@
+{
+  "schema_version": 1,
+  "measurement_date": "2026-09-20",
+  "native_modes": {
+    "fp32": [
+      "--tensor-core-fp32",
+      "--flash-fp32"
+    ],
+    "bf16": [
+      "--experimental-bf16"
+    ]
+  },
+  "baseline_modes": {
+    "fp32": "Autocast and TF32 disabled",
+    "bf16": "Checkpoint BF16 autocast with default TF32 settings"
+  },
+  "checkpoints": [
+    {
+      "schema_version": 1,
+      "variant": "english",
+      "complete": true,
+      "acceptance": "exact_categories_absolute_numeric_0.0001_at_matching_precision",
+      "native_build_sha256": "7b4cf20fb07ecb1db7055a760bcfa7bee3ead7a48032a77382b0fd33b1f6a224",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+      "model_revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "default_tf32": {
+        "matmul": false,
+        "cudnn": true
+      },
+      "exclusive_gpu": false,
+      "warmup": 3,
+      "iterations": 5,
+      "timing_scope": "preprocessing + inference + formatting; excludes loading and native JSON transport",
+      "rows": [
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 1,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.00010000000000001674,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 231,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.17900000000000005,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 5.545675987377763,
+              "p95_ms": 13.331346344784833,
+              "questions_per_second": 152.0526442326
+            },
+            "baseline_bf16": {
+              "p50_ms": 6.654744007391855,
+              "p95_ms": 7.7413973020156845,
+              "questions_per_second": 146.94863876257958
+            },
+            "native": {
+              "p50_ms": 2.2686029999999997,
+              "p95_ms": 6.63416025,
+              "questions_per_second": 351.1115128313693
+            }
+          },
+          "accepted_speedup": 2.309144405895778,
+          "diagnostic_speedup_vs_default_bf16": 2.389348521959767
+        },
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 2,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.00010000000000001674,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 238,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.07850000000000001,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 7.364737044554204,
+              "p95_ms": 24.1421575890854,
+              "questions_per_second": 210.15273303188133
+            },
+            "baseline_bf16": {
+              "p50_ms": 7.126937969587743,
+              "p95_ms": 10.727265826426445,
+              "questions_per_second": 262.90106445268975
+            },
+            "native": {
+              "p50_ms": 3.049451,
+              "p95_ms": 13.367807,
+              "questions_per_second": 460.62833308588995
+            }
+          },
+          "accepted_speedup": 2.191874102422499,
+          "diagnostic_speedup_vs_default_bf16": 1.7520976343128583
+        },
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 4,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.00010000000000001674,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 234,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.07850000000000001,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 10.80429699504748,
+              "p95_ms": 45.739509974373505,
+              "questions_per_second": 249.97835811163645
+            },
+            "baseline_bf16": {
+              "p50_ms": 7.719187997281551,
+              "p95_ms": 18.091594194993377,
+              "questions_per_second": 435.30454236229644
+            },
+            "native": {
+              "p50_ms": 5.039006,
+              "p95_ms": 26.683591200000002,
+              "questions_per_second": 494.69963456055166
+            }
+          },
+          "accepted_speedup": 1.978969852820725,
+          "diagnostic_speedup_vs_default_bf16": 1.1364449171054634
+        },
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 8,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.00010000000000021103,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 235,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.0786,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 20.867867482593283,
+              "p95_ms": 90.65612971317023,
+              "questions_per_second": 247.56923201888304
+            },
+            "baseline_bf16": {
+              "p50_ms": 8.476115996018052,
+              "p95_ms": 31.916649496997703,
+              "questions_per_second": 630.0313490759986
+            },
+            "native": {
+              "p50_ms": 11.3051245,
+              "p95_ms": 56.57531505,
+              "questions_per_second": 426.6774387268533
+            }
+          },
+          "accepted_speedup": 1.7234671499659902,
+          "diagnostic_speedup_vs_default_bf16": 0.677232076392098
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 1,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 229,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.25550000000000006,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 231,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.17900000000000005,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 5.695464496966451,
+              "p95_ms": 13.394691867870279,
+              "questions_per_second": 150.5118399034547
+            },
+            "baseline_bf16": {
+              "p50_ms": 6.567607983015478,
+              "p95_ms": 7.364338179468177,
+              "questions_per_second": 150.05601499183015
+            },
+            "native": {
+              "p50_ms": 3.985602,
+              "p95_ms": 12.059292600000001,
+              "questions_per_second": 197.18762833020148
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 1.3140934626375187
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 2,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 229,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.15490000000000004,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 238,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.07850000000000001,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 7.48011696850881,
+              "p95_ms": 23.419632576406002,
+              "questions_per_second": 211.23010824245523
+            },
+            "baseline_bf16": {
+              "p50_ms": 7.0664670201949775,
+              "p95_ms": 10.719567979685962,
+              "questions_per_second": 265.7658337221071
+            },
+            "native": {
+              "p50_ms": 5.552842,
+              "p95_ms": 22.6704228,
+              "questions_per_second": 259.16954481478314
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 0.9751800718138162
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 4,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 232,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.05799999999999994,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 234,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.07850000000000001,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 10.67436794983223,
+              "p95_ms": 44.369282032130286,
+              "questions_per_second": 256.0085073780442
+            },
+            "baseline_bf16": {
+              "p50_ms": 7.45003204792738,
+              "p95_ms": 17.901784891728312,
+              "questions_per_second": 449.5586158472226
+            },
+            "native": {
+              "p50_ms": 9.301094,
+              "p95_ms": 44.334729100000004,
+              "questions_per_second": 279.62366387036013
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 0.6219960067796523
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 8,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 231,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.0676000000000001,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 235,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.0786,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 19.278833526186645,
+              "p95_ms": 86.94698993349448,
+              "questions_per_second": 260.990247990005
+            },
+            "baseline_bf16": {
+              "p50_ms": 8.393721014726907,
+              "p95_ms": 32.63388811319601,
+              "questions_per_second": 631.1165090249868
+            },
+            "native": {
+              "p50_ms": 18.267297,
+              "p95_ms": 89.55214785,
+              "questions_per_second": 260.85723018176884
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 0.41332658305004205
+        }
+      ],
+      "project_revision": "8074adc25efbedb63d43326a50c3438dc7ab36e1",
+      "ggml_revision": "456172ec733a135778adcd32d00e576a58232e45",
+      "baseline_revision": "d113dca2512fb3eaca313534bc54c7162d87c1d4",
+      "eligible_modes": [
+        "fp32"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "variant": "multilingual",
+      "complete": true,
+      "acceptance": "exact_categories_absolute_numeric_0.0001_at_matching_precision",
+      "native_build_sha256": "7b4cf20fb07ecb1db7055a760bcfa7bee3ead7a48032a77382b0fd33b1f6a224",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+      "model_revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "default_tf32": {
+        "matmul": false,
+        "cudnn": true
+      },
+      "exclusive_gpu": false,
+      "warmup": 3,
+      "iterations": 5,
+      "timing_scope": "preprocessing + inference + formatting; excludes loading and native JSON transport",
+      "rows": [
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 1,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.00010000000000010001,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 222,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.048000000000000015,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 4.632792988559231,
+              "p95_ms": 10.024696117034182,
+              "questions_per_second": 187.66241890287793
+            },
+            "baseline_bf16": {
+              "p50_ms": 5.618944531306624,
+              "p95_ms": 6.976184528321028,
+              "questions_per_second": 172.3014723870565
+            },
+            "native": {
+              "p50_ms": 1.505964,
+              "p95_ms": 6.32842055,
+              "questions_per_second": 469.6455318412532
+            }
+          },
+          "accepted_speedup": 2.5026083250281013,
+          "diagnostic_speedup_vs_default_bf16": 2.7257197825114674
+        },
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 2,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.00010000000000010001,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 222,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.07350000000000001,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 4.960707970894873,
+              "p95_ms": 17.536522401496768,
+              "questions_per_second": 305.8598536394323
+            },
+            "baseline_bf16": {
+              "p50_ms": 5.813142983242869,
+              "p95_ms": 8.976657199673355,
+              "questions_per_second": 321.8780759827763
+            },
+            "native": {
+              "p50_ms": 1.973796,
+              "p95_ms": 12.2386144,
+              "questions_per_second": 623.0955147899995
+            }
+          },
+          "accepted_speedup": 2.0371928756774516,
+          "diagnostic_speedup_vs_default_bf16": 1.9358122260658144
+        },
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 4,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.00010000000000010001,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 221,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.07350000000000001,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 6.631103984545916,
+              "p95_ms": 32.066672563087195,
+              "questions_per_second": 395.345226094636
+            },
+            "baseline_bf16": {
+              "p50_ms": 6.278862012550235,
+              "p95_ms": 15.343450976070017,
+              "questions_per_second": 533.266074054258
+            },
+            "native": {
+              "p50_ms": 2.869683,
+              "p95_ms": 24.1808843,
+              "questions_per_second": 696.2492427781223
+            }
+          },
+          "accepted_speedup": 1.7611171118870605,
+          "diagnostic_speedup_vs_default_bf16": 1.3056319849578155
+        },
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 8,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.00010000000000010001,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 223,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.07339999999999991,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 10.379450512118638,
+              "p95_ms": 64.07848830567673,
+              "questions_per_second": 412.92401697722426
+            },
+            "baseline_bf16": {
+              "p50_ms": 7.1764485037419945,
+              "p95_ms": 26.217771432129663,
+              "questions_per_second": 766.687992746168
+            },
+            "native": {
+              "p50_ms": 5.1740375,
+              "p95_ms": 57.25734175,
+              "questions_per_second": 581.5291321836154
+            }
+          },
+          "accepted_speedup": 1.408319953004068,
+          "diagnostic_speedup_vs_default_bf16": 0.7584951605941556
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 1,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 225,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.07769999999999999,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 222,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.048000000000000015,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 4.760881478432566,
+              "p95_ms": 10.165191555279307,
+              "questions_per_second": 184.3573521486585
+            },
+            "baseline_bf16": {
+              "p50_ms": 5.585681472439319,
+              "p95_ms": 6.970469967927783,
+              "questions_per_second": 173.27197808067882
+            },
+            "native": {
+              "p50_ms": 2.7334129999999996,
+              "p95_ms": 9.8429185,
+              "questions_per_second": 275.33815421923686
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 1.589051832091592
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 2,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 223,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.03720000000000001,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 222,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.07350000000000001,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 5.190197029151022,
+              "p95_ms": 16.686523833777755,
+              "questions_per_second": 301.504657636932
+            },
+            "baseline_bf16": {
+              "p50_ms": 6.003760965541005,
+              "p95_ms": 9.068900626152752,
+              "questions_per_second": 311.36505357222376
+            },
+            "native": {
+              "p50_ms": 3.523859,
+              "p95_ms": 18.296897,
+              "questions_per_second": 374.1432472828448
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 1.2016224781502627
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 4,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 220,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.08200000000000007,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 221,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.07350000000000001,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 6.735941977240145,
+              "p95_ms": 29.80138251441531,
+              "questions_per_second": 403.2923840688634
+            },
+            "baseline_bf16": {
+              "p50_ms": 6.279902008827776,
+              "p95_ms": 14.514844486257061,
+              "questions_per_second": 539.6508428685881
+            },
+            "native": {
+              "p50_ms": 5.338209,
+              "p95_ms": 36.0812268,
+              "questions_per_second": 418.9404271528728
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 0.7763175629003699
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 8,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 222,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.03510000000000002,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 223,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.07339999999999991,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 10.243668017210439,
+              "p95_ms": 59.61099763517268,
+              "questions_per_second": 431.23540440066415
+            },
+            "baseline_bf16": {
+              "p50_ms": 7.0711104781366885,
+              "p95_ms": 25.051682529738173,
+              "questions_per_second": 791.5153861153187
+            },
+            "native": {
+              "p50_ms": 9.5002615,
+              "p95_ms": 77.28809829999999,
+              "questions_per_second": 382.0649190650486
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 0.4827005586589876
+        }
+      ],
+      "project_revision": "8074adc25efbedb63d43326a50c3438dc7ab36e1",
+      "ggml_revision": "456172ec733a135778adcd32d00e576a58232e45",
+      "baseline_revision": "d113dca2512fb3eaca313534bc54c7162d87c1d4",
+      "eligible_modes": [
+        "fp32"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "variant": "typed-decisions",
+      "complete": true,
+      "acceptance": "exact_categories_absolute_numeric_0.0001_at_matching_precision",
+      "native_build_sha256": "7b4cf20fb07ecb1db7055a760bcfa7bee3ead7a48032a77382b0fd33b1f6a224",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "weights_sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e",
+      "model_revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "default_tf32": {
+        "matmul": false,
+        "cudnn": true
+      },
+      "exclusive_gpu": false,
+      "warmup": 3,
+      "iterations": 5,
+      "timing_scope": "preprocessing + inference + formatting; excludes loading and native JSON transport",
+      "rows": [
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 1,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.00010000000000010001,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 248,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.03570000000000001,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 5.713974998798221,
+              "p95_ms": 21.244810146163218,
+              "questions_per_second": 129.80564842181462
+            },
+            "baseline_bf16": {
+              "p50_ms": 6.755554000847042,
+              "p95_ms": 9.049202245660124,
+              "questions_per_second": 142.16907404898828
+            },
+            "native": {
+              "p50_ms": 2.2997750000000003,
+              "p95_ms": 13.916963749999999,
+              "questions_per_second": 267.9583229054583
+            }
+          },
+          "accepted_speedup": 2.0643040280859326,
+          "diagnostic_speedup_vs_default_bf16": 1.8847862989747397
+        },
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 2,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.00010000000000010001,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 243,
+            "choice_mismatches": 2,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.0368,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 7.568368979264051,
+              "p95_ms": 40.09260376915336,
+              "questions_per_second": 170.4822517919107
+            },
+            "baseline_bf16": {
+              "p50_ms": 7.279813988134265,
+              "p95_ms": 18.158083024900407,
+              "questions_per_second": 231.41467744231971
+            },
+            "native": {
+              "p50_ms": 3.093693,
+              "p95_ms": 28.7265992,
+              "questions_per_second": 318.95212056161944
+            }
+          },
+          "accepted_speedup": 1.8708816736590848,
+          "diagnostic_speedup_vs_default_bf16": 1.3782709207851283
+        },
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 4,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.0001000000000000445,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 241,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.0368,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 11.719178000930697,
+              "p95_ms": 85.84026571479626,
+              "questions_per_second": 178.4268990921549
+            },
+            "baseline_bf16": {
+              "p50_ms": 7.727529969997704,
+              "p95_ms": 32.387345482129604,
+              "questions_per_second": 360.1721307179827
+            },
+            "native": {
+              "p50_ms": 5.668518,
+              "p95_ms": 62.524711,
+              "questions_per_second": 299.2571974067845
+            }
+          },
+          "accepted_speedup": 1.6771977707925219,
+          "diagnostic_speedup_vs_default_bf16": 0.8308727185810635
+        },
+        {
+          "native_precision": "fp32",
+          "baseline_precision": "fp32",
+          "batch_size": 8,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 0,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.00010000000000021103,
+            "passed": true
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 243,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.0368,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": true,
+          "eligible_for_deployment": true,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 23.030698008369654,
+              "p95_ms": 178.16315670497713,
+              "questions_per_second": 163.74891968688004
+            },
+            "baseline_bf16": {
+              "p50_ms": 9.175715007586405,
+              "p95_ms": 55.70853567915037,
+              "questions_per_second": 462.53076243399084
+            },
+            "native": {
+              "p50_ms": 12.266459,
+              "p95_ms": 137.50536035,
+              "questions_per_second": 247.80777221069314
+            }
+          },
+          "accepted_speedup": 1.5133398906359206,
+          "diagnostic_speedup_vs_default_bf16": 0.5357649530306832
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 1,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 236,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.02500000000000001,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 248,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.03570000000000001,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 5.870609020348638,
+              "p95_ms": 20.452696463325992,
+              "questions_per_second": 129.3297403717681
+            },
+            "baseline_bf16": {
+              "p50_ms": 6.869479519082233,
+              "p95_ms": 9.251429728465155,
+              "questions_per_second": 138.88760887469854
+            },
+            "native": {
+              "p50_ms": 4.0484455,
+              "p95_ms": 19.98267985,
+              "questions_per_second": 164.67655135593452
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 1.1856820971300774
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 2,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 237,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.023400000000000087,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 243,
+            "choice_mismatches": 2,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.0368,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 7.607944018673152,
+              "p95_ms": 38.415408786386244,
+              "questions_per_second": 173.78917197196165
+            },
+            "baseline_bf16": {
+              "p50_ms": 7.407275959849358,
+              "p95_ms": 17.456566961482167,
+              "questions_per_second": 231.2353363802548
+            },
+            "native": {
+              "p50_ms": 5.56573,
+              "p95_ms": 39.294312,
+              "questions_per_second": 205.72956570573277
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 0.8896977811705254
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 4,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 237,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.034399999999999986,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 241,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.0368,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 11.02307200198993,
+              "p95_ms": 81.93195998319425,
+              "questions_per_second": 189.29193877992154
+            },
+            "baseline_bf16": {
+              "p50_ms": 7.851496979128569,
+              "p95_ms": 31.5666631271597,
+              "questions_per_second": 361.27166342586037
+            },
+            "native": {
+              "p50_ms": 9.436947,
+              "p95_ms": 80.7797329,
+              "questions_per_second": 206.6229569487946
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 0.5719323652163422
+        },
+        {
+          "native_precision": "bf16",
+          "baseline_precision": "bf16",
+          "batch_size": 8,
+          "matching_precision": {
+            "questions": 250,
+            "question_failures": 229,
+            "choice_mismatches": 0,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.023900000000000032,
+            "passed": false
+          },
+          "baseline_cross_precision_drift": {
+            "questions": 250,
+            "question_failures": 243,
+            "choice_mismatches": 1,
+            "metadata_failures": 0,
+            "nonfinite_failures": 0,
+            "max_numeric_error": 0.0368,
+            "passed": false
+          },
+          "replay_failures": 0,
+          "passed": false,
+          "eligible_for_deployment": false,
+          "timing": {
+            "baseline_fp32": {
+              "p50_ms": 20.74881549924612,
+              "p95_ms": 178.42186837806366,
+              "questions_per_second": 170.6671668105477
+            },
+            "baseline_bf16": {
+              "p50_ms": 9.451147023355588,
+              "p95_ms": 55.62171785568352,
+              "questions_per_second": 458.4804742631956
+            },
+            "native": {
+              "p50_ms": 18.435112500000002,
+              "p95_ms": 168.7936815,
+              "questions_per_second": 183.75845032969497
+            }
+          },
+          "accepted_speedup": null,
+          "diagnostic_speedup_vs_default_bf16": 0.4007988576285726
+        }
+      ],
+      "project_revision": "8074adc25efbedb63d43326a50c3438dc7ab36e1",
+      "ggml_revision": "456172ec733a135778adcd32d00e576a58232e45",
+      "baseline_revision": "d113dca2512fb3eaca313534bc54c7162d87c1d4",
+      "eligible_modes": [
+        "fp32"
+      ]
+    }
+  ]
+}
