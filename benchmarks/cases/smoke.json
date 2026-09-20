@@ -1,0 +1,16 @@
+[
+  {
+    "id": "billing",
+    "state": {"subject": "Duplicate invoice", "body": "I was charged twice. Please refund the extra charge today."},
+    "questions": {
+      "department": {"type": "choice", "instructions": "Which department should handle this?", "criteria": {"billing": "payments and refunds", "technical": "bugs and outages", "sales": "new contracts"}},
+      "urgency": {"type": "score", "instructions": "How urgent is the request?", "criteria": ["not urgent", "soon", "immediate"]},
+      "refund": {"type": "noul", "instructions": "Does the customer request a refund?"}
+    }
+  },
+  {
+    "id": "single",
+    "state": "The service works well. Thank you!",
+    "questions": {"complaint": {"type": "noul", "instructions": "Is this a complaint?"}}
+  }
+]

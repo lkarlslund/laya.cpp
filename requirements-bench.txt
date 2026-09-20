@@ -1,0 +1,6 @@
+# Known working local environment; install a CUDA build of torch for your GPU.
+torch==2.11.0
+transformers==5.7.0
+huggingface-hub>=0.20,<2
+safetensors>=0.4,<1
+numpy>=1.26,<3

@@ -1,0 +1,7 @@
+/research/
+/models/
+/build*/
+/results/
+/.venv/
+__pycache__/
+*.py[cod]
