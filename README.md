@@ -94,3 +94,8 @@ outside Git in `models/`, `research/`, `build*/`, and `results/`.
 
 See [model support and validation](docs/models.md), [measured performance](docs/performance.md), [architecture](docs/architecture.md), [benchmarking](docs/benchmarking.md), and
 [development roadmap](docs/roadmap.md).
+
+## License
+
+The project is licensed under the [MIT License](LICENSE). Dependencies and
+downloaded model files retain their own licenses.

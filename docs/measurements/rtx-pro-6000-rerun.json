@@ -9,8 +9,6 @@
   "sampled_clock_limit": "Software power cap active; hardware thermal slowdown inactive in two spot checks.",
   "gpu_telemetry": {
     "samples": 461,
-    "start_local": "2026/09/20 13:25:07.858",
-    "end_local": "2026/09/20 13:28:57.961",
     "period_ms": 500,
     "scope": "Includes loading, validation, warmups and timing; aggregate device telemetry cannot identify other process activity.",
     "gpu_utilization_percent": {
@@ -39,47 +37,6 @@
       "median": 85.0
     }
   },
-  "stages": [
-    {
-      "name": "sweep",
-      "start_unix": 1789903507.8440425,
-      "end_unix": 1789903641.2171469,
-      "exit_code": 0,
-      "command": [
-        "python",
-        "benchmarks/sweep.py",
-        "--tensor-core-fp32",
-        "--validation",
-        "results/validation-fused-mlp.json",
-        "--warmup",
-        "5",
-        "--iterations",
-        "10",
-        "--output",
-        "results/retry-idle/sweep.json"
-      ]
-    },
-    {
-      "name": "native-comparison",
-      "start_unix": 1789903641.217462,
-      "end_unix": 1789903738.18674,
-      "exit_code": 0,
-      "command": [
-        "python",
-        "benchmarks/compare_native.py",
-        "--before",
-        "research/previous-native/laya-cli",
-        "--validation",
-        "results/validation-fused-mlp.json",
-        "--warmup",
-        "5",
-        "--iterations",
-        "10",
-        "--output",
-        "results/retry-idle/native-comparison.json"
-      ]
-    }
-  ],
   "fp32_baseline_sweep": {
     "schema_version": 2,
     "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",

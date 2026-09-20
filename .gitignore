@@ -5,3 +5,20 @@
 /.venv/
 __pycache__/
 *.py[cod]
+
+# Local deployment, service definitions, credentials and workstation settings.
+/local/
+/deploy/
+/deployment/
+/systemd/
+/scripts/local/
+*.service
+*.socket
+*.timer
+.env
+.env.*
+.secrets/
+/.vscode/
+/.idea/
+/CMakeUserPresets.json
+.DS_Store

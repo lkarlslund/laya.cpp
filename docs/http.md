@@ -92,6 +92,10 @@ interfaces. Set `LAYA_API_KEY` in the server environment to require
 `Authorization: Bearer <key>` on prediction and model discovery routes. If unset,
 authentication is disabled. Use a TLS reverse proxy for HTTPS deployments.
 
+Keep machine-specific launch scripts, service units, proxy configuration and
+credentials outside the repository or under ignored `local/`. These deployment
+files are not part of the source distribution.
+
 `GET /health` is unauthenticated and reports readiness, the loaded model, backend
 and question limit. The listener starts after model loading. SIGINT and SIGTERM
 stop listening and let accepted work finish before releasing the model.
