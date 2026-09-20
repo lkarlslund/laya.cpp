@@ -74,16 +74,42 @@ and sequence lengths. Eight has been validated across all three checkpoints.
 Bodies are limited to 1 MiB. Existing model context and option-budget limits still
 apply; long state is truncated by the model's preprocessing.
 
-Eight HTTP workers accept concurrent clients. Inference is serialized around the
-shared tokenizer and CUDA runtime. Concurrent HTTP requests are not automatically
-combined into a GPU batch; use `/predict` or several questions in one System One
-request for batched inference. Up to 32 additional connections can wait in the
-socket queue; excess connections are closed. Socket reads and writes time out
-after ten seconds, and idle keep-alive connections after two seconds.
+Concurrent requests to both prediction routes enter a bounded FIFO queue. One
+inference worker combines whole HTTP calls into a GPU batch and routes each
+result back to its caller. The tokenizer and runtime remain serialized.
 
-`elapsed_ms` on `/predict` measures preprocessing, inference and result formatting,
-excluding queue wait and HTTP transfer. Measure client latency when comparing
-different HTTP concurrency levels.
+| Option | Default | Meaning |
+|---|---|---|
+| `--max-batch-questions N` | `--max-questions` (8) | Total questions per GPU batch; must be at least the per-call limit |
+| `--batch-wait-ms N` | 2 | Maximum collection window from the oldest request's arrival, in milliseconds (0–1000) |
+| `--max-pending-requests N` | 32 | Maximum admitted HTTP calls, including active inference (1–256) |
+| `--no-batching` | off | Execute HTTP calls separately; explicit request arrays still work |
+
+A full batch or a next request that cannot fit ends collection immediately.
+Zero wait combines already queued work without intentionally delaying a batch.
+Waiting behind active inference can exceed the collection window. Batches are
+bounded by question count; the model's context limit bounds each question's
+sequence length. Larger limits need additional GPU memory.
+
+Admission beyond the pending limit returns JSON HTTP 503 with `Retry-After: 1`.
+There are eight more HTTP workers than the pending limit and a separate
+32-connection socket backlog; excess sockets close. Socket reads and writes
+time out after ten seconds; idle keep-alive connections after two seconds.
+Slow clients can still occupy HTTP workers before inference admission.
+
+Successful predictions include `X-Laya-Batch-Id` and `X-Laya-Batch-Offset`
+headers. The offset counts request objects within the batch, not questions.
+IDs are scoped to a server process. These headers allow clients to reconstruct
+the exact grouping for validation without exposing other callers' payloads.
+The JEV JSON envelope is unchanged. `elapsed_ms` on `/predict` measures the
+whole shared batch's preprocessing, inference and formatting, excluding queue
+wait and HTTP transfer.
+
+Batch shape and padding can change floating-point results. Compare correctness
+at the same precision and with the same batch grouping. Use `--no-batching`
+when fixed per-call grouping is required. Late input errors are isolated by
+retrying the affected batch's HTTP calls individually; a runtime failure fails
+the whole batch with 500.
 
 ## Authentication and lifecycle
 
@@ -96,9 +122,11 @@ Keep machine-specific launch scripts, service units, proxy configuration and
 credentials outside the repository or under ignored `local/`. These deployment
 files are not part of the source distribution.
 
-`GET /health` is unauthenticated and reports readiness, the loaded model, backend
-and question limit. The listener starts after model loading. SIGINT and SIGTERM
-stop listening and let accepted work finish before releasing the model.
+`GET /health` is unauthenticated and reports readiness, the loaded model, backend,
+batching limits, and current pending/queued call counts. The listener starts after
+model loading. SIGINT and SIGTERM
+stop admission, return 503 to queued calls, and let the selected batch finish
+before releasing the model.
 
 Errors are JSON objects under `error`, with `message` and numeric `status`:
 
@@ -109,12 +137,14 @@ Errors are JSON objects under `error`, with `message` and numeric `status`:
 | 404 / 405 | Unknown route / unsupported method |
 | 413 | Body or total question limit exceeded |
 | 422 | Invalid request, question or model selection |
+| 503 | Queue full or server stopping |
 | 500 | Inference or internal server failure |
 
 ## Validation
 
 `ctest --test-dir build-cuda --output-on-failure` includes model-independent HTTP
-tests for routes, envelopes, authentication, limits, errors and serialization.
+tests for routes, envelopes, authentication, question budgets, cross-route
+batching, overload, error isolation, response offsets and shutdown.
 The same tests run in a CPU-only build.
 
 ```sh
@@ -123,11 +153,22 @@ python benchmarks/http_validate.py
 
 The transport validation compares all 250 fixed questions against CLI answers
 on each checkpoint at batch sizes 1, 2, 4 and 8, then exercises the JEV endpoint
-with 1, 2, 4 and 8 concurrent clients. It requires exact public JSON equality
+with 1, 2, 4 and 8 concurrent clients, reconstructing actual GPU batches from
+response headers. It requires exact public JSON equality
 (apart from the documented HTTP model identity), and checks clean SIGTERM
-shutdown. It tests transport correctness; model acceptance and performance
-measurements remain separate in the [benchmark harness](benchmarking.md).
+shutdown. It also compares those same batches against the Python baseline,
+requiring exact categories and numeric error no greater than 0.0001. Pass
+`--bf16` to check BF16 on both sides; the default checks FP32. Performance
+measurements remain in the [benchmark harness](benchmarking.md). The HTTP report
+also includes observed batch sizes and single-pass client throughput/p50/p95
+latencies. Use `--no-batching` for a separate run without aggregation; these
+transport timings include collection waits and are not the warmed GPU benchmark.
 
-The [recorded HTTP validation](measurements/http-validation.json) passed all three
+The earlier, pre-queue [recorded HTTP validation](measurements/http-validation.json) passed all three
 checkpoints: 6,000 question evaluations with exact CLI parity across both routes,
 all tested batch/concurrency levels, and clean shutdowns.
+
+The [queue validation](measurements/http-queue-validation.json) passes all three
+models in FP32 and BF16: 12,000 HTTP question evaluations across both routes,
+with exact CLI parity. The 6,000 dynamically grouped evaluations also pass the
+same-precision Python acceptance rule. All six server runs shut down cleanly.

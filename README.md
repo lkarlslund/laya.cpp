@@ -108,7 +108,9 @@ build-cuda/bin/laya-cli --server --port 8080 --variant english \
 ```
 
 The default listener is `127.0.0.1:8080`. It also provides `/health`, `/v1/models`,
-and `/predict` for batched requests. See [HTTP serving](docs/http.md) for request
+and `/predict` for batched requests. Concurrent HTTP calls are automatically combined
+into batches of up to eight questions, with a 2 ms collection window and a bounded
+queue (503 on overload). See [HTTP serving](docs/http.md) for request
 examples, model aliases, concurrency, limits and optional bearer authentication.
 
 ## Models and tooling

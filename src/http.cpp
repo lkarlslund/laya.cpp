@@ -5,6 +5,9 @@
 #include <csignal>
 #include <iostream>
 #include <mutex>
+#include <condition_variable>
+#include <deque>
+#include <future>
 #include <thread>
 
 namespace laya {
@@ -26,7 +29,26 @@ struct http_server::impl {
     http_options options;
     predictor predict;
     httplib::Server server;
-    std::mutex inference;
+    struct unavailable : std::runtime_error { using std::runtime_error::runtime_error; };
+    struct reply {
+        json results;
+        double elapsed;
+        uint64_t batch;
+        size_t offset;
+    };
+    struct job {
+        json requests;
+        size_t questions;
+        std::chrono::steady_clock::time_point arrived = std::chrono::steady_clock::now();
+        std::promise<reply> result;
+    };
+    std::mutex mutex;
+    std::condition_variable changed;
+    std::deque<std::shared_ptr<job>> queue;
+    size_t pending = 0;
+    bool stopping = false;
+    uint64_t batch_id = 0;
+    std::thread worker;
     std::atomic<uint64_t> request_id{0};
     std::string model;
 
@@ -35,9 +57,13 @@ struct http_server::impl {
             throw std::invalid_argument("Unknown HTTP model variant");
         if (options.port < 0 || options.port > 65535 || options.max_questions == 0 || options.max_body_bytes == 0)
             throw std::invalid_argument("Invalid HTTP port or request limit");
+        if (!options.max_batch_questions) options.max_batch_questions = options.max_questions;
+        if (options.max_batch_questions < options.max_questions || options.max_pending_requests == 0 ||
+            options.max_pending_requests > 256 || options.batch_wait_ms > 1000)
+            throw std::invalid_argument("Invalid HTTP batching limits");
         model = options.variant == "english" ? "laya" : "laya-" + options.variant;
         // Bound both active connections and queued sockets. Excess sockets close.
-        server.new_task_queue = [] { return new httplib::ThreadPool(8, 32); };
+        server.new_task_queue = [this] { return new httplib::ThreadPool(options.max_pending_requests + 8, 32); };
         server.set_payload_max_length(options.max_body_bytes);
         server.set_tcp_nodelay(true);
         server.set_read_timeout(10);
@@ -55,8 +81,12 @@ struct http_server::impl {
             return httplib::Server::HandlerResponse::Unhandled;
         });
         server.Get("/health", [this](const auto&, auto& response) {
+            std::lock_guard lock(mutex);
             send(response, 200, {{"status", "ok"}, {"model", model}, {"variant", options.variant},
-                                 {"backend", options.backend}, {"max_questions", options.max_questions}});
+                                 {"backend", options.backend}, {"max_questions", options.max_questions},
+                                 {"pending_requests", pending}, {"queued_requests", queue.size()},
+                                 {"batching", options.batching}, {"max_batch_questions", options.max_batch_questions},
+                                 {"max_pending_requests", options.max_pending_requests}, {"batch_wait_ms", options.batch_wait_ms}});
         });
         server.Get("/v1/models", [this](const auto&, auto& response) {
             send(response, 200, {{"models", json::array({{{"name", model},
@@ -80,6 +110,112 @@ struct http_server::impl {
             catch (...) { std::cerr << "Unknown HTTP handler error\n"; }
             error(response, 500, "Internal server error");
         });
+    }
+
+    ~impl() {
+        stop();
+        if (worker.joinable()) worker.join();
+    }
+
+    void stop() {
+        {
+            std::lock_guard lock(mutex);
+            stopping = true;
+            for (auto& item : queue) {
+                item->result.set_exception(std::make_exception_ptr(unavailable("Server is stopping")));
+                --pending;
+            }
+            queue.clear();
+        }
+        changed.notify_all();
+        server.stop();
+    }
+
+    reply submit(json requests, size_t questions) {
+        auto item = std::make_shared<job>();
+        item->requests = std::move(requests);
+        item->questions = questions;
+        auto future = item->result.get_future();
+        {
+            std::lock_guard lock(mutex);
+            if (stopping) throw unavailable("Server is stopping");
+            if (pending >= options.max_pending_requests) throw unavailable("Inference queue is full");
+            // Lazy start keeps constructor failure and unused listeners thread-free.
+            if (!worker.joinable()) worker = std::thread([this] { dispatch(); });
+            queue.push_back(item);
+            ++pending;
+        }
+        changed.notify_one();
+        return future.get();
+    }
+
+    void execute(const std::vector<std::shared_ptr<job>>& jobs) {
+        const auto id = ++batch_id;
+        auto requests = json::array();
+        for (const auto& item : jobs)
+            for (const auto& request : item->requests) requests.push_back(request);
+        try {
+            const auto start = std::chrono::steady_clock::now();
+            auto results = predict(requests);
+            const double elapsed = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - start).count();
+            if (!results.is_array() || results.size() != requests.size())
+                throw std::runtime_error("Predictor returned an invalid result count");
+            size_t offset = 0;
+            // Prepare every slice before fulfilling promises.
+            std::vector<reply> replies;
+            for (const auto& item : jobs) {
+                auto slice = json::array();
+                for (size_t i = 0; i < item->requests.size(); ++i) slice.push_back(results.at(offset + i));
+                replies.push_back({std::move(slice), elapsed, id, offset});
+                offset += item->requests.size();
+            }
+            for (size_t i = 0; i < jobs.size(); ++i) jobs[i]->result.set_value(std::move(replies[i]));
+        } catch (...) {
+            auto failure = std::current_exception();
+            bool input_error = false;
+            try { std::rethrow_exception(failure); }
+            catch (const std::invalid_argument&) { input_error = true; }
+            catch (const std::length_error&) { input_error = true; }
+            catch (const json::exception&) { input_error = true; }
+            catch (...) {}
+            // Late preprocessing errors must not reject unrelated callers.
+            if (input_error && jobs.size() > 1) {
+                for (const auto& item : jobs) execute({item});
+            } else {
+                for (const auto& item : jobs) item->result.set_exception(failure);
+            }
+        }
+    }
+
+    void dispatch() {
+        for (;;) {
+            std::vector<std::shared_ptr<job>> jobs;
+            {
+                std::unique_lock lock(mutex);
+                changed.wait(lock, [&] { return stopping || !queue.empty(); });
+                if (stopping) return;
+                const auto deadline = queue.front()->arrived + std::chrono::milliseconds(options.batch_wait_ms);
+                size_t questions = 0;
+                for (;;) {
+                    while (!queue.empty() && questions + queue.front()->questions <= options.max_batch_questions) {
+                        questions += queue.front()->questions;
+                        jobs.push_back(queue.front());
+                        queue.pop_front();
+                        if (!options.batching) break;
+                    }
+                    if (stopping || !options.batching || questions == options.max_batch_questions || !queue.empty() ||
+                        std::chrono::steady_clock::now() >= deadline) break;
+                    changed.wait_until(lock, deadline);
+                }
+            }
+            // Already selected jobs finish during shutdown; queued jobs get 503.
+            execute(jobs);
+            {
+                std::lock_guard lock(mutex);
+                pending -= jobs.size();
+            }
+        }
     }
 
     void validate(const json& request, size_t& questions) const {
@@ -116,11 +252,11 @@ struct http_server::impl {
             if (requests.empty()) throw std::invalid_argument("Request array must not be empty");
             size_t questions = 0;
             for (const auto& item : requests) validate(item, questions);
-            // Queue waiting is excluded from compute timing, but included in client latency.
-            std::lock_guard lock(inference);
-            const auto start = std::chrono::steady_clock::now();
-            auto results = predict(requests);
-            double elapsed = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+            auto completed = submit(std::move(requests), questions);
+            auto& results = completed.results;
+            const double elapsed = completed.elapsed;
+            response.set_header("X-Laya-Batch-Id", std::to_string(completed.batch));
+            response.set_header("X-Laya-Batch-Offset", std::to_string(completed.offset));
             if (batch_route) {
                 send(response, 200, {{"results", results}, {"elapsed_ms", elapsed}, {"backend", options.backend}});
             } else {
@@ -128,6 +264,9 @@ struct http_server::impl {
                 result["model"] = model;
                 send(response, 200, result);
             }
+        } catch (const unavailable& e) {
+            response.set_header("Retry-After", "1");
+            error(response, 503, e.what());
         } catch (const json::parse_error& e) { error(response, 400, e.what());
         } catch (const std::length_error& e) { error(response, 413, e.what());
         } catch (const json::exception& e) { error(response, 422, e.what());
@@ -146,7 +285,7 @@ int http_server::bind() {
 }
 bool http_server::listen() { return p->server.listen_after_bind(); }
 bool http_server::running() const { return p->server.is_running(); }
-void http_server::stop() { p->server.stop(); }
+void http_server::stop() { p->stop(); }
 
 int serve_http(const http_options& options, http_server::predictor predict) {
     http_server server(options, std::move(predict));

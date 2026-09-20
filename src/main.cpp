@@ -16,10 +16,10 @@ int main(int argc, char** argv) {
         bool cuda = true, bf16 = false, flash = false, tensor_core = false, raw = false, prepare = false;
         bool server = false, http_option = false;
         laya::http_options http;
-        auto number = [](const std::string& value, int maximum) {
+        auto number = [](const std::string& value, int maximum, int minimum = 1) {
             int n = 0;
             const auto [end, error] = std::from_chars(value.data(), value.data()+value.size(), n);
-            if (error != std::errc{} || end != value.data()+value.size() || n < 1 || n > maximum)
+            if (error != std::errc{} || end != value.data()+value.size() || n < minimum || n > maximum)
                 throw std::invalid_argument("Invalid numeric option: " + value);
             return n;
         };
@@ -32,6 +32,10 @@ int main(int argc, char** argv) {
             else if (arg == "--host" && i+1 < argc) { http.host = argv[++i]; http_option = true; }
             else if (arg == "--port" && i+1 < argc) { http.port = number(argv[++i], 65535); http_option = true; }
             else if (arg == "--max-questions" && i+1 < argc) { http.max_questions = number(argv[++i], 4096); http_option = true; }
+            else if (arg == "--max-batch-questions" && i+1 < argc) { http.max_batch_questions = number(argv[++i], 4096); http_option = true; }
+            else if (arg == "--max-pending-requests" && i+1 < argc) { http.max_pending_requests = number(argv[++i], 256); http_option = true; }
+            else if (arg == "--batch-wait-ms" && i+1 < argc) { http.batch_wait_ms = number(argv[++i], 1000, 0); http_option = true; }
+            else if (arg == "--no-batching") { http.batching = false; http_option = true; }
             else if (arg == "--cpu") cuda = false;
             else if (arg == "--fp32") { bf16 = false; flash = false; }
             else if (arg == "--flash-fp32") { bf16 = false; flash = true; }
@@ -47,6 +51,7 @@ int main(int argc, char** argv) {
                              "Reads JSON lines from stdin when --input is absent. Each line is a request or request array.\n";
                 std::cout << "--server listens on HTTP: POST /v1/systemone (JEV schema), POST /predict (batch), GET /health, GET /v1/models.\n"
                              "--host ADDRESS (127.0.0.1), --port PORT (8080), --max-questions N (8).\n"
+                             "--max-batch-questions N (max-questions), --max-pending-requests N (32), --batch-wait-ms N (2), --no-batching.\n"
                              "Set LAYA_API_KEY to require a bearer token; /health is unauthenticated.\n";
                 return 0;
             } else throw std::invalid_argument("Unknown or incomplete option: " + arg);

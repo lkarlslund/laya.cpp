@@ -11,7 +11,7 @@ Implemented:
 - Fused encoder MLP processing and backend-generated dynamic attention masks.
 - Direct native-build comparisons with preserved libraries and acceptance gates.
 - Fixed 250-question corpus, tokenizer fixtures, numerical validation, and batch sweeps.
-- Native HTTP serving with JEV-compatible evaluation, model discovery, optional bearer authentication, and batch requests.
+- Native HTTP serving with JEV-compatible evaluation, model discovery, optional bearer authentication, and automatic request batching with bounded admission.
 
 Next optimization targets, each subject to the same correctness gate:
 

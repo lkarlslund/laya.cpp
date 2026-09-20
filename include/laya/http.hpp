@@ -12,6 +12,10 @@ struct http_options {
     std::string backend;
     std::string api_key;
     size_t max_questions = 8;
+    size_t max_batch_questions = 0; // 0 uses max_questions.
+    size_t max_pending_requests = 32; // Includes active inference.
+    unsigned batch_wait_ms = 2;
+    bool batching = true;
     size_t max_body_bytes = 1024 * 1024;
 };
 

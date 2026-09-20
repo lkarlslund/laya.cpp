@@ -1,0 +1,385 @@
+{
+  "date": "2026-09-20",
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "power_limit_watts": 450,
+  "python_source_revision": "d113dca2512fb3eaca313534bc54c7162d87c1d4",
+  "notes": "Single-pass HTTP timings on a shared GPU; includes request transport and batch collection. Performance is diagnostic, not a paired speedup claim.",
+  "reports": [
+    {
+      "complete": true,
+      "variants": [
+        {
+          "variant": "english",
+          "passed": true,
+          "questions": 250,
+          "requests": 250,
+          "batch_sizes": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "jev_concurrency": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "comparison": "exact public JSON, with canonical HTTP model identity",
+          "clean_shutdown": true,
+          "dynamic_batch_distribution": {
+            "1": {
+              "1": 250
+            },
+            "2": {
+              "2": 125
+            },
+            "4": {
+              "4": 62,
+              "2": 1
+            },
+            "8": {
+              "8": 31,
+              "2": 1
+            }
+          },
+          "http_timings": {
+            "1": {
+              "questions_per_second": 174.25983533832812,
+              "latency_p50_ms": 5.066579033154994,
+              "latency_p95_ms": 9.949280007276684
+            },
+            "2": {
+              "questions_per_second": 283.43212232476293,
+              "latency_p50_ms": 5.784716980997473,
+              "latency_p95_ms": 15.445611032191664
+            },
+            "4": {
+              "questions_per_second": 377.2977635665706,
+              "latency_p50_ms": 7.946403988171369,
+              "latency_p95_ms": 26.232786010950804
+            },
+            "8": {
+              "questions_per_second": 400.82227051826726,
+              "latency_p50_ms": 12.562359974253923,
+              "latency_p95_ms": 55.889683950226754
+            }
+          },
+          "python_acceptance": "exact_categories_absolute_numeric_0.0001"
+        },
+        {
+          "variant": "multilingual",
+          "passed": true,
+          "questions": 250,
+          "requests": 250,
+          "batch_sizes": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "jev_concurrency": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "comparison": "exact public JSON, with canonical HTTP model identity",
+          "clean_shutdown": true,
+          "dynamic_batch_distribution": {
+            "1": {
+              "1": 250
+            },
+            "2": {
+              "2": 125
+            },
+            "4": {
+              "4": 62,
+              "2": 1
+            },
+            "8": {
+              "6": 1,
+              "2": 2,
+              "8": 30
+            }
+          },
+          "http_timings": {
+            "1": {
+              "questions_per_second": 203.85344958921047,
+              "latency_p50_ms": 4.225227981805801,
+              "latency_p95_ms": 9.437853004783392
+            },
+            "2": {
+              "questions_per_second": 343.57964097996245,
+              "latency_p50_ms": 4.556734988000244,
+              "latency_p95_ms": 14.810439955908805
+            },
+            "4": {
+              "questions_per_second": 468.90302300295707,
+              "latency_p50_ms": 5.836945027112961,
+              "latency_p95_ms": 25.249005004297942
+            },
+            "8": {
+              "questions_per_second": 544.8180264728257,
+              "latency_p50_ms": 6.730284017976373,
+              "latency_p95_ms": 53.655850992072374
+            }
+          },
+          "python_acceptance": "exact_categories_absolute_numeric_0.0001"
+        },
+        {
+          "variant": "typed-decisions",
+          "passed": true,
+          "questions": 250,
+          "requests": 250,
+          "batch_sizes": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "jev_concurrency": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "comparison": "exact public JSON, with canonical HTTP model identity",
+          "clean_shutdown": true,
+          "dynamic_batch_distribution": {
+            "1": {
+              "1": 250
+            },
+            "2": {
+              "2": 125
+            },
+            "4": {
+              "4": 62,
+              "2": 1
+            },
+            "8": {
+              "6": 31,
+              "2": 32
+            }
+          },
+          "http_timings": {
+            "1": {
+              "questions_per_second": 151.69708615116343,
+              "latency_p50_ms": 5.058960989117622,
+              "latency_p95_ms": 16.73905801726505
+            },
+            "2": {
+              "questions_per_second": 235.784756992045,
+              "latency_p50_ms": 5.860708013642579,
+              "latency_p95_ms": 27.572884981054813
+            },
+            "4": {
+              "questions_per_second": 269.4299706199893,
+              "latency_p50_ms": 8.271983999293298,
+              "latency_p95_ms": 58.04654199164361
+            },
+            "8": {
+              "questions_per_second": 278.6204448912596,
+              "latency_p50_ms": 12.549328966997564,
+              "latency_p95_ms": 115.50401098793373
+            }
+          },
+          "python_acceptance": "exact_categories_absolute_numeric_0.0001"
+        }
+      ],
+      "native_sha256": "83b16cb8e1d7df2609a966de312323e70e453cd357e98061e8f9404200bf3285",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "direct_model_path": false,
+      "precision": "fp32",
+      "batching": true
+    },
+    {
+      "complete": true,
+      "variants": [
+        {
+          "variant": "english",
+          "passed": true,
+          "questions": 250,
+          "requests": 250,
+          "batch_sizes": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "jev_concurrency": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "comparison": "exact public JSON, with canonical HTTP model identity",
+          "clean_shutdown": true,
+          "dynamic_batch_distribution": {
+            "1": {
+              "1": 250
+            },
+            "2": {
+              "2": 125
+            },
+            "4": {
+              "4": 62,
+              "2": 1
+            },
+            "8": {
+              "8": 31,
+              "2": 1
+            }
+          },
+          "http_timings": {
+            "1": {
+              "questions_per_second": 180.54094275380947,
+              "latency_p50_ms": 4.986764979548752,
+              "latency_p95_ms": 9.360682975966483
+            },
+            "2": {
+              "questions_per_second": 323.8512708215019,
+              "latency_p50_ms": 5.2651509759016335,
+              "latency_p95_ms": 12.47018901631236
+            },
+            "4": {
+              "questions_per_second": 492.13206616607545,
+              "latency_p50_ms": 6.220857962034643,
+              "latency_p95_ms": 19.716234994120896
+            },
+            "8": {
+              "questions_per_second": 714.0306686636912,
+              "latency_p50_ms": 7.007865002378821,
+              "latency_p95_ms": 29.015711974352598
+            }
+          },
+          "python_acceptance": "exact_categories_absolute_numeric_0.0001"
+        },
+        {
+          "variant": "multilingual",
+          "passed": true,
+          "questions": 250,
+          "requests": 250,
+          "batch_sizes": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "jev_concurrency": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "comparison": "exact public JSON, with canonical HTTP model identity",
+          "clean_shutdown": true,
+          "dynamic_batch_distribution": {
+            "1": {
+              "1": 250
+            },
+            "2": {
+              "2": 125
+            },
+            "4": {
+              "4": 62,
+              "2": 1
+            },
+            "8": {
+              "6": 1,
+              "2": 2,
+              "8": 30
+            }
+          },
+          "http_timings": {
+            "1": {
+              "questions_per_second": 210.89577339841878,
+              "latency_p50_ms": 4.185951955150813,
+              "latency_p95_ms": 8.624590991530567
+            },
+            "2": {
+              "questions_per_second": 393.44243512659807,
+              "latency_p50_ms": 4.365221015177667,
+              "latency_p95_ms": 9.995623026043177
+            },
+            "4": {
+              "questions_per_second": 636.0299697275847,
+              "latency_p50_ms": 4.896855039987713,
+              "latency_p95_ms": 14.770979003515095
+            },
+            "8": {
+              "questions_per_second": 1013.8404468635008,
+              "latency_p50_ms": 4.392872971948236,
+              "latency_p95_ms": 24.184871988836676
+            }
+          },
+          "python_acceptance": "exact_categories_absolute_numeric_0.0001"
+        },
+        {
+          "variant": "typed-decisions",
+          "passed": true,
+          "questions": 250,
+          "requests": 250,
+          "batch_sizes": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "jev_concurrency": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "comparison": "exact public JSON, with canonical HTTP model identity",
+          "clean_shutdown": true,
+          "dynamic_batch_distribution": {
+            "1": {
+              "1": 250
+            },
+            "2": {
+              "2": 125
+            },
+            "4": {
+              "4": 62,
+              "2": 1
+            },
+            "8": {
+              "4": 62,
+              "2": 1
+            }
+          },
+          "http_timings": {
+            "1": {
+              "questions_per_second": 159.74618432587178,
+              "latency_p50_ms": 5.193796008825302,
+              "latency_p95_ms": 13.94315401557833
+            },
+            "2": {
+              "questions_per_second": 296.6878095598984,
+              "latency_p50_ms": 5.285269988235086,
+              "latency_p95_ms": 17.07482401980087
+            },
+            "4": {
+              "questions_per_second": 425.31316207246994,
+              "latency_p50_ms": 6.338981038425118,
+              "latency_p95_ms": 28.260215010959655
+            },
+            "8": {
+              "questions_per_second": 596.8853923684444,
+              "latency_p50_ms": 7.225646986626089,
+              "latency_p95_ms": 49.368652049452066
+            }
+          },
+          "python_acceptance": "exact_categories_absolute_numeric_0.0001"
+        }
+      ],
+      "native_sha256": "83b16cb8e1d7df2609a966de312323e70e453cd357e98061e8f9404200bf3285",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "direct_model_path": false,
+      "precision": "bf16",
+      "batching": true
+    }
+  ]
+}
