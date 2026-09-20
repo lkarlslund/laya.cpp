@@ -44,7 +44,9 @@ void biased_linear(ggml_backend_cuda_context &context, const ggml_tensor *input,
     bf16_bias_kernel<<<(m + 255) / 256, 256, 0, context.stream()>>>(static_cast<const float *>(bias->data),
                                                                     converted_bias.get(), m, m);
     constexpr size_t workspace_size = 1024 * 1024;
-    ggml_cuda_pool_alloc<char> workspace(context.pool(), workspace_size);
+    ggml_cuda_pool_alloc<char> workspace(context.pool(), workspace_size + 255);
+    auto aligned_workspace =
+        reinterpret_cast<void *>((reinterpret_cast<uintptr_t>(workspace.get()) + 255) & ~uintptr_t(255));
     cublasLtMatmulDesc_t operation;
     cublasLtMatrixLayout_t a, b, c;
     cublasLtMatmulPreference_t preference;
@@ -79,17 +81,19 @@ void biased_linear(ggml_backend_cuda_context &context, const ggml_tensor *input,
     GGML_ASSERT(returned == 1);
     float alpha = 1, beta = 0;
     CUBLAS_CHECK(cublasLtMatmul(handle.value, operation, &alpha, weight->data, a, input->data, b, &beta, output, c,
-                                output, c, &result.algo, workspace.get(), workspace_size, context.stream()));
+                                output, c, &result.algo, aligned_workspace, workspace_size, context.stream()));
     cublasLtMatmulPreferenceDestroy(preference);
     cublasLtMatrixLayoutDestroy(a);
     cublasLtMatrixLayoutDestroy(b);
     cublasLtMatrixLayoutDestroy(c);
     cublasLtMatmulDescDestroy(operation);
 }
-__global__ void bf16_float_kernel(const nv_bfloat16 *input, float *output, int64_t count) {
+__global__ void bf16_float_kernel(const nv_bfloat16 *input, float *output, int64_t count, const float *residual) {
     int64_t i = int64_t(blockIdx.x) * blockDim.x + threadIdx.x;
-    if (i < count)
-        output[i] = __bfloat162float(input[i]);
+    if (i < count) {
+        float value = __bfloat162float(input[i]);
+        output[i] = residual ? __fadd_rn(residual[i], value) : value;
+    }
 }
 
 __global__ void gelu_bf16_kernel(const float *input, float *output, int64_t count) {
@@ -97,6 +101,17 @@ __global__ void gelu_bf16_kernel(const float *input, float *output, int64_t coun
     if (i < count) {
         float x = input[i];
         output[i] = __bfloat162float(__float2bfloat16_rn(x * .5f * (1.f + erff(x * .7071067811865475244f))));
+    }
+}
+
+// Preserve the GELU and product roundings while writing projection input directly.
+template <typename T> __global__ void mlp_bf16_kernel(const T *input, nv_bfloat16 *output, int width, int64_t count) {
+    int64_t i = int64_t(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (i < count) {
+        int64_t source = (i / width) * (2 * width) + i % width;
+        float x = input[source];
+        float activated = __bfloat162float(__float2bfloat16_rn(x * .5f * (1.f + erff(x * .7071067811865475244f))));
+        output[i] = __float2bfloat16_rn(activated * float(input[source + width]));
     }
 }
 
@@ -113,7 +128,8 @@ __device__ moments combine_moments(moments left, moments right) {
     float delta = left.mean - right.mean;
     return {a * right.mean + b * left.mean, right.m2 + left.m2 + delta * delta * right.count * b, count};
 }
-__global__ void norm_bf16_kernel(const float *input, const float *weight, const float *bias, float *output, int width) {
+template <typename T>
+__global__ void norm_bf16_kernel(const float *input, const float *weight, const float *bias, T *output, int width) {
     __shared__ moments warp_stats[4];
     __shared__ float mean, inv;
     int tid = threadIdx.x, lane = tid % 32, warp = tid / 32;
@@ -153,7 +169,8 @@ __global__ void norm_bf16_kernel(const float *input, const float *weight, const 
     }
 }
 
-__global__ void pack_qkv_bf16_kernel(const float *input, const float *cosine, float *output, int length, int heads,
+template <typename T>
+__global__ void pack_qkv_bf16_kernel(const T *input, const float *cosine, nv_bfloat16 *output, int length, int heads,
                                      int batch, int64_t count) {
     const int64_t i = int64_t(blockIdx.x) * blockDim.x + threadIdx.x;
     if (i >= count)
@@ -163,7 +180,7 @@ __global__ void pack_qkv_bf16_kernel(const float *input, const float *cosine, fl
     const int64_t source = (int64_t(row) * length + token) * heads * 64 * 3 + component * heads * 64 + head * 64 + d;
     float value = input[source];
     if (cosine && component < 2) {
-        const float rotated = input[source + (d < 32 ? 32 : -32)] * (d < 32 ? -1.f : 1.f);
+        const float rotated = float(input[source + (d < 32 ? 32 : -32)]) * (d < 32 ? -1.f : 1.f);
         float c = cosf(cosine[token * 64 + d]);
         float s = sinf(cosine[token * 64 + d]);
         value = __fadd_rn(__fmul_rn(value, c), __fmul_rn(rotated, s));
@@ -187,16 +204,18 @@ template <bool Masked, bool Split = false>
 __global__ void attention_bf16_mma(const float *q, const nv_bfloat16 *k, const nv_bfloat16 *v, const half *mask,
                                    float *output, int length, int keys, int heads, strides qs, strides ks, strides vs,
                                    strides ms, int mask_heads, int mask_batches, float scale, float *lse = nullptr,
-                                   int batches = 1, int splits = 1) {
+                                   int batches = 1, int splits = 1, bool local = false) {
     using namespace nvcuda;
     constexpr int tile_keys = Split ? 256 : Masked ? 64 : 128;
-    extern __shared__ float storage[];
+    // Eight padding elements spread simultaneous row accesses across shared-memory banks.
+    constexpr int feature_stride = 72, score_stride = tile_keys + 8;
+    extern __shared__ __align__(32) float storage[];
     auto qq = reinterpret_cast<nv_bfloat16 *>(storage);
-    auto kk = qq + 16 * 64;
-    auto pp = kk + tile_keys * 64;
-    auto ss = reinterpret_cast<float *>(pp + 16 * tile_keys);
-    auto oo = ss + 16 * tile_keys;
-    auto maximum = oo + 16 * 64;
+    auto kk = qq + 16 * feature_stride;
+    auto pp = kk + tile_keys * feature_stride;
+    auto ss = reinterpret_cast<float *>(pp + 16 * score_stride);
+    auto oo = ss + 16 * score_stride;
+    auto maximum = oo + 16 * feature_stride;
     auto sums = maximum + 16;
     auto correction = sums + 16;
     int tid = threadIdx.x, warp = tid / 32, head = blockIdx.y, batch = Split ? blockIdx.z / splits : blockIdx.z,
@@ -208,9 +227,9 @@ __global__ void attention_bf16_mma(const float *q, const nv_bfloat16 *k, const n
     int last = Split ? min(blocks, (split + 1) * per_split) : blocks;
     for (int i = tid; i < 16 * 64; i += 128) {
         int row = i / 64, d = i % 64;
-        qq[i] = __float2bfloat16_rn(
+        qq[row * feature_stride + d] = __float2bfloat16_rn(
             query0 + row < length ? q[batch * qs.batch + head * qs.head + (query0 + row) * qs.token + d] : 0);
-        oo[i] = 0;
+        oo[row * feature_stride + d] = 0;
     }
     if (tid < 16) {
         maximum[tid] = -INFINITY;
@@ -220,9 +239,14 @@ __global__ void attention_bf16_mma(const float *q, const nv_bfloat16 *k, const n
     float row_sum = 0;
     for (int step = 0; step < last - first; ++step) {
         int start = Masked ? step * tile_keys : (last - 1 - step) * tile_keys;
+        // Entirely masked tiles contribute exact zeros. Keep tile zero for the
+        // padded-query fallback; retain the original order of all active tiles.
+        if (local && start != 0 && (start + tile_keys - 1 < query0 - 64 || start > query0 + 15 + 64))
+            continue;
         for (int i = tid; i < tile_keys * 64; i += 128) {
             int row = start + i / 64, d = i % 64;
-            kk[i] = row < keys ? k[batch * ks.batch + head * ks.head + row * ks.token + d] : __float2bfloat16(0);
+            kk[(i / 64) * feature_stride + d] =
+                row < keys ? k[batch * ks.batch + head * ks.head + row * ks.token + d] : __float2bfloat16(0);
         }
         __syncthreads();
         if constexpr (Masked) {
@@ -231,13 +255,14 @@ __global__ void attention_bf16_mma(const float *q, const nv_bfloat16 *k, const n
                 float acc[4] = {0, 0, 0, 0};
                 for (int d = 0; d < 64; d += 8) {
                     int col = d + part * 2;
-                    mma8(acc, bf16_pair(qq[group * 64 + col], qq[group * 64 + col + 1]),
-                         bf16_pair(qq[(group + 8) * 64 + col], qq[(group + 8) * 64 + col + 1]),
-                         bf16_pair(kk[(tile * 8 + group) * 64 + col], kk[(tile * 8 + group) * 64 + col + 1]));
+                    mma8(acc, bf16_pair(qq[group * feature_stride + col], qq[group * feature_stride + col + 1]),
+                         bf16_pair(qq[(group + 8) * feature_stride + col], qq[(group + 8) * feature_stride + col + 1]),
+                         bf16_pair(kk[(tile * 8 + group) * feature_stride + col],
+                                   kk[(tile * 8 + group) * feature_stride + col + 1]));
                 }
                 for (int r = 0; r < 2; ++r)
                     for (int c = 0; c < 2; ++c)
-                        ss[(group + 8 * r) * tile_keys + tile * 8 + part * 2 + c] = acc[r * 2 + c];
+                        ss[(group + 8 * r) * score_stride + tile * 8 + part * 2 + c] = acc[r * 2 + c];
             }
         } else {
             for (int tile = warp; tile < tile_keys / 16; tile += 4) {
@@ -246,17 +271,18 @@ __global__ void attention_bf16_mma(const float *q, const nv_bfloat16 *k, const n
                 for (int d = 0; d < 64; d += 16) {
                     wmma::fragment<wmma::matrix_a, 16, 16, 16, nv_bfloat16, wmma::row_major> a;
                     wmma::fragment<wmma::matrix_b, 16, 16, 16, nv_bfloat16, wmma::col_major> b;
-                    wmma::load_matrix_sync(a, qq + d, 64);
-                    wmma::load_matrix_sync(b, kk + tile * 16 * 64 + d, 64);
+                    wmma::load_matrix_sync(a, qq + d, feature_stride);
+                    wmma::load_matrix_sync(b, kk + tile * 16 * feature_stride + d, feature_stride);
                     wmma::mma_sync(acc, a, b, acc);
                 }
-                wmma::store_matrix_sync(ss + tile * 16, acc, tile_keys, wmma::mem_row_major);
+                wmma::store_matrix_sync(ss + tile * 16, acc, score_stride, wmma::mem_row_major);
             }
         }
         __syncthreads();
         for (int i = tid; i < tile_keys * 64; i += 128) {
             int row = start + i / 64, d = i % 64;
-            kk[i] = row < keys ? v[batch * vs.batch + head * vs.head + row * vs.token + d] : __float2bfloat16(0);
+            kk[(i / 64) * feature_stride + d] =
+                row < keys ? v[batch * vs.batch + head * vs.head + row * vs.token + d] : __float2bfloat16(0);
         }
         if (tid < 64) {
             int row = tid / 4, part = tid % 4;
@@ -269,11 +295,11 @@ __global__ void attention_bf16_mma(const float *q, const nv_bfloat16 *k, const n
                                                          (head % mask_heads) * ms.head + query * ms.token + key])
                                      : 0;
                     float value = key < keys && query < length && bias != -INFINITY
-                                      ? ss[row * tile_keys + j + t] + bias / scale
+                                      ? ss[row * score_stride + j + t] + bias / scale
                                       : -INFINITY;
                     if constexpr (Masked)
                         value = __fmul_rn(__fmul_rn(value, scale), 1.4426950408889634f);
-                    ss[row * tile_keys + j + t] = value;
+                    ss[row * score_stride + j + t] = value;
                     mx = fmaxf(mx, value);
                 }
             mx = fmaxf(mx, __shfl_xor_sync(0xffffffff, mx, 2));
@@ -286,12 +312,13 @@ __global__ void attention_bf16_mma(const float *q, const nv_bfloat16 *k, const n
             float partial[2] = {0, 0};
             for (int j = 2 * part; j < tile_keys; j += 8)
                 for (int t = 0; t < 2; ++t) {
-                    float p = mx == -INFINITY
-                                  ? 0
-                                  : exp2f(Masked ? ss[row * tile_keys + j + t] - mx
-                                                 : __fmul_rn(ss[row * tile_keys + j + t], scale * 1.4426950408889634f) -
-                                                       mx * (scale * 1.4426950408889634f));
-                    pp[row * tile_keys + j + t] = __float2bfloat16_rn(p);
+                    float p =
+                        mx == -INFINITY
+                            ? 0
+                            : exp2f(Masked ? ss[row * score_stride + j + t] - mx
+                                           : __fmul_rn(ss[row * score_stride + j + t], scale * 1.4426950408889634f) -
+                                                 mx * (scale * 1.4426950408889634f));
+                    pp[row * score_stride + j + t] = __float2bfloat16_rn(p);
                     if constexpr (Masked)
                         partial[j / 32] += p;
                     // The first sum update fuses the rescale with addition.
@@ -319,7 +346,7 @@ __global__ void attention_bf16_mma(const float *q, const nv_bfloat16 *k, const n
         }
         __syncthreads();
         for (int i = tid; i < 16 * 64; i += 128)
-            oo[i] *= correction[i / 64];
+            oo[(i / 64) * feature_stride + i % 64] *= correction[i / 64];
         __syncthreads();
         if constexpr (Masked) {
             int group = tid % 32 / 4, part = tid % 4;
@@ -327,28 +354,29 @@ __global__ void attention_bf16_mma(const float *q, const nv_bfloat16 *k, const n
                 float acc[4];
                 for (int r = 0; r < 2; ++r)
                     for (int c = 0; c < 2; ++c)
-                        acc[r * 2 + c] = oo[(group + 8 * r) * 64 + tile * 8 + part * 2 + c];
+                        acc[r * 2 + c] = oo[(group + 8 * r) * feature_stride + tile * 8 + part * 2 + c];
                 for (int j = 0; j < tile_keys; j += 8) {
                     int col = j + part * 2;
-                    mma8(acc, bf16_pair(pp[group * tile_keys + col], pp[group * tile_keys + col + 1]),
-                         bf16_pair(pp[(group + 8) * tile_keys + col], pp[(group + 8) * tile_keys + col + 1]),
-                         bf16_pair(kk[col * 64 + tile * 8 + group], kk[(col + 1) * 64 + tile * 8 + group]));
+                    mma8(acc, bf16_pair(pp[group * score_stride + col], pp[group * score_stride + col + 1]),
+                         bf16_pair(pp[(group + 8) * score_stride + col], pp[(group + 8) * score_stride + col + 1]),
+                         bf16_pair(kk[col * feature_stride + tile * 8 + group],
+                                   kk[(col + 1) * feature_stride + tile * 8 + group]));
                 }
                 for (int r = 0; r < 2; ++r)
                     for (int c = 0; c < 2; ++c)
-                        oo[(group + 8 * r) * 64 + tile * 8 + part * 2 + c] = acc[r * 2 + c];
+                        oo[(group + 8 * r) * feature_stride + tile * 8 + part * 2 + c] = acc[r * 2 + c];
             }
         } else {
             wmma::fragment<wmma::accumulator, 16, 16, 16, float> acc;
-            wmma::load_matrix_sync(acc, oo + warp * 16, 64, wmma::mem_row_major);
+            wmma::load_matrix_sync(acc, oo + warp * 16, feature_stride, wmma::mem_row_major);
             for (int j = 0; j < tile_keys; j += 16) {
                 wmma::fragment<wmma::matrix_a, 16, 16, 16, nv_bfloat16, wmma::row_major> a;
                 wmma::fragment<wmma::matrix_b, 16, 16, 16, nv_bfloat16, wmma::row_major> b;
-                wmma::load_matrix_sync(a, pp + j, tile_keys);
-                wmma::load_matrix_sync(b, kk + j * 64 + warp * 16, 64);
+                wmma::load_matrix_sync(a, pp + j, score_stride);
+                wmma::load_matrix_sync(b, kk + j * feature_stride + warp * 16, feature_stride);
                 wmma::mma_sync(acc, a, b, acc);
             }
-            wmma::store_matrix_sync(oo + warp * 16, acc, 64, wmma::mem_row_major);
+            wmma::store_matrix_sync(oo + warp * 16, acc, feature_stride, wmma::mem_row_major);
         }
         __syncthreads();
     }
@@ -374,7 +402,7 @@ __global__ void attention_bf16_mma(const float *q, const nv_bfloat16 *k, const n
     for (int i = tid; i < 16 * 64; i += 128) {
         int row = query0 + i / 64, d = i % 64;
         if (row < length) {
-            float value = oo[i] * sums[i / 64];
+            float value = oo[(i / 64) * feature_stride + d] * sums[i / 64];
             output[(((Split ? split * batches : 0) + batch) * length + row) * heads * 64 + head * 64 + d] =
                 Split ? value : __bfloat162float(__float2bfloat16_rn(value));
         }
@@ -420,13 +448,13 @@ int attention_splits(int length, int keys, int heads, int batches, int processor
     return 1;
 }
 constexpr int attention_shared(int keys) {
-    return 2 * (16 * 64 + keys * 64 + 16 * keys) + 4 * (16 * keys + 16 * 64 + 48);
+    return 2 * (16 * 72 + keys * 72 + 16 * (keys + 8)) + 4 * (16 * (keys + 8) + 16 * 72 + 48);
 }
 
 } // namespace
 void laya_attention_bf16(const float *q, const nv_bfloat16 *k, const nv_bfloat16 *v, const half *mask, float *output,
                          int length, int keys, int heads, int batches, strides qs, strides ks, strides vs, strides ms,
-                         int mh, int mb, float scale, bool masked, ggml_backend_cuda_context &context) {
+                         int mh, int mb, float scale, bool masked, bool local, ggml_backend_cuda_context &context) {
     auto stream = context.stream();
     int splits =
         masked ? 1 : attention_splits(length, keys, heads, batches, ggml_cuda_info().devices[context.device].nsm);
@@ -442,7 +470,7 @@ void laya_attention_bf16(const float *q, const nv_bfloat16 *k, const nv_bfloat16
         combine_attention<<<(count + 255) / 256, 256, 0, stream>>>(partial.get(), lse.get(), output, count, splits);
     } else if (masked)
         attention_bf16_mma<true><<<dim3((length + 15) / 16, heads, batches), 128, attention_shared(64), stream>>>(
-            q, k, v, mask, output, length, keys, heads, qs, ks, vs, ms, mh, mb, scale);
+            q, k, v, mask, output, length, keys, heads, qs, ks, vs, ms, mh, mb, scale, nullptr, 1, 1, local);
     else
         attention_bf16_mma<false><<<dim3((length + 15) / 16, heads, batches), 128, attention_shared(128), stream>>>(
             q, k, v, mask, output, length, keys, heads, qs, ks, vs, ms, mh, mb, scale);
@@ -453,36 +481,60 @@ bool laya_cuda_bf16(ggml_backend_cuda_context &context, ggml_tensor *output) {
     if (!std::strcmp(output->name, "laya.linear-bf16")) {
         const auto weight = output->src[1], bias = output->src[2];
         const auto count = ggml_nelements(output);
-        ggml_cuda_pool_alloc<nv_bfloat16> temporary(context.pool(), count);
+        ggml_cuda_pool_alloc<nv_bfloat16> temporary(context.pool());
+        auto destination =
+            output->type == GGML_TYPE_BF16 ? static_cast<nv_bfloat16 *>(output->data) : temporary.alloc(count);
         if (bias && weight->ne[1] > 1)
-            biased_linear(context, input, weight, bias, temporary.get());
+            biased_linear(context, input, weight, bias, destination);
         else {
             if (bias)
                 bf16_bias_kernel<<<(count + 255) / 256, 256, 0, context.stream()>>>(
-                    static_cast<const float *>(bias->data), temporary.get(), output->ne[0], count);
+                    static_cast<const float *>(bias->data), destination, output->ne[0], count);
             float alpha = 1.f, beta = bias ? 1.f : 0.f;
             CUBLAS_CHECK(cublasGemmEx(context.cublas_handle(), CUBLAS_OP_T, CUBLAS_OP_N, weight->ne[1], input->ne[1],
                                       input->ne[0], &alpha, weight->data, CUDA_R_16BF, weight->ne[0], input->data,
-                                      CUDA_R_16BF, input->ne[0], &beta, temporary.get(), CUDA_R_16BF, output->ne[0],
+                                      CUDA_R_16BF, input->ne[0], &beta, destination, CUDA_R_16BF, output->ne[0],
                                       CUBLAS_COMPUTE_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP));
         }
-        bf16_float_kernel<<<(count + 255) / 256, 256, 0, context.stream()>>>(temporary.get(),
-                                                                             static_cast<float *>(output->data), count);
+        if (output->type == GGML_TYPE_F32)
+            bf16_float_kernel<<<(count + 255) / 256, 256, 0, context.stream()>>>(
+                temporary.get(), static_cast<float *>(output->data), count,
+                output->src[3] ? static_cast<const float *>(output->src[3]->data) : nullptr);
     } else if (!std::strcmp(output->name, "laya.gelu-bf16")) {
         auto count = ggml_nelements(input);
         gelu_bf16_kernel<<<(count + 255) / 256, 256, 0, context.stream()>>>(static_cast<const float *>(input->data),
                                                                             static_cast<float *>(output->data), count);
+    } else if (!std::strcmp(output->name, "laya.mlp-bf16")) {
+        auto count = ggml_nelements(output);
+        if (input->type == GGML_TYPE_BF16)
+            mlp_bf16_kernel<<<(count + 255) / 256, 256, 0, context.stream()>>>(
+                static_cast<const nv_bfloat16 *>(input->data), static_cast<nv_bfloat16 *>(output->data), output->ne[0],
+                count);
+        else
+            mlp_bf16_kernel<<<(count + 255) / 256, 256, 0, context.stream()>>>(static_cast<const float *>(input->data),
+                                                                               static_cast<nv_bfloat16 *>(output->data),
+                                                                               output->ne[0], count);
     } else if (!std::strcmp(output->name, "laya.norm-bf16")) {
-        norm_bf16_kernel<<<ggml_nelements(input) / input->ne[0], 128, 0, context.stream()>>>(
-            static_cast<const float *>(input->data), static_cast<const float *>(output->src[1]->data),
-            output->src[2] ? static_cast<const float *>(output->src[2]->data) : nullptr,
-            static_cast<float *>(output->data), input->ne[0]);
+        auto launch = [&](auto *destination) {
+            norm_bf16_kernel<<<ggml_nelements(input) / input->ne[0], 128, 0, context.stream()>>>(
+                static_cast<const float *>(input->data), static_cast<const float *>(output->src[1]->data),
+                output->src[2] ? static_cast<const float *>(output->src[2]->data) : nullptr, destination, input->ne[0]);
+        };
+        if (output->type == GGML_TYPE_BF16)
+            launch(static_cast<nv_bfloat16 *>(output->data));
+        else
+            launch(static_cast<float *>(output->data));
     } else if (!std::strcmp(output->name, "laya.pack-qkv-bf16")) {
         auto count = ggml_nelements(output);
-        pack_qkv_bf16_kernel<<<(count + 255) / 256, 256, 0, context.stream()>>>(
-            static_cast<const float *>(input->data),
-            output->src[1] ? static_cast<const float *>(output->src[1]->data) : nullptr,
-            static_cast<float *>(output->data), output->ne[1], output->ne[2], output->ne[3] / 3, count);
+        auto launch = [&](const auto *source) {
+            pack_qkv_bf16_kernel<<<(count + 255) / 256, 256, 0, context.stream()>>>(
+                source, output->src[1] ? static_cast<const float *>(output->src[1]->data) : nullptr,
+                static_cast<nv_bfloat16 *>(output->data), output->ne[1], output->ne[2], output->ne[3] / 3, count);
+        };
+        if (input->type == GGML_TYPE_BF16)
+            launch(static_cast<const nv_bfloat16 *>(input->data));
+        else
+            launch(static_cast<const float *>(input->data));
     } else
         return false;
     CUDA_CHECK(cudaGetLastError());

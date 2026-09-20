@@ -7,4 +7,5 @@ struct strides {
     int64_t token, head, batch;
 };
 void laya_attention_bf16(const float *, const nv_bfloat16 *, const nv_bfloat16 *, const half *, float *, int, int, int,
-                         int, strides, strides, strides, strides, int, int, float, bool, ggml_backend_cuda_context &);
+                         int, strides, strides, strides, strides, int, int, float, bool, bool,
+                         ggml_backend_cuda_context &);

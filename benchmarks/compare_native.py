@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare two standalone optimized native builds on identical request groups."""
+"""Compare two standalone native builds at matching precision on identical request groups."""
 import argparse
 import json
 import statistics
@@ -13,6 +13,7 @@ from run import percentile
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--bf16', action='store_true', help='Compare BF16 builds instead of optimized FP32')
     p.add_argument('--before', required=True, help='Executable with its own preserved shared libraries')
     p.add_argument('--after', default='build-cuda/bin/laya-cli')
     p.add_argument('--model', default='models/laya')
@@ -31,15 +32,15 @@ def main():
     if (not validation['passed'] or validation['native_build_sha256']!=after_hash or
         validation['cases_sha256']!=corpus_hash or validation['weights_sha256']!=weights_hash or
         validation['gpu']!=torch.cuda.get_device_name() or validation['torch']!=torch.__version__ or
-        validation['precision']!='fp32' or not validation['fused_attention'] or not validation['tensor_core_fp32'] or
+        validation['precision']!=('bf16' if a.bf16 else 'fp32') or not validation['fused_attention'] or validation['tensor_core_fp32']!=(not a.bf16) or
         validation['answer_atol']>0.0001 or
         not set(a.batch_sizes).issubset({b['batch_size'] for b in validation['batches']})):
-        p.error('A matching passing optimized-mode validation report is required')
+        p.error('A matching passing validation report for the selected precision is required')
     cases=json.loads(a.cases.read_text())
     questions=sum(len(c['questions']) for c in cases)
     report=dict(before_sha256=native_hash(a.before),after_sha256=after_hash,weights_sha256=weights_hash,
-                cases_sha256=corpus_hash,gpu=torch.cuda.get_device_name(),torch=torch.__version__,iterations=a.iterations,warmup=a.warmup,rows=[],passed=True)
-    with Native(a.before,a.model,flash=True,tensor_core=True) as before, Native(a.after,a.model,flash=True,tensor_core=True) as after:
+                cases_sha256=corpus_hash,gpu=torch.cuda.get_device_name(),torch=torch.__version__,iterations=a.iterations,warmup=a.warmup,precision='bf16' if a.bf16 else 'fp32',rows=[],passed=True)
+    with Native(a.before,a.model,fp32=not a.bf16,flash=True,tensor_core=not a.bf16) as before, Native(a.after,a.model,fp32=not a.bf16,flash=True,tensor_core=not a.bf16) as after:
         for batch in a.batch_sizes:
             times=[[],[]]
             failures=[]

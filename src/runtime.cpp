@@ -210,15 +210,15 @@ struct runtime::impl {
     tensor* rounded(ggml_context* ctx, tensor* value) {
         return bf16 ? ggml_cast(ctx, ggml_cast(ctx, value, GGML_TYPE_BF16), GGML_TYPE_F32) : value;
     }
-    tensor* norm(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false) {
-        if (bf16) return norm_bf16(ctx, x, w(name+".weight"), bias ? w(name+".bias") : nullptr);
+    tensor* norm(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool compact = true) {
+        if (bf16) return norm_bf16(ctx, x, w(name+".weight"), bias ? w(name+".bias") : nullptr, compact);
         auto value = ggml_mul(ctx, ggml_norm(ctx, x, 1e-5f), w(name + ".weight"));
         return bias ? ggml_add(ctx, value, w(name + ".bias")) : value;
     }
-    tensor* linear(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool packed = false) {
-        x = bf16 ? ggml_cast(ctx, x, GGML_TYPE_BF16) : x;
+    tensor* linear(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool packed = false, bool compact = false, tensor* residual = nullptr) {
+        x = bf16 && x->type!=GGML_TYPE_BF16 ? ggml_cast(ctx, x, GGML_TYPE_BF16) : x;
         const auto key = name + (packed ? "_weight" : ".weight");
-        if (bf16) return linear_bf16(ctx,x,w(key),bias ? w(name+(packed ? "_bias" : ".bias")) : nullptr);
+        if (bf16) return linear_bf16(ctx,x,w(key),bias ? w(name+(packed ? "_bias" : ".bias")) : nullptr, compact, residual);
         const bool compensated = tensor_core && compensated_weights.contains(key);
         const int64_t columns = x->ne[1];
         // ggml's small-matrix CUDA kernel uses TF32 even for F32 weights.
@@ -245,13 +245,13 @@ struct runtime::impl {
         }
     }
 
-    tensor* attention(graph_state& s, tensor* x, const std::string& prefix, int layer, bool head) {
+    tensor* attention(graph_state& s, tensor* x, const std::string& prefix, int layer, bool head, tensor* residual = nullptr) {
         auto ctx = s.ctx;
         trace_tensor(s, prefix+".qkv-input", x);
         // Batched head inputs have a transposed sequence/batch layout in the
         // mixed-precision contract: round the product before adding this bias.
         const bool separate_bias=bf16 && head && s.batch>1;
-        auto qkv = linear(ctx, x, prefix + (head ? ".self_attn.in_proj" : ".attn.Wqkv"), head && !separate_bias, head);
+        auto qkv = linear(ctx, x, prefix + (head ? ".self_attn.in_proj" : ".attn.Wqkv"), head && !separate_bias, head, bf16 && !head);
         if(separate_bias) qkv=rounded(ctx,ggml_add(ctx,qkv,w(prefix+".self_attn.in_proj_bias")));
         trace_tensor(s, prefix+".attn.Wqkv", qkv);
         tensor* split[3];
@@ -260,6 +260,7 @@ struct runtime::impl {
         for (int i=0;i<3;++i)
             split[i]=ggml_view_4d(ctx,packed_qkv,64,s.length,heads,s.batch,
                 packed_qkv->nb[1],packed_qkv->nb[2],packed_qkv->nb[3],i*s.batch*packed_qkv->nb[3]);
+        if (bf16) split[0]=ggml_cast(ctx,split[0],GGML_TYPE_F32);
         if (std::getenv("LAYA_TRACE_DIR")) split[0]=ggml_cont(ctx,split[0]);
         trace_tensor(s,prefix+".q",split[0]);
         if (std::getenv("LAYA_TRACE_DIR")) split[1]=ggml_cont(ctx,split[1]);
@@ -267,12 +268,12 @@ struct runtime::impl {
         auto mask = head || layer % 3 == 0 ? s.global_mask : s.local_mask;
         tensor* value;
         if (flash && (bf16 || s.length <= 128)) {
-            auto k = bf16 ? ggml_cast(ctx, ggml_cont(ctx, split[1]), GGML_TYPE_BF16) : split[1];
-            auto v = bf16 ? ggml_cast(ctx, ggml_cont(ctx, split[2]), GGML_TYPE_BF16) : split[2];
+            auto k = split[1];
+            auto v = split[2];
             value = ggml_flash_attn_ext(ctx, split[0], k, v, mask, 1.0f / 8.0f, 0, 0);
-            if (bf16 && (head || s.padding || (layer%3!=0 && s.length>=64))) ggml_set_name(value,"laya.sdpa-masked");
+            if (bf16 && (head || s.padding || (layer%3!=0 && s.length>=64))) ggml_set_name(value,!head && layer%3!=0 && s.length>=64 ? "laya.sdpa-local" : "laya.sdpa-masked");
             ggml_prec_set_acc(value, GGML_PREC_F32);
-            value = ggml_reshape_2d(ctx, ggml_cont(ctx, value), width, s.length * s.batch);
+            value = ggml_reshape_2d(ctx, ggml_is_contiguous(value) ? value : ggml_cont(ctx, value), width, s.length * s.batch);
         } else {
             auto scores = ggml_mul_mat(ctx, split[1], split[0]);
             ggml_prec_set_acc(scores, GGML_PREC_F32);
@@ -282,10 +283,10 @@ struct runtime::impl {
             ggml_prec_set_acc(value, GGML_PREC_F32);
             value = ggml_reshape_2d(ctx, ggml_cont(ctx, ggml_permute(ctx, value, 0, 2, 1, 3)), width, s.length * s.batch);
         }
-        value = rounded(ctx, value);
+        // The BF16 attention kernel already rounds its output.
         trace_tensor(s, prefix+".attn.Wo.input", value);
-        auto output = linear(ctx, value, prefix + (head ? ".self_attn.out_proj" : ".attn.Wo"), head);
-        trace_tensor(s, prefix+".attn.Wo", output);
+        auto output = linear(ctx, value, prefix + (head ? ".self_attn.out_proj" : ".attn.Wo"), head, false, false, residual);
+        trace_tensor(s, prefix+(residual ? ".attn.residual" : ".attn.Wo"), output);
         return output;
     }
 
@@ -331,41 +332,47 @@ struct runtime::impl {
             s.lengths = input_tensor(GGML_TYPE_I32, {s.batch});
             s.global_mask = attention_mask(ctx,s.lengths,s.length,mask_rows,false,flash);
             s.local_mask = attention_mask(ctx,s.lengths,s.length,mask_rows,true,flash);
-            auto h = norm(ctx, ggml_get_rows(ctx, w("encoder.embeddings.tok_embeddings.weight"), s.ids), "encoder.embeddings.norm");
+            auto h = norm(ctx, ggml_get_rows(ctx, w("encoder.embeddings.tok_embeddings.weight"), s.ids), "encoder.embeddings.norm", false, false);
             trace("embedding", h);
             for (int layer = 0; layer < layers; ++layer) {
                 auto prefix = "encoder.layers." + std::to_string(layer);
-                h = ggml_add(ctx, h, attention(s, layer == 0 ? h : norm(ctx, h, prefix + ".attn_norm"), prefix, layer, false));
+                auto attended = attention(s, layer == 0 ? h : norm(ctx, h, prefix + ".attn_norm"), prefix, layer, false, bf16 ? h : nullptr);
+                h = bf16 ? attended : ggml_add(ctx, h, attended);
                 if (tensor_core) {
                     auto normalized=norm(ctx,h,prefix+".mlp_norm");
                     auto products=ggml_mul_mat(ctx,w(prefix+".mlp.Wi.weight"),split_f16(ctx,normalized));
                     auto projected=ggml_mul_mat(ctx,w(prefix+".mlp.Wo.weight"),mlp_split_f16(ctx,products));
                     h=ggml_add(ctx,h,merge_f16(ctx,projected));
                 } else {
-                    auto gated = linear(ctx, norm(ctx, h, prefix + ".mlp_norm"), prefix + ".mlp.Wi");
+                    auto gated = linear(ctx, norm(ctx, h, prefix + ".mlp_norm"), prefix + ".mlp.Wi", false, false, bf16);
                     trace_tensor(s,prefix+".mlp.Wi",gated);
-                    auto first = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], 0));
-                    auto second = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], intermediate * sizeof(float)));
-                    auto activation = rounded(ctx, ggml_mul(ctx, gelu(ctx, first), second));
+                    tensor* activation;
+                    if (bf16) activation = mlp_bf16(ctx, gated);
+                    else {
+                        auto first = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], 0));
+                        auto second = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], intermediate * sizeof(float)));
+                        activation = ggml_mul(ctx, gelu(ctx, first), second);
+                    }
                     trace_tensor(s,prefix+".mlp.Wo.input",activation);
-                    auto projected = linear(ctx, activation, prefix + ".mlp.Wo");
-                    trace_tensor(s,prefix+".mlp.Wo",projected);
-                    h = ggml_add(ctx, h, projected);
+                    auto projected = linear(ctx, activation, prefix + ".mlp.Wo", false, false, false, bf16 ? h : nullptr);
+                    trace_tensor(s,prefix+(bf16 ? ".mlp.residual" : ".mlp.Wo"),projected);
+                    h = bf16 ? projected : ggml_add(ctx, h, projected);
                 }
                 trace("encoder-" + std::to_string(layer), h);
             }
-            h = norm(ctx, h, "encoder.final_norm");
+            h = norm(ctx, h, "encoder.final_norm", false, false);
             trace("final-norm", h);
             h = ggml_add(ctx, h, ggml_get_rows(ctx, w("type_emb.weight"), s.types));
             for (int layer = 0; layer < 2; ++layer) {
                 auto prefix = "head.layers." + std::to_string(layer);
-                h = ggml_add(ctx, h, attention(s, norm(ctx, h, prefix + ".norm1", true), prefix, layer, true));
+                auto attended = attention(s, norm(ctx, h, prefix + ".norm1", true), prefix, layer, true, bf16 ? h : nullptr);
+                h = bf16 ? attended : ggml_add(ctx, h, attended);
                 auto first=linear(ctx,norm(ctx,h,prefix+".norm2",true),prefix+".linear1",true);
                 trace_tensor(s,prefix+".linear1",first);
                 auto activation=ggml_relu(ctx,first);
-                auto second=linear(ctx,activation,prefix+".linear2",true);
-                trace_tensor(s,prefix+".linear2",second);
-                h=ggml_add(ctx,h,second);
+                auto second=linear(ctx,activation,prefix+".linear2",true,false,false,bf16 ? h : nullptr);
+                trace_tensor(s,prefix+(bf16 ? ".linear2-residual" : ".linear2"),second);
+                h=bf16 ? second : ggml_add(ctx,h,second);
                 trace("head-" + std::to_string(layer), h);
             }
             s.pooled = ggml_get_rows(ctx, h, s.cls);
@@ -445,7 +452,11 @@ struct runtime::impl {
             std::filesystem::create_directories(directory);
             for (auto& [name, t] : s.traces) {
                 std::vector<float> values(ggml_nelements(t));
-                ggml_backend_tensor_get(t, values.data(), 0, ggml_nbytes(t));
+                if (t->type==GGML_TYPE_BF16) {
+                    std::vector<ggml_bf16_t> packed(values.size());
+                    ggml_backend_tensor_get(t, packed.data(), 0, ggml_nbytes(t));
+                    ggml_bf16_to_fp32_row(packed.data(),values.data(),values.size());
+                } else ggml_backend_tensor_get(t, values.data(), 0, ggml_nbytes(t));
                 std::ofstream file(std::filesystem::path(directory)/(name+".f32"), std::ios::binary);
                 file.write(reinterpret_cast<char*>(values.data()), values.size()*sizeof(float));
             }

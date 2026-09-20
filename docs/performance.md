@@ -53,7 +53,7 @@ See [rerun metadata](measurements/rtx-pro-6000-rerun.json),
 
 ## Mixed BF16
 
-For the validated native BF16 path, all-model matching-precision acceptance and
-paired throughput at batches 1, 2, 4 and 8 are recorded in
-[precision comparisons](precision.md#bf16-acceptance-on-rtx-pro-6000-blackwell).
+For the optimized native BF16 path, all-model matching-precision acceptance and
+paired BF16-versus-FP32 throughput at batches 1, 2, 4 and 8 are recorded in
+[precision comparisons](precision.md#optimized-bf16-versus-optimized-fp32).
 BF16 requires the compiler and math-library profile documented there.

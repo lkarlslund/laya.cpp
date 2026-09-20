@@ -94,7 +94,8 @@ void ggml_cuda_flash_attn_ext(ggml_backend_cuda_context& context, ggml_tensor* o
             static_cast<const nv_bfloat16*>(k->data),static_cast<const nv_bfloat16*>(v->data),
             mask ? static_cast<const half*>(mask->data) : nullptr,static_cast<float*>(output->data),
             q->ne[1],k->ne[1],q->ne[2],q->ne[3],stride(q),stride(k),stride(v),mask ? stride(mask) : strides{},
-            mask ? mask->ne[2] : 1,mask ? mask->ne[3] : 1,scale,!std::strcmp(output->name,"laya.sdpa-masked"),context);
+            mask ? mask->ne[2] : 1,mask ? mask->ne[3] : 1,scale,!std::strcmp(output->name,"laya.sdpa-masked") || !std::strcmp(output->name,"laya.sdpa-local"),
+            !std::strcmp(output->name,"laya.sdpa-local"),context);
     } else attention_f32_d64<<<grid,256,0,context.stream()>>>(static_cast<const float*>(q->data),
         static_cast<const float*>(k->data), static_cast<const float*>(v->data),
         mask ? static_cast<const half*>(mask->data) : nullptr, static_cast<float*>(output->data),

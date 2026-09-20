@@ -31,7 +31,7 @@ if(LAYA_CUDA)
     cuda_code "${cuda_code}")
   # The capability query has different argument names and must not execute kernels.
   string(REPLACE "case GGML_OP_CUSTOM: return laya_cuda_custom(ctx, dst);\n        case GGML_OP_CONCAT:\n            {\n                ggml_type src0_type = op->src[0]->type;"
-    "case GGML_OP_CUSTOM: return strcmp(op->name, \"laya.split-f16\") == 0 || strcmp(op->name, \"laya.linear-bf16\") == 0 || strcmp(op->name, \"laya.gelu-bf16\") == 0 || strcmp(op->name, \"laya.norm-bf16\") == 0 || strcmp(op->name, \"laya.merge-f16\") == 0 || strcmp(op->name, \"laya.pack-qkv-bf16\") == 0 || strcmp(op->name, \"laya.pack-qkv\") == 0 || strcmp(op->name, \"laya.mlp-split\") == 0 || strcmp(op->name, \"laya.mask-local\") == 0 || strcmp(op->name, \"laya.mask-global\") == 0;\n        case GGML_OP_CONCAT:\n            {\n                ggml_type src0_type = op->src[0]->type;"
+    "case GGML_OP_CUSTOM: return strcmp(op->name, \"laya.split-f16\") == 0 || strcmp(op->name, \"laya.linear-bf16\") == 0 || strcmp(op->name, \"laya.gelu-bf16\") == 0 || strcmp(op->name, \"laya.mlp-bf16\") == 0 || strcmp(op->name, \"laya.norm-bf16\") == 0 || strcmp(op->name, \"laya.merge-f16\") == 0 || strcmp(op->name, \"laya.pack-qkv-bf16\") == 0 || strcmp(op->name, \"laya.pack-qkv\") == 0 || strcmp(op->name, \"laya.mlp-split\") == 0 || strcmp(op->name, \"laya.mask-local\") == 0 || strcmp(op->name, \"laya.mask-global\") == 0;\n        case GGML_OP_CONCAT:\n            {\n                ggml_type src0_type = op->src[0]->type;"
     cuda_code "${cuda_code}")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/laya-ggml-cuda.cu" "${cuda_code}")
   get_target_property(cuda_sources ggml-cuda SOURCES)

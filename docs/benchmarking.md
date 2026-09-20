@@ -93,11 +93,32 @@ python benchmarks/compare_native.py --before /path/to/previous/laya-cli \
   --validation results/validation.json
 ```
 
-Both builds use the optimized CUDA mode, identical request groups, and alternating
-timing order. Each group must meet the output tolerance before its speedup is
+Both builds use the optimized FP32 mode by default. Add `--bf16` to compare
+two BF16 builds with matching BF16 acceptance. They receive identical request
+groups and alternating timing order. Each group must meet the output tolerance before its speedup is
 reported. The report records both build fingerprints and requires a matching
 acceptance report for the new build. This separates incremental native improvements
 from changes in hardware contention between measurements.
+
+## Comparing native precision modes
+
+```sh
+python benchmarks/compare_precision.py --executable build-bf16/bin/laya-cli \
+  --fp32-validation results/fp32/english-validation.json \
+  --bf16-validation results/bf16/english-validation.json \
+  --output results/native-precision.json
+```
+
+This compares optimized FP32 and BF16 from the same executable and loaded math
+libraries. Both modes must have passing matching-precision validation for that
+exact build, checkpoint, corpus and GPU. Each group is warmed before timing;
+mode order alternates across iterations and groups. Model loading and JSON
+transport are excluded. Differences in answers between FP32 and BF16 are not
+used as a cross-precision correctness gate. Each mode is instead accepted against
+its own same-precision baseline before timing.
+
+Keep the GPU workload stable and compare the paired results rather than dividing
+throughput numbers from separate runs. Shared-GPU results remain exploratory.
 
 ## All-model matrix
 
