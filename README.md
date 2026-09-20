@@ -19,6 +19,44 @@ available with `--bf16` using the validated CUDA 13.0 / cuBLAS 13.1.0 build prof
 Correctness is checked against the baseline at matching precision; see
 [precision comparisons](docs/precision.md).
 
+## Performance
+
+Measured on an **NVIDIA RTX PRO 6000 Blackwell (96 GB), capped at 450 W**, using
+all 250 fixed acceptance questions at batches 1, 2, 4 and 8. Throughput is
+**questions/second**; higher is better. Python denotes the original implementation.
+The 16-bit mode is **BF16**.
+
+| Model | Batch | Python BF16 | laya.cpp BF16 | Python FP32 | laya.cpp FP32 |
+|---|---:|---:|---:|---:|---:|
+| english | 1 | 149.2 | 365.8 | 147.9 | 341.7 |
+| english | 2 | 267.5 | 585.6 | 201.6 | 420.6 |
+| english | 4 | 459.8 | 761.1 | 232.9 | 437.2 |
+| english | 8 | 662.5 | 809.8 | 231.7 | 385.7 |
+| multilingual | 1 | 178.9 | 485.4 | 191.7 | 475.3 |
+| multilingual | 2 | 320.7 | 816.0 | 299.8 | 610.0 |
+| multilingual | 4 | 550.2 | 1,164.0 | 388.5 | 673.4 |
+| multilingual | 8 | 828.1 | 1,246.4 | 408.0 | 552.1 |
+| typed-decisions | 1 | 142.7 | 303.9 | 130.6 | 263.4 |
+| typed-decisions | 2 | 248.0 | 498.8 | 169.9 | 302.4 |
+| typed-decisions | 4 | 399.2 | 610.3 | 178.6 | 284.1 |
+| typed-decisions | 8 | 529.0 | 587.7 | 164.3 | 238.7 |
+
+Each precision was measured as a paired Python-baseline/C++ run with alternating
+execution order, three warmups and five timed iterations per request group.
+Both use identical checkpoints and inputs. The C++ FP32 column uses
+`--tensor-core-fp32 --flash-fp32`; the Python FP32 baseline disables autocast and
+TF32. BF16 uses matching mixed precision on both sides. Speed comparisons are
+paired within each precision; BF16 and FP32 were timed in separate runs.
+
+Both native modes pass all 3,000 matching-precision corpus comparisons across
+the three models: exact categories and numeric output error at most 0.0001.
+Timing includes preprocessing, inference and output formatting, excluding model
+loading and JSON transport. These are shared-GPU measurements.
+
+Measured build: `f89a5da`, CUDA 13.0.88, cuBLAS 13.1.0.3; Python baseline:
+PyTorch 2.11.0+cu130. See [measurement metadata](docs/measurements/readme-performance.json)
+and [benchmarking instructions](docs/benchmarking.md) for identities and reproduction.
+
 ## Build
 
 Requires a C++20 compiler, CMake 3.24+, CUDA, ICU, and nlohmann-json. On Debian-like
