@@ -50,6 +50,7 @@ def main():
                 requests = cases[start:start+batch_size]
                 inputs = oracle.prepare(requests)
                 expected_inputs = oracle.expected_inputs(inputs)
+                torch.cuda.empty_cache()
                 output = native.call(requests)['results']
                 if output['inputs'] != expected_inputs:
                     summary['failures'].append(dict(start=start, error='input tensor mismatch'))
@@ -67,7 +68,7 @@ def main():
                     if not np.allclose(actual,target,atol=a.raw_atol,rtol=a.raw_rtol):
                         errors.append(f'{key} max error {error}')
                 if errors: summary['raw_diagnostics'].append(dict(start=start, ids=[r['id'] for r in requests], error='; '.join(errors)))
-                summary['questions'] += len(requests)
+                summary['questions'] += sum(len(r['questions']) for r in requests)
             report['batches'].append(summary)
             print({k: (len(v) if k in ('failures', 'raw_diagnostics') else v) for k, v in summary.items()}, flush=True)
             if summary['failures']: report['passed'] = False
@@ -78,6 +79,7 @@ def main():
             for start in range(0, len(cases), batch_size):
                 requests = cases[start:start+batch_size]
                 expected = oracle.format(requests, oracle.forward(oracle.prepare(requests)))
+                torch.cuda.empty_cache()
                 actual = native.call(requests)['results']
                 # Repeated calls exercise persistent buffers and CUDA graph replay.
                 for _ in range(3):

@@ -7,25 +7,32 @@ validation, and measurement tools.
 ## Checkpoint and tokenizer
 
 The loader reads safetensors directly, validates tensor names, shapes, byte ranges,
-and finite values, and uploads persistent weights. It currently accepts the
-English 28-layer ModernBERT-large architecture: hidden width 1024, 16 heads,
-intermediate width 2624, vocabulary 50368, and two decision layers. Unsupported
-architectures and tokenizer features fail explicitly. Automatic multilingual
-routing is not implemented.
+and finite values, and uploads persistent weights. It accepts two ModernBERT
+profiles: width 1024 / 28 layers / 16 heads / intermediate width 2624 / vocabulary
+50368, and width 768 / 22 layers / 12 heads / intermediate width 1152 / vocabulary
+256000. Both have two decision layers and head dimension 64. Checkpoint metadata
+selects dimensions, serving context (512 or 1024), token budget, and calibration.
+Unsupported configurations fail explicitly. Model selection is explicit through
+`--variant` or a checkpoint directory; automatic language routing is not implemented.
 
-The tokenizer performs NFC normalization, added-token matching, Unicode-aware
-byte-level pretokenization, and ranked BPE merges. JSON object insertion order is
-preserved because it defines choice ordering. Input formatting uses a 192-token
-question/option budget and the checkpoint's serving sequence limit (512 for the
-English checkpoint), with right truncation of state text. Literal mask tokens in
-user text are neutralized before encoding.
+The English and typed-decisions tokenizers perform NFC normalization, added-token
+matching, Unicode-aware byte-level pretokenization, and ranked BPE merges. The
+multilingual tokenizer replaces spaces with metaspace markers, preserves the
+checkpoint's normalization behavior, and applies Unicode BPE with byte fallback.
+All tokenization runs in C++; tokenizer vocabulary parsing uses a map-based JSON
+representation, while request objects preserve insertion order for choice ordering.
+
+Input formatting uses the checkpoint's question/option budget (192 or 256 tokens)
+and serving sequence limit, with right truncation of state text. Literal mask
+tokens in user text are neutralized before encoding.
 
 ## Computation
 
 Each question becomes a batch row. State text may differ across rows. The encoder
 uses global attention every third layer and bidirectional local attention with
 an inclusive half-window of 64 elsewhere. Global and local rotary frequency
-bases are 160000 and 10000. Rotary tables are persistent graph inputs, protected
+bases are 160000 and 10000 for English/typed-decisions, and 160000 for both
+attention types in the multilingual checkpoint. Rotary tables are persistent graph inputs, protected
 from temporary-buffer reuse. Padded query rows receive a harmless valid key when
 needed to avoid an all-masked softmax; padded keys remain excluded from valid
 queries at every layer. Mask generation runs on the selected backend from a small

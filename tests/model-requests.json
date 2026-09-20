@@ -1,0 +1,362 @@
+[
+  {
+    "id": "model-edge-01",
+    "state": {
+      "message": "مرحبا، أريد استرداد المبلغ المدفوع مرتين."
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  },
+  {
+    "id": "model-edge-02",
+    "state": {
+      "message": "मुझे दो बार भुगतान के लिए धनवापसी चाहिए।"
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  },
+  {
+    "id": "model-edge-03",
+    "state": {
+      "message": "同じ注文に二度請求されました。返金してください。"
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  },
+  {
+    "id": "model-edge-04",
+    "state": {
+      "message": "同一笔订单被扣款两次，请退款。"
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  },
+  {
+    "id": "model-edge-05",
+    "state": {
+      "message": "같은 주문에 두 번 청구되었습니다. 환불해 주세요."
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  },
+  {
+    "id": "model-edge-06",
+    "state": {
+      "message": "ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน"
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  },
+  {
+    "id": "model-edge-07",
+    "state": {
+      "message": "Мне дважды выставили счёт. Верните деньги."
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  },
+  {
+    "id": "model-edge-08",
+    "state": {
+      "message": "Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage."
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  },
+  {
+    "id": "model-edge-09",
+    "state": {
+      "message": "שילמתי פעמיים. בבקשה החזירו את הכסף."
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  },
+  {
+    "id": "model-edge-10",
+    "state": {
+      "message": "I paid twice. Please refund the duplicate payment."
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  },
+  {
+    "id": "model-edge-11",
+    "state": {
+      "message": "مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment.مرحبا، أريد استرداد المبلغ المدفوع مرتين. मुझे दो बार भुगतान के लिए धनवापसी चाहिए। 同じ注文に二度請求されました。返金してください。 同一笔订单被扣款两次，请退款。 같은 주문에 두 번 청구되었습니다. 환불해 주세요. ฉันถูกเรียกเก็บเงินสองครั้ง กรุณาคืนเงิน Мне дважды выставили счёт. Верните деньги. Jeg er blevet opkrævet to gange. Jeg ønsker pengene tilbage. שילמתי פעמיים. בבקשה החזירו את הכסף. I paid twice. Please refund the duplicate payment."
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  },
+  {
+    "id": "model-edge-12",
+    "state": {
+      "message": "é café ▁a\tb\nc <mask> [MASK] <bos> <eos> 🫠􏿿"
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Choose the best destination.",
+        "criteria": {
+          "billing": "Payment or refund",
+          "shipping": "Delivery",
+          "other": "Other issues"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "Rate the urgency.",
+        "criteria": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "refund": {
+        "type": "noul",
+        "instructions": "Does the customer request a refund?"
+      }
+    }
+  }
+]

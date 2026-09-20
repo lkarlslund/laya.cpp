@@ -28,20 +28,34 @@ struct tokenizer::impl {
     mutable size_t cache_bytes = 0;
     std::unique_ptr<icu::RegexPattern> pattern;
     const icu::Normalizer2* normalizer;
+    bool metaspace = false;
+    std::array<std::string,256> fallback;
 
     explicit impl(const std::filesystem::path& path) {
         std::ifstream file(path);
         if (!file) throw std::runtime_error("Cannot open tokenizer: " + path.string());
-        auto data = json::parse(file);
+        auto data = nlohmann::json::parse(file);
         auto& spec = data.at("model");
-        if (spec.at("type") != "BPE" || data.at("normalizer").at("type") != "NFC" ||
-            data.at("pre_tokenizer").at("type") != "ByteLevel" ||
-            data.at("pre_tokenizer").at("add_prefix_space") != false ||
-            data.at("pre_tokenizer").at("use_regex") != true ||
-            !spec.at("dropout").is_null() || spec.value("byte_fallback", false) ||
-            spec.value("ignore_merges", false))
-            throw std::runtime_error("Unsupported tokenizer configuration");
+        metaspace=data.at("pre_tokenizer").at("type")=="Metaspace";
+        const bool byte_level=data.at("normalizer").at("type")=="NFC" &&
+            data.at("pre_tokenizer").at("type")=="ByteLevel" &&
+            data.at("pre_tokenizer").at("add_prefix_space")==false &&
+            data.at("pre_tokenizer").at("use_regex")==true && !spec.value("byte_fallback",false);
+        const bool meta_ok=metaspace && data.at("normalizer")==nlohmann::json({{"type","Replace"},{"pattern",{{"String"," "}}},{"content","▁"}}) &&
+            data.at("pre_tokenizer").at("replacement")=="▁" &&
+            data.at("pre_tokenizer").at("prepend_scheme")=="always" &&
+            data.at("pre_tokenizer").at("split")==true && spec.value("byte_fallback",false);
+        if (spec.at("type")!="BPE" || (!byte_level && !meta_ok) || !spec.at("dropout").is_null() ||
+            spec.value("ignore_merges",false)) throw std::runtime_error("Unsupported tokenizer configuration");
         for (auto& [name, id] : spec.at("vocab").items()) vocab.emplace(name, id.get<int32_t>());
+        constexpr char hex[]="0123456789ABCDEF";
+        for (int b=0; b<256; ++b) {
+            fallback[b]=std::string("<0x")+hex[b/16]+hex[b%16]+">";
+            if (metaspace && !vocab.contains(fallback[b])) {
+                if (b<128 && vocab.contains(std::string(1,char(b)))) fallback[b]=std::string(1,char(b));
+                else throw std::runtime_error("Missing byte fallback token");
+            }
+        }
         int rank = 0;
         for (auto& pair : spec.at("merges")) {
             if (!pair.is_array() || pair.size() != 2) throw std::runtime_error("Unsupported BPE merge format");
@@ -72,7 +86,15 @@ struct tokenizer::impl {
             return;
         }
         std::vector<std::string> parts;
-        for (unsigned char byte : word) parts.push_back(bytes[byte]);
+        if (metaspace) {
+            auto unicode=icu::UnicodeString::fromUTF8(word);
+            for (int32_t i=0; i<unicode.length();) {
+                auto cp=unicode.char32At(i); i+=U16_LENGTH(cp);
+                auto part=utf8(cp);
+                if (vocab.contains(part)) parts.push_back(part);
+                else for (unsigned char byte : part) parts.push_back(fallback[byte]);
+            }
+        } else for (unsigned char byte : word) parts.push_back(bytes[byte]);
         while (parts.size() > 1) {
             int best = std::numeric_limits<int>::max();
             size_t at = 0;
@@ -96,6 +118,19 @@ struct tokenizer::impl {
     }
 
     void ordinary(const std::string& text, std::vector<int32_t>& output) const {
+        if (metaspace) {
+            if (text.empty()) return;
+            std::string value=text;
+            if (!value.starts_with("▁")) value="▁"+value;
+            size_t begin=0;
+            while (begin<value.size()) {
+                auto end=value.find("▁",begin+3);
+                if (end==std::string::npos) end=value.size();
+                bpe(value.substr(begin,end-begin),output);
+                begin=end;
+            }
+            return;
+        }
         UErrorCode error = U_ZERO_ERROR;
         auto unicode = icu::UnicodeString::fromUTF8(text);
         std::unique_ptr<icu::RegexMatcher> matcher(pattern->matcher(unicode, error));
@@ -134,7 +169,10 @@ struct tokenizer::impl {
             else {
                 UErrorCode error = U_ZERO_ERROR;
                 icu::UnicodeString value;
-                normalizer->normalize(icu::UnicodeString::fromUTF8(prefix), value, error);
+                if (metaspace) {
+                    value=icu::UnicodeString::fromUTF8(prefix);
+                    value.findAndReplace(icu::UnicodeString(" "),icu::UnicodeString::fromUTF8("▁"));
+                } else normalizer->normalize(icu::UnicodeString::fromUTF8(prefix), value, error);
                 if (U_FAILURE(error)) throw std::runtime_error("NFC normalization failed");
                 std::string nfc; value.toUTF8String(nfc);
                 split(nfc, true, output);

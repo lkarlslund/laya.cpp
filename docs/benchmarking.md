@@ -53,7 +53,9 @@ receives identical groups in corpus order, including the final partial group.
 The tool verifies public results before measuring each group. It also checks that
 the batched baseline formatter agrees with its public API formatter.
 
-Each group is warmed before timing. Backend order alternates on successive
+Unused baseline GPU allocator cache is released before native graph allocation
+for each group. Warmups repopulate it before timing; cache cleanup is outside
+all measured intervals. Each group is warmed before timing. Backend order alternates on successive
 iterations. CUDA synchronization brackets baseline timing; native inference
 returns only after outputs are available on the host. Native timing includes
 native preprocessing, transfers, inference, calibration, and JSON value creation,
@@ -90,3 +92,26 @@ timing order. Each group must meet the output tolerance before its speedup is
 reported. The report records both build fingerprints and requires a matching
 acceptance report for the new build. This separates incremental native improvements
 from changes in hardware contention between measurements.
+
+## All-model matrix
+
+`python benchmarks/models.py --sweep` runs the same committed 250-question corpus
+on English, multilingual, and typed-decisions, sequentially to avoid unnecessary
+GPU memory pressure. It writes separate validation and timing reports under
+`results/models/`. Use `--variants multilingual`, `--batch-sizes`, or `--strict-fp32`
+to narrow a run. The optimized CUDA path is selected by default in this matrix.
+Each checkpoint has its own weight fingerprint and independent correctness gate;
+a passing report for one checkpoint cannot authorize timing another.
+
+Tokenizer CTests cover all locally downloaded variants. The multilingual fixtures
+exercise its distinct normalization, metaspace splitting, non-Latin text, special
+tokens, and byte fallback. These tests measure implementation equivalence, not
+language understanding or task accuracy.
+
+`tests/model-requests.json` adds multilingual, multi-question, special-token, and
+long-state coverage. Run it independently with:
+
+```sh
+python benchmarks/models.py --cases tests/model-requests.json \
+  --batch-sizes 1 2 --output results/model-edges
+```

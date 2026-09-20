@@ -4,11 +4,17 @@ Standalone C++ inference for Laya typed decisions on NVIDIA RTX GPUs, using ggml
 and its CUDA backend. Model loading, Unicode/BPE tokenization, transformer
 inference, decision heads, and JSON output all run natively.
 
-The current target is the English ModernBERT-large checkpoint. The default is
-strict FP32 with full-precision attention. The optimized CUDA path uses exact
-checkpoint FP16 weights, paired activation components, FP32 accumulation, and
-fused packing kernels. Enable it with `--tensor-core-fp32 --flash-fp32`.
-BF16 remains experimental and has not passed the output-agreement gate.
+All three checkpoints are supported:
+
+| Variant | Context | Encoder width / layers | Tokenizer |
+|---|---:|---:|---|
+| `english` | 512 | 1024 / 28 | NFC byte-level BPE |
+| `multilingual` | 1024 | 768 / 22 | Metaspace BPE with byte fallback |
+| `typed-decisions` | 1024 | 1024 / 28 | NFC byte-level BPE |
+
+Strict FP32 is the default. The optimized CUDA path uses exact checkpoint FP16
+weights, paired activation components, FP32 accumulation, and fused packing
+kernels. Enable it with `--tensor-core-fp32 --flash-fp32`. BF16 remains experimental.
 
 ## Build
 
@@ -29,12 +35,17 @@ configure with `-DLAYA_CUDA=OFF` and run the CLI with `--cpu`.
 
 ## Run
 
-Place the checkpoint under `models/laya/`, then:
+Download the checkpoint files with `python scripts/download_model.py --variant all`, then:
 
 ```sh
 build-cuda/bin/laya-cli --model models/laya --tensor-core-fp32 --flash-fp32 \
   --input benchmarks/cases/smoke.json
 ```
+
+Select another model with `--variant multilingual` or `--variant typed-decisions`.
+`--model` specifies the model-store root when combined with `--variant`; without
+`--variant`, it can also name a checkpoint directory directly. Selection is
+explicit. Each process keeps its selected checkpoint resident.
 
 Without `--input`, the process accepts one JSON request (or an array of requests)
 per input line and keeps weights resident between calls. A request contains
@@ -53,10 +64,16 @@ The executable does not require Python, PyTorch, or an inference server.
 The optional Python tooling requirements are in `requirements-bench.txt`:
 
 ```sh
-python scripts/download_model.py
+python scripts/download_model.py --variant all
 python benchmarks/validate.py --tensor-core-fp32 --output results/validation.json
 python benchmarks/sweep.py --tensor-core-fp32 --validation results/validation.json \
   --batch-sizes 1 2 4 8
+```
+
+To validate and benchmark all three checkpoints sequentially:
+
+```sh
+python benchmarks/models.py --sweep
 ```
 
 The fixed acceptance corpus contains exactly 250 different questions. The sweep
@@ -64,5 +81,5 @@ requires a passing validation report matching the corpus, weights, and binary.
 Model files, local research, build products, and detailed benchmark reports stay
 outside Git in `models/`, `research/`, `build*/`, and `results/`.
 
-See [measured performance](docs/performance.md), [architecture](docs/architecture.md), [benchmarking](docs/benchmarking.md), and
+See [model support and validation](docs/models.md), [measured performance](docs/performance.md), [architecture](docs/architecture.md), [benchmarking](docs/benchmarking.md), and
 [development roadmap](docs/roadmap.md).

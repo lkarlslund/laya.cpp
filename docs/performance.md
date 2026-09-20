@@ -1,5 +1,7 @@
 # RTX performance
 
+For the current three-checkpoint matrix, see [model support and validation](models.md).
+
 The 2026-09-20 rerun supersedes the earlier measurements affected by GPU contention.
 The RTX PRO 6000 Blackwell reported 0% compute utilization before starting. Another
 model remained resident in VRAM; per-process utilization was unavailable, so this

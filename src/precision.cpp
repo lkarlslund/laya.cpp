@@ -82,10 +82,10 @@ ggml_tensor* mlp_split_f16(ggml_context* ctx, ggml_tensor* input) {
     return result;
 }
 ggml_tensor* pack_qkv(ggml_context* ctx, ggml_tensor* input, ggml_tensor* cosine, ggml_tensor* sine, int length, int batch) {
-    if (!ggml_is_contiguous(input) || input->type!=GGML_TYPE_F32 || input->ne[0]!=3072 || input->ne[1]!=int64_t(length)*batch)
-        throw std::invalid_argument("QKV packing requires a contiguous 3072-wide FP32 matrix");
+    if (!ggml_is_contiguous(input) || input->type!=GGML_TYPE_F32 || input->ne[0]%192!=0 || input->ne[1]!=int64_t(length)*batch)
+        throw std::invalid_argument("QKV packing requires a contiguous FP32 QKV matrix with 64-wide heads");
     ggml_tensor* args[]{input,cosine,sine};
-    auto result=ggml_custom_4d(ctx,GGML_TYPE_F32,64,length,16,3*batch,args,cosine ? 3 : 1,qkv_cpu,1,nullptr);
+    auto result=ggml_custom_4d(ctx,GGML_TYPE_F32,64,length,input->ne[0]/192,3*batch,args,cosine ? 3 : 1,qkv_cpu,1,nullptr);
     ggml_set_name(result,"laya.pack-qkv");
     return result;
 }

@@ -49,7 +49,8 @@ struct runtime::impl {
     std::set<std::string> compensated_weights;
     std::unique_ptr<graph_state> main_graph, action_graph;
     bool bf16, flash, tensor_core;
-    int width = 1024, heads = 16, layers = 28, intermediate = 2624, n_actions;
+    int width = 1024, heads = 16, layers = 28, intermediate = 2624, vocabulary = 50368, n_actions;
+    float local_rope = 10000.f;
 
     ~impl() {
         main_graph.reset(); action_graph.reset();
@@ -65,11 +66,15 @@ struct runtime::impl {
             throw std::runtime_error("Cannot enforce FP32 CUDA arithmetic");
         config = read_json(directory / "rl_agent_config.json");
         encoder = read_json(directory / "encoder/config.json");
-        const json supported{{"model_type", "modernbert"}, {"hidden_size", 1024},
-                {"num_attention_heads", 16}, {"num_hidden_layers", 28}, {"intermediate_size", 2624},
-                {"vocab_size", 50368}, {"local_attention", 128}, {"global_attn_every_n_layers", 3},
-                {"norm_bias", false}, {"attention_bias", false}, {"mlp_bias", false},
-                {"hidden_activation", "gelu"}};
+        width=encoder.at("hidden_size"); heads=encoder.at("num_attention_heads");
+        layers=encoder.at("num_hidden_layers"); intermediate=encoder.at("intermediate_size");
+        vocabulary=encoder.at("vocab_size");
+        const bool large=width==1024 && heads==16 && layers==28 && intermediate==2624 && vocabulary==50368;
+        const bool multilingual=width==768 && heads==12 && layers==22 && intermediate==1152 && vocabulary==256000;
+        if (!large && !multilingual) throw std::runtime_error("Unsupported encoder architecture");
+        local_rope=multilingual ? 160000.f : 10000.f;
+        const json supported{{"model_type", "modernbert"}, {"local_attention", 128}, {"global_attn_every_n_layers", 3},
+                {"norm_bias", false}, {"attention_bias", false}, {"mlp_bias", false}, {"hidden_activation", "gelu"}};
         for (auto& [key, expected] : supported.items()) {
             if (!encoder.contains(key) || encoder.at(key) != expected)
                 throw std::runtime_error("Unsupported encoder field: " + key);
@@ -77,11 +82,14 @@ struct runtime::impl {
         if (config.at("head_layers") != 2 || config.at("amp_dtype") != "bf16")
             throw std::runtime_error("Expected two head layers and BF16 model configuration");
         if (encoder.value("norm_eps", 1e-5) != 1e-5) throw std::runtime_error("Unsupported normalization epsilon");
+        const int limit=config.value("max_len",512), budget=config.value("head_max_len",192);
+        if ((limit!=512 && limit!=1024) || budget<1 || budget>=limit)
+            throw std::runtime_error("Unsupported serving sequence limits");
         n_actions = int(config.at("act_costs").size()) + 1;
         for (int i = 0; i < layers; ++i)
             if (encoder.at("layer_types").at(i) != (i % 3 ? "sliding_attention" : "full_attention"))
                 throw std::runtime_error("Unsupported attention schedule");
-        for (auto& [kind, base] : std::map<std::string, double>{{"full_attention", 160000.0}, {"sliding_attention", 10000.0}}) {
+        for (auto& [kind, base] : std::map<std::string, double>{{"full_attention", 160000.0}, {"sliding_attention", double(local_rope)}}) {
             auto rope = encoder.at("rope_parameters").at(kind);
             if (rope.at("rope_type") != "default" || rope.at("rope_theta") != base)
                 throw std::runtime_error("Unsupported rotary configuration");
@@ -110,28 +118,28 @@ struct runtime::impl {
             if (!entries.contains(name) || entries.at(name).at("shape") != std::vector<int64_t>(shape))
                 throw std::runtime_error("Missing or incorrectly shaped checkpoint tensor: " + name);
         };
-        expect("encoder.embeddings.tok_embeddings.weight", {50368, 1024});
-        expect("encoder.embeddings.norm.weight", {1024}); expect("encoder.final_norm.weight", {1024});
-        expect("type_emb.weight", {3, 1024}); expect("temperature", {3});
-        for (int i = 0; i < 28; ++i) {
+        expect("encoder.embeddings.tok_embeddings.weight", {vocabulary, width});
+        expect("encoder.embeddings.norm.weight", {width}); expect("encoder.final_norm.weight", {width});
+        expect("type_emb.weight", {3, width}); expect("temperature", {3});
+        for (int i = 0; i < layers; ++i) {
             auto prefix = "encoder.layers." + std::to_string(i);
-            if (i) expect(prefix+".attn_norm.weight", {1024});
-            expect(prefix+".mlp_norm.weight", {1024});
-            expect(prefix+".attn.Wqkv.weight", {3072, 1024}); expect(prefix+".attn.Wo.weight", {1024, 1024});
-            expect(prefix+".mlp.Wi.weight", {5248, 1024}); expect(prefix+".mlp.Wo.weight", {1024, 2624});
+            if (i) expect(prefix+".attn_norm.weight", {width});
+            expect(prefix+".mlp_norm.weight", {width});
+            expect(prefix+".attn.Wqkv.weight", {3*width, width}); expect(prefix+".attn.Wo.weight", {width, width});
+            expect(prefix+".mlp.Wi.weight", {2*intermediate, width}); expect(prefix+".mlp.Wo.weight", {width, intermediate});
         }
         for (int i = 0; i < 2; ++i) {
             auto prefix = "head.layers."+std::to_string(i);
-            expect(prefix+".self_attn.in_proj_weight", {3072, 1024}); expect(prefix+".self_attn.in_proj_bias", {3072});
-            expect(prefix+".self_attn.out_proj.weight", {1024, 1024}); expect(prefix+".self_attn.out_proj.bias", {1024});
-            expect(prefix+".linear1.weight", {4096, 1024}); expect(prefix+".linear1.bias", {4096});
-            expect(prefix+".linear2.weight", {1024, 4096}); expect(prefix+".linear2.bias", {1024});
-            for (auto suffix : {".norm1.weight", ".norm1.bias", ".norm2.weight", ".norm2.bias"}) expect(prefix+suffix, {1024});
+            expect(prefix+".self_attn.in_proj_weight", {3*width, width}); expect(prefix+".self_attn.in_proj_bias", {3*width});
+            expect(prefix+".self_attn.out_proj.weight", {width, width}); expect(prefix+".self_attn.out_proj.bias", {width});
+            expect(prefix+".linear1.weight", {4*width, width}); expect(prefix+".linear1.bias", {4*width});
+            expect(prefix+".linear2.weight", {width, 4*width}); expect(prefix+".linear2.bias", {width});
+            for (auto suffix : {".norm1.weight", ".norm1.bias", ".norm2.weight", ".norm2.bias"}) expect(prefix+suffix, {width});
         }
-        expect("scorer.0.weight", {1024}); expect("scorer.0.bias", {1024});
-        expect("scorer.1.weight", {1024, 1024}); expect("scorer.1.bias", {1024});
-        expect("scorer.3.weight", {1, 1024}); expect("scorer.3.bias", {1});
-        expect("act_head.0.weight", {256, 1028}); expect("act_head.0.bias", {256});
+        expect("scorer.0.weight", {width}); expect("scorer.0.bias", {width});
+        expect("scorer.1.weight", {width, width}); expect("scorer.1.bias", {width});
+        expect("scorer.3.weight", {1, width}); expect("scorer.3.bias", {1});
+        expect("act_head.0.weight", {256, width+4}); expect("act_head.0.bias", {256});
         expect("act_head.2.weight", {n_actions, 256}); expect("act_head.2.bias", {n_actions});
         for (auto& [name, ignored] : entries.items())
             if (name != "__metadata__" && !required.contains(name)) throw std::runtime_error("Unexpected checkpoint tensor: "+name);
@@ -280,7 +288,7 @@ struct runtime::impl {
             ggml_set_input(t); return t;
         };
         if (action) {
-            s.action_input = input_tensor(GGML_TYPE_F32, {1028, s.batch});
+            s.action_input = input_tensor(GGML_TYPE_F32, {width+4, s.batch});
             s.action_output = linear(ctx, gelu(ctx, linear(ctx, s.action_input, "act_head.0", true)), "act_head.2", true);
             ggml_set_output(s.action_output);
             ggml_build_forward_expand(s.graph, s.action_output);
@@ -353,7 +361,7 @@ struct runtime::impl {
             for (int kind = 0; kind < 2; ++kind) {
                 std::vector<float> cosine(64*s.length), sine(64*s.length);
                 for (int i = 0; i < 32; ++i) {
-                    const float inverse = 1.0f/std::pow(kind == 0 ? 160000.0f : 10000.0f, float(2*i)/64.0f);
+                    const float inverse = 1.0f/std::pow(kind == 0 ? 160000.0f : local_rope, float(2*i)/64.0f);
                     for (int position = 0; position < s.length; ++position) {
                         const float angle = float(position)*inverse;
                         cosine[position*64+i] = cosine[position*64+i+32] = std::cos(angle);
@@ -382,7 +390,7 @@ struct runtime::impl {
                 if (marker < 0 || marker >= input.lengths[row]) throw std::runtime_error("Option marker outside its sequence");
             }
         }
-        if (std::any_of(input.ids.begin(), input.ids.end(), [](int id) { return id < 0 || id >= 50368; }))
+        if (std::any_of(input.ids.begin(), input.ids.end(), [&](int id) { return id < 0 || id >= vocabulary; }))
             throw std::runtime_error("Token ID outside the vocabulary");
         if (!main_graph || main_graph->batch != input.size || main_graph->length != input.length || main_graph->options != input.options) {
             main_graph.reset();

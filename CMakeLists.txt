@@ -63,6 +63,18 @@ if(BUILD_TESTING)
       "${CMAKE_CURRENT_SOURCE_DIR}/models/laya/tokenizer/tokenizer.json"
       "${CMAKE_CURRENT_SOURCE_DIR}/tests/tokenizer-cases.json")
   endif()
+  foreach(variant multilingual typed-decisions)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/models/laya/${variant}/tokenizer/tokenizer.json")
+      if(variant STREQUAL "multilingual")
+        set(fixtures tokenizer-multilingual.json)
+      else()
+        set(fixtures tokenizer-cases.json)
+      endif()
+      add_test(NAME tokenizer-${variant} COMMAND test-tokenizer
+        "${CMAKE_CURRENT_SOURCE_DIR}/models/laya/${variant}/tokenizer/tokenizer.json"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/${fixtures}")
+    endif()
+  endforeach()
   if(LAYA_CUDA)
     add_executable(test-attention tests/attention.cpp)
     target_link_libraries(test-attention PRIVATE ggml ggml-cuda)

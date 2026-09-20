@@ -62,6 +62,9 @@ def main():
                 expected = oracle.format(requests, raw)
                 if oracle.finish(requests, inputs, raw) != expected:
                     raise RuntimeError('Batch formatter differs from public API')
+                # Release unused tensors from previous shapes before native allocation.
+                # Warmups repopulate the allocator; this is outside measured intervals.
+                torch.cuda.empty_cache()
                 actual = native.call(requests)['results']
                 if len(actual) != len(expected): raise RuntimeError('Native result count differs')
                 for case, left, right in zip(requests, expected, actual):
@@ -80,7 +83,7 @@ def main():
                         else: native_times.append(native.call(requests)['elapsed_ms'])
             def stats(times):
                 return dict(p50_ms=statistics.median(times),p95_ms=percentile(times,.95),
-                            questions_per_second=len(cases)*a.iterations*1000/sum(times), samples_ms=times)
+                            questions_per_second=sum(len(r['questions']) for r in cases)*a.iterations*1000/sum(times), samples_ms=times)
             entry=dict(batch_size=batch_size,baseline=stats(base_times),native=stats(native_times),failures=failures)
             entry['speedup'] = sum(base_times)/sum(native_times) if not failures else None
             report['rows'].append(entry)
