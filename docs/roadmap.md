@@ -7,6 +7,7 @@ Implemented:
 - ggml CUDA encoder, typed decision layers, scorer, and action head.
 - Strict FP32 execution with persistent weights and reusable compute graphs.
 - Compensated Tensor Core projections, fused Q/K/V rotary packing, and adaptive FP32 attention.
+- Native mixed BF16 projections, normalization, rotary packing, GELU, and Tensor Core attention.
 - Fused encoder MLP processing and backend-generated dynamic attention masks.
 - Direct native-build comparisons with preserved libraries and acceptance gates.
 - Fixed 250-question corpus, tokenizer fixtures, numerical validation, and batch sweeps.
@@ -17,7 +18,7 @@ Next optimization targets, each subject to the same correctness gate:
 1. Fuse full-precision normalization and projection work without reducing accuracy.
 2. Move action statistics onto the device to remove the intermediate host round trip.
 3. Add a bounded cache for multiple sequence shapes and measure mixed workloads.
-4. Match the BF16 baseline at BF16 precision, then optimize that path before promoting it.
+4. Optimize the validated BF16 path and extend validated compiler/library profiles.
 5. Package the C++ API with installation targets and evaluate optional model routing.
 
 Quantization and approximate arithmetic require separate accuracy evaluation.

@@ -50,3 +50,10 @@ of this mixed workload.
 See [rerun metadata](measurements/rtx-pro-6000-rerun.json),
 [superseded measurements](measurements/rtx-pro-6000-fused-mlp.json), and
 [benchmarking instructions](benchmarking.md) for reproducibility details.
+
+## Mixed BF16
+
+For the validated native BF16 path, all-model matching-precision acceptance and
+paired throughput at batches 1, 2, 4 and 8 are recorded in
+[precision comparisons](precision.md#bf16-acceptance-on-rtx-pro-6000-blackwell).
+BF16 requires the compiler and math-library profile documented there.

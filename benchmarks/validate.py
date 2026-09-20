@@ -21,7 +21,7 @@ def main():
     p.add_argument('--cases', type=Path, default=Path('benchmarks/cases/acceptance-250.json'))
     p.add_argument('--batch-sizes', type=int, nargs='+', default=[1, 2, 4, 8])
     p.add_argument('--fp32', action='store_true', default=True)
-    p.add_argument('--experimental-bf16', dest='fp32', action='store_false')
+    p.add_argument('--bf16', '--experimental-bf16', dest='fp32', action='store_false')
     p.add_argument('--no-flash', action='store_true')
     p.add_argument('--tensor-core-fp32', action='store_true')
     # Unnormalized action logits can exceed 4000. A scale-aware FP32 bound

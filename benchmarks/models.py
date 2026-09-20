@@ -15,18 +15,21 @@ def main():
     p.add_argument('--source',default='research/laya')
     p.add_argument('--cases',default='benchmarks/cases/acceptance-250.json')
     p.add_argument('--batch-sizes',type=int,nargs='+',default=[1,2,4,8])
-    p.add_argument('--strict-fp32',action='store_true')
+    precision=p.add_mutually_exclusive_group()
+    precision.add_argument('--strict-fp32',action='store_true')
+    precision.add_argument('--bf16','--experimental-bf16',action='store_true')
     p.add_argument('--sweep',action='store_true')
     p.add_argument('--output',type=Path,default=Path('results/models'))
     a=p.parse_args()
     if any(b<1 for b in a.batch_sizes): p.error('Batch sizes must be positive')
     a.output.mkdir(parents=True,exist_ok=True)
-    report=dict(passed=True,complete=False,variants=a.variants,models=[])
+    report=dict(passed=True,complete=False,precision='bf16' if a.bf16 else 'fp32',variants=a.variants,models=[])
     for variant in a.variants:
         directory=a.model_root if variant=='english' else a.model_root/variant
         common=['--model',str(directory),'--executable',a.executable,'--source',a.source,'--cases',a.cases,
                 '--batch-sizes',*map(str,a.batch_sizes)]
-        if not a.strict_fp32: common+=['--tensor-core-fp32']
+        if a.bf16: common+=['--bf16']
+        elif not a.strict_fp32: common+=['--tensor-core-fp32']
         validation=a.output/(variant+'-validation.json')
         entry=dict(variant=variant,model=str(directory),validation=str(validation))
         commands=[('validate.py',common+['--output',str(validation)])]

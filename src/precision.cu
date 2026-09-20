@@ -2,6 +2,8 @@
 #include <cuda_fp16.h>
 #include <cstring>
 
+bool laya_cuda_bf16(ggml_backend_cuda_context&,ggml_tensor*);
+
 bool laya_cuda_custom(ggml_backend_cuda_context&, ggml_tensor*);
 
 namespace {
@@ -54,6 +56,7 @@ __global__ void merge_half(const float* input, float* output, int64_t count) {
 }
 
 bool laya_cuda_custom(ggml_backend_cuda_context& context, ggml_tensor* output) {
+    if (laya_cuda_bf16(context,output)) return true;
     auto input = output->src[0];
     if (!input || !ggml_is_contiguous(input) || !ggml_is_contiguous(output)) return false;
     if (!std::strcmp(output->name,"laya.mask-local") || !std::strcmp(output->name,"laya.mask-global")) {

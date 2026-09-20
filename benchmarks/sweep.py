@@ -25,7 +25,7 @@ def main():
     p.add_argument('--iterations', type=int, default=5)
     p.add_argument('--warmup', type=int, default=3)
     p.add_argument('--fp32', action='store_true', default=True)
-    p.add_argument('--experimental-bf16', dest='fp32', action='store_false')
+    p.add_argument('--bf16', '--experimental-bf16', dest='fp32', action='store_false')
     p.add_argument('--no-flash', action='store_true')
     p.add_argument('--tensor-core-fp32', action='store_true')
     p.add_argument('--output', type=Path, default=Path('results/sweep.json'))

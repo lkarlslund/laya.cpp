@@ -1,5 +1,7 @@
 #include "fattn.cuh"
 #include <cuda_fp16.h>
+#include <cuda_bf16.h>
+#include "bf16-attention.cuh"
 #include <cmath>
 #include <cstring>
 
@@ -7,7 +9,7 @@
 void ggml_cuda_flash_attn_ext_upstream(ggml_backend_cuda_context&, ggml_tensor*);
 
 namespace {
-struct strides { int64_t token, head, batch; };
+
 
 // One block computes a query, distributing keys over eight warps.
 // Scores and the softmax reduction stay in FP32 shared memory.
@@ -73,8 +75,8 @@ void ggml_cuda_flash_attn_ext(ggml_backend_cuda_context& context, ggml_tensor* o
     const auto q = output->src[0], k = output->src[1], v = output->src[2], mask = output->src[3];
     float parameters[3];
     std::memcpy(parameters, output->op_params, sizeof(parameters));
-    if (q->type != GGML_TYPE_F32 || k->type != GGML_TYPE_F32 || v->type != GGML_TYPE_F32 ||
-        k->ne[1] > 512 || q->ne[0] != 64 || k->ne[0] != 64 || v->ne[0] != 64 || q->ne[2] != k->ne[2] ||
+    if (q->type != GGML_TYPE_F32 || (k->type != GGML_TYPE_F32 && k->type != GGML_TYPE_BF16) || v->type != k->type ||
+        k->ne[1] > (k->type==GGML_TYPE_BF16 ? 1024 : 512) || q->ne[0] != 64 || k->ne[0] != 64 || v->ne[0] != 64 || q->ne[2] != k->ne[2] ||
         q->ne[2] != v->ne[2] || q->ne[3] != k->ne[3] || q->ne[3] != v->ne[3] ||
         (mask && mask->type != GGML_TYPE_F16) || parameters[1] != 0 || parameters[2] != 0 || output->src[4]) {
         ggml_cuda_flash_attn_ext_upstream(context, output);
@@ -87,7 +89,13 @@ void ggml_cuda_flash_attn_ext(ggml_backend_cuda_context& context, ggml_tensor* o
     float scale;
     std::memcpy(&scale, output->op_params, sizeof(float));
     const dim3 grid(q->ne[1], q->ne[2], q->ne[3]);
-    attention_f32_d64<<<grid,256,0,context.stream()>>>(static_cast<const float*>(q->data),
+    if (k->type==GGML_TYPE_BF16) {
+        laya_attention_bf16(static_cast<const float*>(q->data),
+            static_cast<const nv_bfloat16*>(k->data),static_cast<const nv_bfloat16*>(v->data),
+            mask ? static_cast<const half*>(mask->data) : nullptr,static_cast<float*>(output->data),
+            q->ne[1],k->ne[1],q->ne[2],q->ne[3],stride(q),stride(k),stride(v),mask ? stride(mask) : strides{},
+            mask ? mask->ne[2] : 1,mask ? mask->ne[3] : 1,scale,!std::strcmp(output->name,"laya.sdpa-masked"),context);
+    } else attention_f32_d64<<<grid,256,0,context.stream()>>>(static_cast<const float*>(q->data),
         static_cast<const float*>(k->data), static_cast<const float*>(v->data),
         mask ? static_cast<const half*>(mask->data) : nullptr, static_cast<float*>(output->data),
         q->ne[1], k->ne[1], q->ne[2], stride(q), stride(k), stride(v), mask ? stride(mask) : strides{},

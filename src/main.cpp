@@ -36,14 +36,14 @@ int main(int argc, char** argv) {
             else if (arg == "--fp32") { bf16 = false; flash = false; }
             else if (arg == "--flash-fp32") { bf16 = false; flash = true; }
             else if (arg == "--tensor-core-fp32") { bf16 = false; tensor_core = true; }
-            else if (arg == "--experimental-bf16") { bf16 = true; flash = true; }
+            else if (arg == "--bf16" || arg == "--experimental-bf16") { bf16 = true; flash = true; }
             else if (arg == "--no-flash") flash = false;
             else if (arg == "--raw") raw = true;
             else if (arg == "--prepare") prepare = true;
             else if (arg == "--help") {
                 std::cout << "laya-cli [--model DIR] [--variant english|multilingual|typed-decisions] [--input JSON] [--raw|--prepare] [--fp32] [--cpu]\n"
                              "--tensor-core-fp32 --flash-fp32 enables the optimized CUDA path.\n"
-                             "--experimental-bf16 enables an unvalidated lower-precision mode; --no-flash disables its fused attention.\n"
+                             "--bf16 enables matching-precision CUDA inference (requires the toolchain in docs/precision.md).\n--experimental-bf16 is a compatibility alias. --no-flash is supported only in FP32 mode.\n"
                              "Reads JSON lines from stdin when --input is absent. Each line is a request or request array.\n";
                 std::cout << "--server listens on HTTP: POST /v1/systemone (JEV schema), POST /predict (batch), GET /health, GET /v1/models.\n"
                              "--host ADDRESS (127.0.0.1), --port PORT (8080), --max-questions N (8).\n"

@@ -65,7 +65,9 @@ approximation to FP32 activations, evaluated against the public output tolerance
 The encoder MLP fuses product recombination, exact-erf GELU gating, and activation
 splitting into one kernel, avoiding the intermediate activation copies.
 The scorer and action projections remain FP32. Nonfinite results are rejected by
-acceptance testing; BF16 remains experimental.
+acceptance testing. Native mixed BF16 is selected with `--bf16` and uses dedicated
+projection, normalization, activation, rotary and attention kernels. Its strict
+rounding boundaries and validated toolchain are documented in [precision](precision.md).
 
 Q/K/V packing and rotary multiplication are fused into one native kernel, with
 separate rounded multiplies and addition. `--flash-fp32` enables full-FP32 fused
@@ -75,8 +77,8 @@ source to provide FP32 accumulation/output for FP16 inputs and dispatch the
 custom packing operations. The dependency checkout stays unchanged.
 
 The runtime holds one encoder graph for the current batch/sequence/option shape
-and one action graph for the current batch size. A shape change rebuilds the
-corresponding graph; repeated shapes reuse allocations and ggml CUDA Graphs.
+and one action graph for the current batch size. A shape change, or a change in
+whether BF16 inputs contain padding, rebuilds the corresponding graph; repeated shapes reuse allocations and ggml CUDA Graphs.
 Weights stay resident. Calls to one agent must be serialized by the caller.
 There is no automatic CPU fallback on a CUDA error.
 

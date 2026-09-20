@@ -33,8 +33,8 @@ Acceptance requires exact categorical outputs and absolute numeric output error
 no greater than 0.0001. Raw action logits can have magnitudes in the thousands;
 their diagnostics help investigate numerical differences. This is not bitwise
 identity or a proof for every possible input. The report preserves observed
-maximum raw errors and every failing case. BF16 has a separate experimental mode
-and must pass its own gates before it can become a supported default.
+maximum raw errors and every failing case. Select `--bf16` for matching BF16
+validation; the compatible build profile is described in [precision](precision.md).
 
 Correctness is defined at matching precision: native FP32 is compared with the
 FP32 baseline, and native BF16 with the BF16 baseline. Different answers between
@@ -70,8 +70,8 @@ its equivalent in-process work. Model loading is outside the measured loop.
 
 Reports include all samples, p50/p95 batch latency, aggregate questions/second,
 precision, GPU identity, software/source revisions, and corpus identity. The sweep
-requires a passing validation report for the exact executable and weight hashes,
-precision, corpus, and batch sizes. No speedup is reported for a failed group.
+requires a passing validation report for the exact executable, loaded CUDA math
+libraries, weight hashes, precision, corpus, and batch sizes. No speedup is reported for a failed group.
 Use an idle GPU for publishable measurements; shared-GPU results are exploratory.
 The FP32 comparison disables baseline autocast and TF32. It does not measure
 the baseline package's default BF16 serving configuration. Always state precision
@@ -105,7 +105,8 @@ from changes in hardware contention between measurements.
 on English, multilingual, and typed-decisions, sequentially to avoid unnecessary
 GPU memory pressure. It writes separate validation and timing reports under
 `results/models/`. Use `--variants multilingual`, `--batch-sizes`, or `--strict-fp32`
-to narrow a run. The optimized CUDA path is selected by default in this matrix.
+to narrow a run. Use `--bf16` for BF16 validation and timing across all three models.
+The optimized FP32 CUDA path is selected by default in this matrix.
 Each checkpoint has its own weight fingerprint and independent correctness gate;
 a passing report for one checkpoint cannot authorize timing another.
 

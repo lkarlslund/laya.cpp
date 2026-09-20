@@ -6,6 +6,7 @@
 #include "ggml-cpu.h"
 #ifdef LAYA_CUDA
 #include "ggml-cuda.h"
+const char* laya_cuda_bf16_compatibility_error();
 #endif
 #include <algorithm>
 #include <chrono>
@@ -37,6 +38,7 @@ struct graph_state {
     tensor *cosine[2]{}, *sine[2]{};
     std::vector<std::pair<std::string, tensor*>> traces;
     int batch = 0, length = 0, options = 0;
+    bool padding=false;
     ~graph_state() { if (allocator) ggml_gallocr_free(allocator); if (ctx) ggml_free(ctx); }
 };
 }
@@ -95,7 +97,11 @@ struct runtime::impl {
                 throw std::runtime_error("Unsupported rotary configuration");
         }
 #ifdef LAYA_CUDA
-        if (cuda) backend = ggml_backend_cuda_init(0);
+        if (cuda) {
+            backend = ggml_backend_cuda_init(0);
+            if (backend && bf16)
+                if (auto error=laya_cuda_bf16_compatibility_error()) throw std::runtime_error(error);
+        }
 #else
         if (cuda) throw std::runtime_error("This build has no CUDA backend");
 #endif
@@ -205,12 +211,14 @@ struct runtime::impl {
         return bf16 ? ggml_cast(ctx, ggml_cast(ctx, value, GGML_TYPE_BF16), GGML_TYPE_F32) : value;
     }
     tensor* norm(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false) {
+        if (bf16) return norm_bf16(ctx, x, w(name+".weight"), bias ? w(name+".bias") : nullptr);
         auto value = ggml_mul(ctx, ggml_norm(ctx, x, 1e-5f), w(name + ".weight"));
         return bias ? ggml_add(ctx, value, w(name + ".bias")) : value;
     }
     tensor* linear(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool packed = false) {
-        x = rounded(ctx, x);
+        x = bf16 ? ggml_cast(ctx, x, GGML_TYPE_BF16) : x;
         const auto key = name + (packed ? "_weight" : ".weight");
+        if (bf16) return linear_bf16(ctx,x,w(key),bias ? w(name+(packed ? "_bias" : ".bias")) : nullptr);
         const bool compensated = tensor_core && compensated_weights.contains(key);
         const int64_t columns = x->ne[1];
         // ggml's small-matrix CUDA kernel uses TF32 even for F32 weights.
@@ -228,38 +236,41 @@ struct runtime::impl {
         if (pad_columns) value = ggml_cont(ctx, ggml_view_2d(ctx, value, value->ne[0], columns, value->nb[1], 0));
         return rounded(ctx, value);
     }
-    tensor* gelu(ggml_context* ctx, tensor* x) { return rounded(ctx, ggml_gelu_erf(ctx, x)); }
+    tensor* gelu(ggml_context* ctx, tensor* x) { return bf16 ? gelu_bf16(ctx,x) : ggml_gelu_erf(ctx,x); }
+
+    void trace_tensor(graph_state& s, const std::string& name, tensor* value) {
+        if (std::getenv("LAYA_TRACE_DIR")) {
+            ggml_set_output(value);
+            s.traces.emplace_back(name, value);
+        }
+    }
 
     tensor* attention(graph_state& s, tensor* x, const std::string& prefix, int layer, bool head) {
         auto ctx = s.ctx;
-        auto qkv = linear(ctx, x, prefix + (head ? ".self_attn.in_proj" : ".attn.Wqkv"), head, head);
+        trace_tensor(s, prefix+".qkv-input", x);
+        // Batched head inputs have a transposed sequence/batch layout in the
+        // mixed-precision contract: round the product before adding this bias.
+        const bool separate_bias=bf16 && head && s.batch>1;
+        auto qkv = linear(ctx, x, prefix + (head ? ".self_attn.in_proj" : ".attn.Wqkv"), head && !separate_bias, head);
+        if(separate_bias) qkv=rounded(ctx,ggml_add(ctx,qkv,w(prefix+".self_attn.in_proj_bias")));
+        trace_tensor(s, prefix+".attn.Wqkv", qkv);
         tensor* split[3];
-        if (!bf16) {
-            int kind=layer%3==0 ? 0 : 1;
-            auto packed_qkv=pack_qkv(ctx,qkv,head ? nullptr : s.cosine[kind],head ? nullptr : s.sine[kind],s.length,s.batch);
-            for (int i=0; i<3; ++i)
-                split[i]=ggml_view_4d(ctx,packed_qkv,64,s.length,heads,s.batch,
-                    packed_qkv->nb[1],packed_qkv->nb[2],packed_qkv->nb[3],i*s.batch*packed_qkv->nb[3]);
-        } else for (int i = 0; i < 3; ++i) {
-            auto view = ggml_view_2d(ctx, qkv, width, s.length * s.batch, qkv->nb[1], size_t(i * width) * sizeof(float));
-            split[i] = ggml_reshape_4d(ctx, ggml_cont(ctx, view), width / heads, heads, s.length, s.batch);
-            if (!head && i < 2) {
-                auto q = split[i];
-                auto first = ggml_view_4d(ctx, q, 32, heads, s.length, s.batch, q->nb[1], q->nb[2], q->nb[3], 0);
-                auto second = ggml_view_4d(ctx, q, 32, heads, s.length, s.batch, q->nb[1], q->nb[2], q->nb[3], 32*sizeof(float));
-                auto turned = ggml_concat(ctx, ggml_neg(ctx, ggml_cont(ctx, second)), ggml_cont(ctx, first), 0);
-                int kind = layer % 3 == 0 ? 0 : 1;
-                split[i] = ggml_add(ctx, ggml_mul(ctx, q, s.cosine[kind]), ggml_mul(ctx, turned, s.sine[kind]));
-                split[i] = rounded(ctx, split[i]);
-            }
-            split[i] = ggml_permute(ctx, split[i], 0, 2, 1, 3);
-        }
+        int kind=layer%3==0 ? 0 : 1;
+        auto packed_qkv=pack_qkv(ctx,qkv,head ? nullptr : s.cosine[kind],head ? nullptr : s.sine[kind],s.length,s.batch,bf16);
+        for (int i=0;i<3;++i)
+            split[i]=ggml_view_4d(ctx,packed_qkv,64,s.length,heads,s.batch,
+                packed_qkv->nb[1],packed_qkv->nb[2],packed_qkv->nb[3],i*s.batch*packed_qkv->nb[3]);
+        if (std::getenv("LAYA_TRACE_DIR")) split[0]=ggml_cont(ctx,split[0]);
+        trace_tensor(s,prefix+".q",split[0]);
+        if (std::getenv("LAYA_TRACE_DIR")) split[1]=ggml_cont(ctx,split[1]);
+        trace_tensor(s,prefix+".k",split[1]);
         auto mask = head || layer % 3 == 0 ? s.global_mask : s.local_mask;
         tensor* value;
-        if (flash && s.length <= 128) {
+        if (flash && (bf16 || s.length <= 128)) {
             auto k = bf16 ? ggml_cast(ctx, ggml_cont(ctx, split[1]), GGML_TYPE_BF16) : split[1];
             auto v = bf16 ? ggml_cast(ctx, ggml_cont(ctx, split[2]), GGML_TYPE_BF16) : split[2];
             value = ggml_flash_attn_ext(ctx, split[0], k, v, mask, 1.0f / 8.0f, 0, 0);
+            if (bf16 && (head || s.padding || (layer%3!=0 && s.length>=64))) ggml_set_name(value,"laya.sdpa-masked");
             ggml_prec_set_acc(value, GGML_PREC_F32);
             value = ggml_reshape_2d(ctx, ggml_cont(ctx, value), width, s.length * s.batch);
         } else {
@@ -272,13 +283,17 @@ struct runtime::impl {
             value = ggml_reshape_2d(ctx, ggml_cont(ctx, ggml_permute(ctx, value, 0, 2, 1, 3)), width, s.length * s.batch);
         }
         value = rounded(ctx, value);
-        return linear(ctx, value, prefix + (head ? ".self_attn.out_proj" : ".attn.Wo"), head);
+        trace_tensor(s, prefix+".attn.Wo.input", value);
+        auto output = linear(ctx, value, prefix + (head ? ".self_attn.out_proj" : ".attn.Wo"), head);
+        trace_tensor(s, prefix+".attn.Wo", output);
+        return output;
     }
 
     std::unique_ptr<graph_state> make_graph(const batch& input, bool action) {
         auto state = std::make_unique<graph_state>();
         auto& s = *state;
         s.batch = input.size; s.length = input.length; s.options = input.options;
+        s.padding=std::any_of(input.lengths.begin(),input.lengths.end(),[&](auto n){return n<input.length;});
         s.ctx = ggml_init({ggml_tensor_overhead()*8192 + ggml_graph_overhead_custom(8192, false), nullptr, true});
         if (!s.ctx) throw std::runtime_error("Cannot allocate graph metadata");
         auto ctx = s.ctx;
@@ -328,10 +343,14 @@ struct runtime::impl {
                     h=ggml_add(ctx,h,merge_f16(ctx,projected));
                 } else {
                     auto gated = linear(ctx, norm(ctx, h, prefix + ".mlp_norm"), prefix + ".mlp.Wi");
+                    trace_tensor(s,prefix+".mlp.Wi",gated);
                     auto first = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], 0));
                     auto second = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], intermediate * sizeof(float)));
                     auto activation = rounded(ctx, ggml_mul(ctx, gelu(ctx, first), second));
-                    h = ggml_add(ctx, h, linear(ctx, activation, prefix + ".mlp.Wo"));
+                    trace_tensor(s,prefix+".mlp.Wo.input",activation);
+                    auto projected = linear(ctx, activation, prefix + ".mlp.Wo");
+                    trace_tensor(s,prefix+".mlp.Wo",projected);
+                    h = ggml_add(ctx, h, projected);
                 }
                 trace("encoder-" + std::to_string(layer), h);
             }
@@ -341,8 +360,12 @@ struct runtime::impl {
             for (int layer = 0; layer < 2; ++layer) {
                 auto prefix = "head.layers." + std::to_string(layer);
                 h = ggml_add(ctx, h, attention(s, norm(ctx, h, prefix + ".norm1", true), prefix, layer, true));
-                auto activation = ggml_relu(ctx, linear(ctx, norm(ctx, h, prefix + ".norm2", true), prefix + ".linear1", true));
-                h = ggml_add(ctx, h, linear(ctx, activation, prefix + ".linear2", true));
+                auto first=linear(ctx,norm(ctx,h,prefix+".norm2",true),prefix+".linear1",true);
+                trace_tensor(s,prefix+".linear1",first);
+                auto activation=ggml_relu(ctx,first);
+                auto second=linear(ctx,activation,prefix+".linear2",true);
+                trace_tensor(s,prefix+".linear2",second);
+                h=ggml_add(ctx,h,second);
                 trace("head-" + std::to_string(layer), h);
             }
             s.pooled = ggml_get_rows(ctx, h, s.cls);
@@ -364,7 +387,7 @@ struct runtime::impl {
                     const float inverse = 1.0f/std::pow(kind == 0 ? 160000.0f : local_rope, float(2*i)/64.0f);
                     for (int position = 0; position < s.length; ++position) {
                         const float angle = float(position)*inverse;
-                        cosine[position*64+i] = cosine[position*64+i+32] = std::cos(angle);
+                        cosine[position*64+i] = cosine[position*64+i+32] = bf16 ? angle : std::cos(angle);
                         sine[position*64+i] = sine[position*64+i+32] = std::sin(angle);
                     }
                 }
@@ -392,7 +415,7 @@ struct runtime::impl {
         }
         if (std::any_of(input.ids.begin(), input.ids.end(), [&](int id) { return id < 0 || id >= vocabulary; }))
             throw std::runtime_error("Token ID outside the vocabulary");
-        if (!main_graph || main_graph->batch != input.size || main_graph->length != input.length || main_graph->options != input.options) {
+        if (!main_graph || main_graph->batch != input.size || main_graph->length != input.length || main_graph->options != input.options || (bf16 && main_graph->padding!=std::any_of(input.lengths.begin(),input.lengths.end(),[&](auto n){return n<input.length;}))) {
             main_graph.reset();
             main_graph = make_graph(input, false);
         }
@@ -451,6 +474,7 @@ struct runtime::impl {
     }
 };
 runtime::runtime(const std::filesystem::path& path, bool cuda, bool bf16, bool flash, bool tensor_core) : p(std::make_unique<impl>()) {
+    if (bf16 && (!cuda || !flash)) throw std::invalid_argument("BF16 mode requires fused CUDA attention");
     if (tensor_core && (bf16 || !cuda)) throw std::invalid_argument("Compensated Tensor Cores require CUDA and FP32 mode");
     p->bf16 = bf16; p->flash = flash; p->tensor_core = tensor_core;
     p->load(path, cuda);

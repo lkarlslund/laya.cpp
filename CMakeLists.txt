@@ -8,6 +8,8 @@ set(GGML_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GGML_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/ggml)
 if(LAYA_CUDA)
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
   # Extend one CUDA dispatcher without editing the pinned dependency checkout.
   set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/ggml/src/ggml-cuda/fattn.cu"
     TARGET_DIRECTORY ggml-cuda APPEND PROPERTY COMPILE_DEFINITIONS
@@ -29,12 +31,33 @@ if(LAYA_CUDA)
     cuda_code "${cuda_code}")
   # The capability query has different argument names and must not execute kernels.
   string(REPLACE "case GGML_OP_CUSTOM: return laya_cuda_custom(ctx, dst);\n        case GGML_OP_CONCAT:\n            {\n                ggml_type src0_type = op->src[0]->type;"
-    "case GGML_OP_CUSTOM: return strcmp(op->name, \"laya.split-f16\") == 0 || strcmp(op->name, \"laya.merge-f16\") == 0 || strcmp(op->name, \"laya.pack-qkv\") == 0 || strcmp(op->name, \"laya.mlp-split\") == 0 || strcmp(op->name, \"laya.mask-local\") == 0 || strcmp(op->name, \"laya.mask-global\") == 0;\n        case GGML_OP_CONCAT:\n            {\n                ggml_type src0_type = op->src[0]->type;"
+    "case GGML_OP_CUSTOM: return strcmp(op->name, \"laya.split-f16\") == 0 || strcmp(op->name, \"laya.linear-bf16\") == 0 || strcmp(op->name, \"laya.gelu-bf16\") == 0 || strcmp(op->name, \"laya.norm-bf16\") == 0 || strcmp(op->name, \"laya.merge-f16\") == 0 || strcmp(op->name, \"laya.pack-qkv-bf16\") == 0 || strcmp(op->name, \"laya.pack-qkv\") == 0 || strcmp(op->name, \"laya.mlp-split\") == 0 || strcmp(op->name, \"laya.mask-local\") == 0 || strcmp(op->name, \"laya.mask-global\") == 0;\n        case GGML_OP_CONCAT:\n            {\n                ggml_type src0_type = op->src[0]->type;"
     cuda_code "${cuda_code}")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/laya-ggml-cuda.cu" "${cuda_code}")
   get_target_property(cuda_sources ggml-cuda SOURCES)
   list(TRANSFORM cuda_sources REPLACE "^(.*/)?ggml-cuda[.]cu$" "${CMAKE_CURRENT_BINARY_DIR}/laya-ggml-cuda.cu")
   set_property(TARGET ggml-cuda PROPERTY SOURCES "${cuda_sources}")
+  # BF16 operator boundaries depend on strict device math. Keep this target
+  # separate from the dependency's --use_fast_math compilation flags.
+  add_library(laya-cuda-bf16 OBJECT src/bf16.cu)
+  get_target_property(bf16_architectures ggml-cuda CUDA_ARCHITECTURES)
+  list(FILTER bf16_architectures EXCLUDE REGEX "^[567][0-9]")
+  if(NOT bf16_architectures)
+    set(bf16_architectures 80-virtual)
+  endif()
+  set_target_properties(laya-cuda-bf16 PROPERTIES POSITION_INDEPENDENT_CODE ON CUDA_ARCHITECTURES "${bf16_architectures}")
+  target_compile_definitions(laya-cuda-bf16 PRIVATE $<TARGET_PROPERTY:ggml-cuda,COMPILE_DEFINITIONS>)
+  target_include_directories(laya-cuda-bf16 PRIVATE $<TARGET_PROPERTY:ggml-cuda,INCLUDE_DIRECTORIES>
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/ggml/src/ggml-cuda")
+  target_link_libraries(laya-cuda-bf16 PRIVATE CUDA::cudart CUDA::cublas CUDA::cublasLt)
+  target_sources(ggml-cuda PRIVATE $<TARGET_OBJECTS:laya-cuda-bf16>)
+  target_link_libraries(ggml-cuda PRIVATE CUDA::cublasLt)
+  # Keep the selected math libraries ahead of another toolkit on the system.
+  foreach(library CUDA::cublas CUDA::cublasLt)
+    get_target_property(library_path ${library} IMPORTED_LOCATION)
+    get_filename_component(library_directory "${library_path}" DIRECTORY)
+    set_property(TARGET ggml-cuda APPEND PROPERTY BUILD_RPATH "${library_directory}")
+  endforeach()
   target_sources(ggml-cuda PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/attention.cu" "${CMAKE_CURRENT_SOURCE_DIR}/src/precision.cu")
   target_include_directories(ggml-cuda PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/ggml/src/ggml-cuda")
 endif()
@@ -87,6 +110,10 @@ if(BUILD_TESTING)
     endif()
   endforeach()
   if(LAYA_CUDA)
+    add_executable(test-bf16 tests/bf16.cpp)
+    target_link_libraries(test-bf16 PRIVATE laya ggml-cuda)
+    add_test(NAME bf16 COMMAND test-bf16)
+    set_tests_properties(bf16 PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(test-attention tests/attention.cpp)
     target_link_libraries(test-attention PRIVATE ggml ggml-cuda)
     add_test(NAME attention COMMAND test-attention)

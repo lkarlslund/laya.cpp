@@ -14,7 +14,8 @@ All three checkpoints are supported:
 
 Strict FP32 is the default. The optimized CUDA path uses exact checkpoint FP16
 weights, paired activation components, FP32 accumulation, and fused packing
-kernels. Enable it with `--tensor-core-fp32 --flash-fp32`. BF16 remains experimental.
+kernels. Enable it with `--tensor-core-fp32 --flash-fp32`. Native mixed BF16 is
+available with `--bf16` using the validated CUDA 13.0 / cuBLAS 13.1.0 build profile.
 Correctness is checked against the baseline at matching precision; see
 [precision comparisons](docs/precision.md).
 
