@@ -1,0 +1,142 @@
+{
+  "schema_version": 2,
+  "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+  "model_revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "torch": "2.11.0+cu130",
+  "precision": "fp32",
+  "iterations": 5,
+  "fused_attention": true,
+  "tensor_core_fp32": true,
+  "native_build_sha256": "e25e665f882d0ce20f77160b89729199cb566607d44d398442c245e84c88eaa0",
+  "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+  "warmup": 3,
+  "batch_sizes": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "passed": true,
+  "project_revision": "fde2a08a59f6f3a6686e27b3b3c687eb33706415",
+  "ggml_revision": "456172ec733a135778adcd32d00e576a58232e45",
+  "baseline_revision": "d113dca2512fb3eaca313534bc54c7162d87c1d4",
+  "measurement_date": "2026-09-20",
+  "source_state": "Implementation working tree before its initial commit; native build fingerprint recorded below.",
+  "shared_gpu": true,
+  "acceptance": {
+    "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+    "precision": "fp32",
+    "native_build_sha256": "e25e665f882d0ce20f77160b89729199cb566607d44d398442c245e84c88eaa0",
+    "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+    "torch": "2.11.0+cu130",
+    "fused_attention": true,
+    "tensor_core_fp32": true,
+    "acceptance": "exact_categories_absolute_numeric_0.0001",
+    "raw_atol": 0.001,
+    "raw_rtol": 1e-05,
+    "answer_atol": 0.0001,
+    "passed": true,
+    "batches": [
+      {
+        "batch_size": 1,
+        "questions": 250,
+        "max_logit_error": 0.000316619873046875,
+        "max_action_error": 0.04150390625,
+        "failures": [],
+        "answer_failures": [],
+        "raw_diagnostic_count": 0
+      },
+      {
+        "batch_size": 2,
+        "questions": 250,
+        "max_logit_error": 0.0007543563842773438,
+        "max_action_error": 0.0615234375,
+        "failures": [],
+        "answer_failures": [],
+        "raw_diagnostic_count": 17
+      },
+      {
+        "batch_size": 4,
+        "questions": 250,
+        "max_logit_error": 0.0008020401000976562,
+        "max_action_error": 0.06787109375,
+        "failures": [],
+        "answer_failures": [],
+        "raw_diagnostic_count": 11
+      },
+      {
+        "batch_size": 8,
+        "questions": 250,
+        "max_logit_error": 0.00035572052001953125,
+        "max_action_error": 0.0859375,
+        "failures": [],
+        "answer_failures": [],
+        "raw_diagnostic_count": 15
+      }
+    ]
+  },
+  "rows": [
+    {
+      "batch_size": 1,
+      "baseline": {
+        "p50_ms": 5.668542988132685,
+        "p95_ms": 13.789221705519594,
+        "questions_per_second": 150.426625808453
+      },
+      "native": {
+        "p50_ms": 2.419277,
+        "p95_ms": 8.7344768,
+        "questions_per_second": 312.12728942794865
+      },
+      "failures": [],
+      "speedup": 2.0749470896555144
+    },
+    {
+      "batch_size": 2,
+      "baseline": {
+        "p50_ms": 7.519271981436759,
+        "p95_ms": 24.39211920136586,
+        "questions_per_second": 207.9527481443328
+      },
+      "native": {
+        "p50_ms": 3.323682,
+        "p95_ms": 16.9076784,
+        "questions_per_second": 388.9636803293355
+      },
+      "failures": [],
+      "speedup": 1.8704426067953153
+    },
+    {
+      "batch_size": 4,
+      "baseline": {
+        "p50_ms": 11.187335010617971,
+        "p95_ms": 45.91804302181117,
+        "questions_per_second": 244.80573082066013
+      },
+      "native": {
+        "p50_ms": 6.033324,
+        "p95_ms": 33.2462621,
+        "questions_per_second": 405.71059328236294
+      },
+      "failures": [],
+      "speedup": 1.6572757178612725
+    },
+    {
+      "batch_size": 8,
+      "baseline": {
+        "p50_ms": 21.433512505609542,
+        "p95_ms": 91.86756734852679,
+        "questions_per_second": 242.44001977421155
+      },
+      "native": {
+        "p50_ms": 12.846206500000001,
+        "p95_ms": 69.40765745,
+        "questions_per_second": 359.0475441471554
+      },
+      "failures": [],
+      "speedup": 1.4809747354481426
+    }
+  ]
+}

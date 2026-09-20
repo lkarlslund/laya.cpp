@@ -5,7 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        with:
+          submodules: recursive
+      - run: sudo apt-get update && sudo apt-get install -y libicu-dev nlohmann-json3-dev
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DLAYA_CUDA=OFF
       - run: cmake --build build --parallel
       - run: ctest --test-dir build --output-on-failure
       - run: python3 -m py_compile benchmarks/*.py scripts/*.py
+      - run: python3 -m unittest discover -s tests -p 'test_*.py'

@@ -1,0 +1,30 @@
+import collections
+import json
+from pathlib import Path
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class CorpusTests(unittest.TestCase):
+    def test_fixed_diverse_questions(self):
+        cases = json.loads((ROOT / 'benchmarks/cases/acceptance-250.json').read_text())
+        self.assertEqual(len(cases), 250)
+        self.assertEqual(len({c['id'] for c in cases}), 250)
+        questions = [next(iter(c['questions'].values())) for c in cases]
+        self.assertTrue(all(len(c['questions']) == 1 for c in cases))
+        self.assertEqual(len({json.dumps(q['instructions'], sort_keys=True) for q in questions}), 250)
+        self.assertEqual(collections.Counter(q['type'] for q in questions), dict(choice=100, score=75, noul=75))
+        self.assertEqual(len({c['category'] for c in cases}), 25)
+        self.assertTrue(any(len(str(c['state'])) > 3000 for c in cases))
+        self.assertTrue(any(isinstance(c['state'], dict) for c in cases))
+        self.assertTrue(any(len(q.get('criteria', [])) >= 12 for q in questions))
+
+    def test_generator_reproduces_committed_corpus(self):
+        import sys
+        sys.path.insert(0, str(ROOT / 'benchmarks'))
+        from make_corpus import build
+        actual = (ROOT / 'benchmarks/cases/acceptance-250.json').read_text()
+        self.assertEqual(actual, json.dumps(build(), ensure_ascii=False, indent=2) + '\n')
+
+if __name__ == '__main__': unittest.main()

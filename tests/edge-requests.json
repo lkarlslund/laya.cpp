@@ -1,0 +1,257 @@
+[
+  {
+    "id": "empty-choice",
+    "state": "",
+    "questions": {
+      "empty-choice": {
+        "type": "choice",
+        "instructions": "",
+        "criteria": [
+          "a",
+          "b"
+        ]
+      }
+    }
+  },
+  {
+    "id": "empty-score",
+    "state": "",
+    "questions": {
+      "empty-score": {
+        "type": "score",
+        "instructions": "",
+        "criteria": [
+          "a",
+          "b"
+        ]
+      }
+    }
+  },
+  {
+    "id": "empty-noul",
+    "state": "",
+    "questions": {
+      "empty-noul": {
+        "type": "noul",
+        "instructions": ""
+      }
+    }
+  },
+  {
+    "id": "unicode",
+    "state": "Café Å 日本語 😀",
+    "questions": {
+      "unicode": {
+        "type": "choice",
+        "instructions": "Which text is present?",
+        "criteria": {
+          "café": {
+            "language": "français"
+          },
+          "other": false
+        }
+      }
+    }
+  },
+  {
+    "id": "mask-literal",
+    "state": "[MASK] [CLS] [SEP] [PAD]",
+    "questions": {
+      "mask-literal": {
+        "type": "noul",
+        "instructions": "Does the text contain [MASK]?"
+      }
+    }
+  },
+  {
+    "id": "structured-instructions",
+    "state": {
+      "z": "last",
+      "a": "first"
+    },
+    "questions": {
+      "structured-instructions": {
+        "type": "choice",
+        "instructions": {
+          "z": "日本語",
+          "a": [
+            true,
+            false,
+            0
+          ]
+        },
+        "criteria": [
+          "z",
+          "a"
+        ]
+      }
+    }
+  },
+  {
+    "id": "false-criteria",
+    "state": "No data.",
+    "questions": {
+      "false-criteria": {
+        "type": "choice",
+        "instructions": "Choose a label.",
+        "criteria": {
+          "zero": 0,
+          "false": false,
+          "none": null,
+          "blank": ""
+        }
+      }
+    }
+  },
+  {
+    "id": "structured-score",
+    "state": [
+      "A",
+      "B"
+    ],
+    "questions": {
+      "structured-score": {
+        "type": "score",
+        "instructions": "Assess the evidence.",
+        "criteria": [
+          null,
+          false,
+          0,
+          {
+            "desc": "supported"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "custom-noul",
+    "state": "0 false",
+    "questions": {
+      "custom-noul": {
+        "type": "noul",
+        "instructions": "Is a statement established?",
+        "criteria": {
+          "false": false,
+          "true": 0
+        }
+      }
+    }
+  },
+  {
+    "id": "many-options",
+    "state": "Label 79 is mentioned.",
+    "questions": {
+      "many-options": {
+        "type": "choice",
+        "instructions": "Select a mentioned label.",
+        "criteria": [
+          "label 0",
+          "label 1",
+          "label 2",
+          "label 3",
+          "label 4",
+          "label 5",
+          "label 6",
+          "label 7",
+          "label 8",
+          "label 9",
+          "label 10",
+          "label 11",
+          "label 12",
+          "label 13",
+          "label 14",
+          "label 15",
+          "label 16",
+          "label 17",
+          "label 18",
+          "label 19",
+          "label 20",
+          "label 21",
+          "label 22",
+          "label 23",
+          "label 24",
+          "label 25",
+          "label 26",
+          "label 27",
+          "label 28",
+          "label 29",
+          "label 30",
+          "label 31",
+          "label 32",
+          "label 33",
+          "label 34",
+          "label 35",
+          "label 36",
+          "label 37",
+          "label 38",
+          "label 39",
+          "label 40",
+          "label 41",
+          "label 42",
+          "label 43",
+          "label 44",
+          "label 45",
+          "label 46",
+          "label 47",
+          "label 48",
+          "label 49",
+          "label 50",
+          "label 51",
+          "label 52",
+          "label 53",
+          "label 54",
+          "label 55",
+          "label 56",
+          "label 57",
+          "label 58",
+          "label 59",
+          "label 60",
+          "label 61",
+          "label 62",
+          "label 63",
+          "label 64",
+          "label 65",
+          "label 66",
+          "label 67",
+          "label 68",
+          "label 69",
+          "label 70",
+          "label 71",
+          "label 72",
+          "label 73",
+          "label 74",
+          "label 75",
+          "label 76",
+          "label 77",
+          "label 78",
+          "label 79"
+        ]
+      }
+    }
+  },
+  {
+    "id": "truncate-long",
+    "state": "prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix prefix  suffix",
+    "questions": {
+      "truncate-long": {
+        "type": "noul",
+        "instructions": "Is the suffix present?"
+      }
+    }
+  },
+  {
+    "id": "space-state",
+    "state": " \t\n  ",
+    "questions": {
+      "space-state": {
+        "type": "choice",
+        "instructions": "Whitespace?",
+        "criteria": {
+          "yes": "whitespace",
+          "no": "letters"
+        }
+      }
+    }
+  }
+]

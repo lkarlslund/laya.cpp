@@ -1,14 +1,20 @@
 # Development roadmap
 
-1. **Foundation (present):** native calibration core, pinned model downloads,
-   repeatable end-to-end measurement and output comparison.
-2. **Correctness:** checkpoint tensor inventory and loader; tokenizer and exact
-   sequence formatting; native encoder and typed heads; layerwise numerical tests.
-3. **RTX execution:** BF16 cuBLASLt projections, local/global attention kernels,
-   persistent allocation, shape buckets, fused operations, CUDA Graph replay.
-4. **Validation:** raw tensor parity and complete output parity; separate model-only
-   and end-to-end timing; throughput and latency sweeps across supported RTX GPUs.
-5. **Serving:** reusable C/C++ API, JSON CLI, batching, model variants, packaging.
+Implemented:
 
-Quantization follows a working BF16 implementation and accuracy measurements.
-Do not claim speedups from postprocessing microbenchmarks as model speedups.
+- Standalone C++ safetensors loader, NFC/byte-level BPE tokenizer, and JSON API.
+- ggml CUDA encoder, typed decision layers, scorer, and action head.
+- Strict FP32 execution with persistent weights and reusable compute graphs.
+- Compensated Tensor Core projections, fused Q/K/V rotary packing, and adaptive FP32 attention.
+- Fixed 250-question corpus, tokenizer fixtures, numerical validation, and batch sweeps.
+
+Next optimization targets, each subject to the same correctness gate:
+
+1. Fuse full-precision normalization and projection work without reducing accuracy.
+2. Move action statistics onto the device to remove the intermediate host round trip.
+3. Add a bounded cache for multiple sequence shapes and measure mixed workloads.
+4. Bring BF16 through acceptance before enabling it by default.
+5. Extend checkpoint support and package the C++ API with installation targets.
+
+Quantization and approximate arithmetic require separate accuracy evaluation.
+GPU batching is supported; concurrent calls on one agent are not.

@@ -1,34 +1,68 @@
 # laya.cpp
 
-C++ inference for Laya typed decisions, targeting NVIDIA RTX GPUs.
+Standalone C++ inference for Laya typed decisions on NVIDIA RTX GPUs, using ggml
+and its CUDA backend. Model loading, Unicode/BPE tokenization, transformer
+inference, decision heads, and JSON output all run natively.
 
-Early development: the C++ library currently implements calibrated probabilities,
-choice selection, expected scores, and entropy confidence. Full model loading,
-tokenization, encoder inference, decision heads, and CUDA acceleration are pending.
-There is no native end-to-end inference executable yet.
+The current target is the English ModernBERT-large checkpoint. The default is
+strict FP32 with full-precision attention. The optimized CUDA path uses exact
+checkpoint FP16 weights, paired activation components, FP32 accumulation, and
+fused packing kernels. Enable it with `--tensor-core-fp32 --flash-fp32`.
+BF16 remains experimental and has not passed the output-agreement gate.
 
 ## Build
 
-Requires CMake 3.24+, a C++20 compiler, and optionally Ninja.
+Requires a C++20 compiler, CMake 3.24+, CUDA, ICU, and nlohmann-json. On Debian-like
+systems the host dependencies are `libicu-dev` and `nlohmann-json3-dev`.
 
 ```sh
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-ctest --test-dir build --output-on-failure
+git submodule update --init --recursive
+cmake -S . -B build-cuda -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CUDA_ARCHITECTURES=120
+cmake --build build-cuda --parallel 8
+ctest --test-dir build-cuda --output-on-failure
 ```
 
-## Model storage
+Architecture 120 targets RTX Blackwell. Select the architecture appropriate to
+your GPU and a host compiler supported by your CUDA toolkit. For a CPU build,
+configure with `-DLAYA_CUDA=OFF` and run the CLI with `--cpu`.
 
-Install the Python tooling dependencies from `requirements-bench.txt` into your
-chosen environment, then fetch the pinned English checkpoint:
+## Run
+
+Place the checkpoint under `models/laya/`, then:
+
+```sh
+build-cuda/bin/laya-cli --model models/laya --tensor-core-fp32 --flash-fp32 \
+  --input benchmarks/cases/smoke.json
+```
+
+Without `--input`, the process accepts one JSON request (or an array of requests)
+per input line and keeps weights resident between calls. A request contains
+`state` and a `questions` object. Responses contain `results`, `elapsed_ms`, and
+`backend`. `results` is an array, including for a single request.
+
+```json
+{"state":"Please refund the duplicate charge.","questions":{"refund":{"type":"noul","instructions":"Does the customer ask for a refund?"}}}
+```
+
+Use `--raw` to inspect uncalibrated logits and `--prepare` to inspect input tensors.
+The executable does not require Python, PyTorch, or an inference server.
+
+## Models and tooling
+
+The optional Python tooling requirements are in `requirements-bench.txt`:
 
 ```sh
 python scripts/download_model.py
+python benchmarks/validate.py --tensor-core-fp32 --output results/validation.json
+python benchmarks/sweep.py --tensor-core-fp32 --validation results/validation.json \
+  --batch-sizes 1 2 4 8
 ```
 
-Use `--variant multilingual` or `--variant typed-decisions` for other checkpoints.
-Models live under `models/`, excluded from Git. Scratch research lives under
-`research/`, also excluded. Build products and benchmark reports are local only.
+The fixed acceptance corpus contains exactly 250 different questions. The sweep
+requires a passing validation report matching the corpus, weights, and binary.
+Model files, local research, build products, and detailed benchmark reports stay
+outside Git in `models/`, `research/`, `build*/`, and `results/`.
 
-See [architecture](docs/architecture.md), [benchmarking](docs/benchmarking.md), and
+See [measured performance](docs/performance.md), [architecture](docs/architecture.md), [benchmarking](docs/benchmarking.md), and
 [development roadmap](docs/roadmap.md).

@@ -1,0 +1,462 @@
+#include "laya/runtime.hpp"
+#include "laya/precision.hpp"
+#include "ggml.h"
+#include "ggml-alloc.h"
+#include "ggml-backend.h"
+#include "ggml-cpu.h"
+#ifdef LAYA_CUDA
+#include "ggml-cuda.h"
+#endif
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstring>
+#include <cstdlib>
+#include <fstream>
+#include <limits>
+#include <map>
+#include <set>
+#include <stdexcept>
+
+namespace laya {
+namespace {
+using tensor = ggml_tensor;
+json read_json(const std::filesystem::path& path) {
+    std::ifstream f(path);
+    if (!f) throw std::runtime_error("Cannot open " + path.string());
+    return json::parse(f);
+}
+struct graph_state {
+    ggml_context* ctx = nullptr;
+    ggml_gallocr_t allocator = nullptr;
+    ggml_cgraph* graph = nullptr;
+    tensor *ids = nullptr, *types = nullptr, *markers = nullptr, *cls = nullptr;
+    tensor *global_mask = nullptr, *local_mask = nullptr, *logits = nullptr, *pooled = nullptr;
+    tensor *action_input = nullptr, *action_output = nullptr;
+    tensor *cosine[2]{}, *sine[2]{};
+    std::vector<std::pair<std::string, tensor*>> traces;
+    int batch = 0, length = 0, options = 0;
+    ~graph_state() { if (allocator) ggml_gallocr_free(allocator); if (ctx) ggml_free(ctx); }
+};
+}
+struct runtime::impl {
+    json config, encoder;
+    ggml_backend_t backend = nullptr;
+    ggml_context* weight_context = nullptr;
+    ggml_backend_buffer_t weight_buffer = nullptr;
+    std::map<std::string, tensor*> weights;
+    std::set<std::string> compensated_weights;
+    std::unique_ptr<graph_state> main_graph, action_graph;
+    bool bf16, flash, tensor_core;
+    int width = 1024, heads = 16, layers = 28, intermediate = 2624, n_actions;
+
+    ~impl() {
+        main_graph.reset(); action_graph.reset();
+        if (weight_buffer) ggml_backend_buffer_free(weight_buffer);
+        if (weight_context) ggml_free(weight_context);
+        if (backend) ggml_backend_free(backend);
+    }
+
+    void load(const std::filesystem::path& directory, bool cuda) {
+        // The CUDA backend enables TF32 in cuBLAS by default. Strict FP32 must
+        // disable that permission before CUDA/cuBLAS initialization.
+        if (cuda && !bf16 && setenv("NVIDIA_TF32_OVERRIDE", "0", 1) != 0)
+            throw std::runtime_error("Cannot enforce FP32 CUDA arithmetic");
+        config = read_json(directory / "rl_agent_config.json");
+        encoder = read_json(directory / "encoder/config.json");
+        const json supported{{"model_type", "modernbert"}, {"hidden_size", 1024},
+                {"num_attention_heads", 16}, {"num_hidden_layers", 28}, {"intermediate_size", 2624},
+                {"vocab_size", 50368}, {"local_attention", 128}, {"global_attn_every_n_layers", 3},
+                {"norm_bias", false}, {"attention_bias", false}, {"mlp_bias", false},
+                {"hidden_activation", "gelu"}};
+        for (auto& [key, expected] : supported.items()) {
+            if (!encoder.contains(key) || encoder.at(key) != expected)
+                throw std::runtime_error("Unsupported encoder field: " + key);
+        }
+        if (config.at("head_layers") != 2 || config.at("amp_dtype") != "bf16")
+            throw std::runtime_error("Expected two head layers and BF16 model configuration");
+        if (encoder.value("norm_eps", 1e-5) != 1e-5) throw std::runtime_error("Unsupported normalization epsilon");
+        n_actions = int(config.at("act_costs").size()) + 1;
+        for (int i = 0; i < layers; ++i)
+            if (encoder.at("layer_types").at(i) != (i % 3 ? "sliding_attention" : "full_attention"))
+                throw std::runtime_error("Unsupported attention schedule");
+        for (auto& [kind, base] : std::map<std::string, double>{{"full_attention", 160000.0}, {"sliding_attention", 10000.0}}) {
+            auto rope = encoder.at("rope_parameters").at(kind);
+            if (rope.at("rope_type") != "default" || rope.at("rope_theta") != base)
+                throw std::runtime_error("Unsupported rotary configuration");
+        }
+#ifdef LAYA_CUDA
+        if (cuda) backend = ggml_backend_cuda_init(0);
+#else
+        if (cuda) throw std::runtime_error("This build has no CUDA backend");
+#endif
+        if (!cuda) backend = ggml_backend_cpu_init();
+        if (!backend) throw std::runtime_error("Cannot initialize requested backend");
+
+        std::ifstream file(directory / "model.safetensors", std::ios::binary | std::ios::ate);
+        if (!file) throw std::runtime_error("Cannot open model.safetensors");
+        auto file_size = uint64_t(file.tellg());
+        file.seekg(0);
+        uint64_t header_size = 0;
+        file.read(reinterpret_cast<char*>(&header_size), sizeof(header_size));
+        if (!file || header_size > 16*1024*1024 || header_size + 8 > file_size)
+            throw std::runtime_error("Invalid safetensors header size");
+        std::string header(header_size, '\0'); file.read(header.data(), header.size());
+        auto entries = json::parse(header);
+        std::set<std::string> required;
+        auto expect = [&](const std::string& name, std::initializer_list<int64_t> shape) {
+            required.insert(name);
+            if (!entries.contains(name) || entries.at(name).at("shape") != std::vector<int64_t>(shape))
+                throw std::runtime_error("Missing or incorrectly shaped checkpoint tensor: " + name);
+        };
+        expect("encoder.embeddings.tok_embeddings.weight", {50368, 1024});
+        expect("encoder.embeddings.norm.weight", {1024}); expect("encoder.final_norm.weight", {1024});
+        expect("type_emb.weight", {3, 1024}); expect("temperature", {3});
+        for (int i = 0; i < 28; ++i) {
+            auto prefix = "encoder.layers." + std::to_string(i);
+            if (i) expect(prefix+".attn_norm.weight", {1024});
+            expect(prefix+".mlp_norm.weight", {1024});
+            expect(prefix+".attn.Wqkv.weight", {3072, 1024}); expect(prefix+".attn.Wo.weight", {1024, 1024});
+            expect(prefix+".mlp.Wi.weight", {5248, 1024}); expect(prefix+".mlp.Wo.weight", {1024, 2624});
+        }
+        for (int i = 0; i < 2; ++i) {
+            auto prefix = "head.layers."+std::to_string(i);
+            expect(prefix+".self_attn.in_proj_weight", {3072, 1024}); expect(prefix+".self_attn.in_proj_bias", {3072});
+            expect(prefix+".self_attn.out_proj.weight", {1024, 1024}); expect(prefix+".self_attn.out_proj.bias", {1024});
+            expect(prefix+".linear1.weight", {4096, 1024}); expect(prefix+".linear1.bias", {4096});
+            expect(prefix+".linear2.weight", {1024, 4096}); expect(prefix+".linear2.bias", {1024});
+            for (auto suffix : {".norm1.weight", ".norm1.bias", ".norm2.weight", ".norm2.bias"}) expect(prefix+suffix, {1024});
+        }
+        expect("scorer.0.weight", {1024}); expect("scorer.0.bias", {1024});
+        expect("scorer.1.weight", {1024, 1024}); expect("scorer.1.bias", {1024});
+        expect("scorer.3.weight", {1, 1024}); expect("scorer.3.bias", {1});
+        expect("act_head.0.weight", {256, 1028}); expect("act_head.0.bias", {256});
+        expect("act_head.2.weight", {n_actions, 256}); expect("act_head.2.bias", {n_actions});
+        for (auto& [name, ignored] : entries.items())
+            if (name != "__metadata__" && !required.contains(name)) throw std::runtime_error("Unexpected checkpoint tensor: "+name);
+        weight_context = ggml_init({entries.size() * ggml_tensor_overhead() * (tensor_core ? 2 : 1) + 1024, nullptr, true});
+        if (!weight_context) throw std::runtime_error("Cannot allocate weight metadata");
+        for (auto& [name, spec] : entries.items()) {
+            if (name == "__metadata__") continue;
+            auto shape = spec.at("shape").get<std::vector<int64_t>>();
+            if (shape.empty() || shape.size() > 2 || std::any_of(shape.begin(), shape.end(), [](auto x) { return x <= 0; }))
+                throw std::runtime_error("Invalid tensor shape: " + name);
+            std::reverse(shape.begin(), shape.end());
+            bool projection = shape.size() == 2 && name != "type_emb.weight" && name != "encoder.embeddings.tok_embeddings.weight";
+            bool compensated = tensor_core && projection && (name.starts_with("encoder.layers.") || name.starts_with("head.layers."));
+            auto type = compensated ? GGML_TYPE_F16 : bf16 && projection ? GGML_TYPE_BF16 : GGML_TYPE_F32;
+            auto value = ggml_new_tensor(weight_context, type, int(shape.size()), shape.data());
+            ggml_set_name(value, name.c_str());
+            weights[name] = value;
+            if (compensated) {
+                if (spec.at("dtype") != "F16") throw std::runtime_error("Compensated Tensor Core mode requires F16 stored projections");
+                compensated_weights.insert(name);
+            }
+        }
+        weight_buffer = ggml_backend_alloc_ctx_tensors(weight_context, backend);
+        if (!weight_buffer) throw std::runtime_error("Insufficient device memory for model weights");
+        ggml_backend_buffer_set_usage(weight_buffer, GGML_BACKEND_BUFFER_USAGE_WEIGHTS);
+        for (auto& [name, tensor] : weights) {
+            auto spec = entries.at(name);
+            auto offsets = spec.at("data_offsets").get<std::vector<uint64_t>>();
+            const auto count = ggml_nelements(tensor);
+            const auto dtype = spec.at("dtype").get<std::string>();
+            size_t stride = dtype == "F16" || dtype == "BF16" ? 2 : dtype == "F32" ? 4 : 0;
+            if (offsets.size() != 2 || !stride || offsets[1] < offsets[0] || offsets[1] > file_size - 8 - header_size ||
+                offsets[1] - offsets[0] != uint64_t(count) * stride)
+                throw std::runtime_error("Invalid safetensors payload: " + name);
+            std::vector<char> bytes(count * stride);
+            file.seekg(8 + header_size + offsets[0]); file.read(bytes.data(), bytes.size());
+            if (!file) throw std::runtime_error("Truncated tensor payload: " + name);
+            std::vector<float> values(count);
+            if (dtype == "F16") ggml_fp16_to_fp32_row(reinterpret_cast<const ggml_fp16_t*>(bytes.data()), values.data(), count);
+            else if (dtype == "BF16") ggml_bf16_to_fp32_row(reinterpret_cast<const ggml_bf16_t*>(bytes.data()), values.data(), count);
+            else std::memcpy(values.data(), bytes.data(), bytes.size());
+            if (std::any_of(values.begin(), values.end(), [](float x) { return !std::isfinite(x); }))
+                throw std::runtime_error("Nonfinite checkpoint values: " + name);
+            if (tensor->type == GGML_TYPE_BF16) {
+                std::vector<ggml_bf16_t> converted(count);
+                ggml_fp32_to_bf16_row_ref(values.data(), converted.data(), count);
+                ggml_backend_tensor_set(tensor, converted.data(), 0, ggml_nbytes(tensor));
+
+            } else if (tensor->type == GGML_TYPE_F16) {
+                ggml_backend_tensor_set(tensor, bytes.data(), 0, ggml_nbytes(tensor));
+            } else {
+                bool linear_bias = name.ends_with(".bias") && name.find("norm") == std::string::npos && !name.starts_with("scorer.0.");
+                linear_bias = linear_bias || name.ends_with("in_proj_bias");
+                if (bf16 && linear_bias)
+                    for (auto& x : values) x = ggml_bf16_to_fp32(ggml_fp32_to_bf16(x));
+                ggml_backend_tensor_set(tensor, values.data(), 0, ggml_nbytes(tensor));
+            }
+        }
+    }
+
+    tensor* w(const std::string& name) { return weights.at(name); }
+    tensor* rounded(ggml_context* ctx, tensor* value) {
+        return bf16 ? ggml_cast(ctx, ggml_cast(ctx, value, GGML_TYPE_BF16), GGML_TYPE_F32) : value;
+    }
+    tensor* norm(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false) {
+        auto value = ggml_mul(ctx, ggml_norm(ctx, x, 1e-5f), w(name + ".weight"));
+        return bias ? ggml_add(ctx, value, w(name + ".bias")) : value;
+    }
+    tensor* linear(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool packed = false) {
+        x = rounded(ctx, x);
+        const auto key = name + (packed ? "_weight" : ".weight");
+        const bool compensated = tensor_core && compensated_weights.contains(key);
+        const int64_t columns = x->ne[1];
+        // ggml's small-matrix CUDA kernel uses TF32 even for F32 weights.
+        // Keep strict FP32 on the cuBLAS path, including tiny decision heads.
+        const bool pad_columns = !bf16 && !compensated && columns <= 16;
+        if (pad_columns) x = ggml_pad(ctx, x, 0, 17-columns, 0, 0);
+        tensor* value;
+        if (compensated) {
+            value = merge_f16(ctx,ggml_mul_mat(ctx,w(key),split_f16(ctx,x)));
+        } else {
+            value = ggml_mul_mat(ctx, w(key), x);
+            if (!bf16) ggml_prec_set_acc(value, GGML_PREC_F32);
+        }
+        if (bias) value = ggml_add(ctx, value, w(name + (packed ? "_bias" : ".bias")));
+        if (pad_columns) value = ggml_cont(ctx, ggml_view_2d(ctx, value, value->ne[0], columns, value->nb[1], 0));
+        return rounded(ctx, value);
+    }
+    tensor* gelu(ggml_context* ctx, tensor* x) { return rounded(ctx, ggml_gelu_erf(ctx, x)); }
+
+    tensor* attention(graph_state& s, tensor* x, const std::string& prefix, int layer, bool head) {
+        auto ctx = s.ctx;
+        auto qkv = linear(ctx, x, prefix + (head ? ".self_attn.in_proj" : ".attn.Wqkv"), head, head);
+        tensor* split[3];
+        if (!bf16) {
+            int kind=layer%3==0 ? 0 : 1;
+            auto packed_qkv=pack_qkv(ctx,qkv,head ? nullptr : s.cosine[kind],head ? nullptr : s.sine[kind],s.length,s.batch);
+            for (int i=0; i<3; ++i)
+                split[i]=ggml_view_4d(ctx,packed_qkv,64,s.length,heads,s.batch,
+                    packed_qkv->nb[1],packed_qkv->nb[2],packed_qkv->nb[3],i*s.batch*packed_qkv->nb[3]);
+        } else for (int i = 0; i < 3; ++i) {
+            auto view = ggml_view_2d(ctx, qkv, width, s.length * s.batch, qkv->nb[1], size_t(i * width) * sizeof(float));
+            split[i] = ggml_reshape_4d(ctx, ggml_cont(ctx, view), width / heads, heads, s.length, s.batch);
+            if (!head && i < 2) {
+                auto q = split[i];
+                auto first = ggml_view_4d(ctx, q, 32, heads, s.length, s.batch, q->nb[1], q->nb[2], q->nb[3], 0);
+                auto second = ggml_view_4d(ctx, q, 32, heads, s.length, s.batch, q->nb[1], q->nb[2], q->nb[3], 32*sizeof(float));
+                auto turned = ggml_concat(ctx, ggml_neg(ctx, ggml_cont(ctx, second)), ggml_cont(ctx, first), 0);
+                int kind = layer % 3 == 0 ? 0 : 1;
+                split[i] = ggml_add(ctx, ggml_mul(ctx, q, s.cosine[kind]), ggml_mul(ctx, turned, s.sine[kind]));
+                split[i] = rounded(ctx, split[i]);
+            }
+            split[i] = ggml_permute(ctx, split[i], 0, 2, 1, 3);
+        }
+        auto mask = head || layer % 3 == 0 ? s.global_mask : s.local_mask;
+        tensor* value;
+        if (flash && s.length <= 128) {
+            auto k = bf16 ? ggml_cast(ctx, ggml_cont(ctx, split[1]), GGML_TYPE_BF16) : split[1];
+            auto v = bf16 ? ggml_cast(ctx, ggml_cont(ctx, split[2]), GGML_TYPE_BF16) : split[2];
+            value = ggml_flash_attn_ext(ctx, split[0], k, v, mask, 1.0f / 8.0f, 0, 0);
+            ggml_prec_set_acc(value, GGML_PREC_F32);
+            value = ggml_reshape_2d(ctx, ggml_cont(ctx, value), width, s.length * s.batch);
+        } else {
+            auto scores = ggml_mul_mat(ctx, split[1], split[0]);
+            ggml_prec_set_acc(scores, GGML_PREC_F32);
+            auto probabilities = ggml_soft_max_ext(ctx, scores, mask, 1.0f / 8.0f, 0);
+            auto v = ggml_cont(ctx, ggml_transpose(ctx, split[2]));
+            value = ggml_mul_mat(ctx, v, probabilities);
+            ggml_prec_set_acc(value, GGML_PREC_F32);
+            value = ggml_reshape_2d(ctx, ggml_cont(ctx, ggml_permute(ctx, value, 0, 2, 1, 3)), width, s.length * s.batch);
+        }
+        value = rounded(ctx, value);
+        return linear(ctx, value, prefix + (head ? ".self_attn.out_proj" : ".attn.Wo"), head);
+    }
+
+    std::unique_ptr<graph_state> make_graph(const batch& input, bool action) {
+        auto state = std::make_unique<graph_state>();
+        auto& s = *state;
+        s.batch = input.size; s.length = input.length; s.options = input.options;
+        s.ctx = ggml_init({ggml_tensor_overhead()*8192 + ggml_graph_overhead_custom(8192, false), nullptr, true});
+        if (!s.ctx) throw std::runtime_error("Cannot allocate graph metadata");
+        auto ctx = s.ctx;
+        s.graph = ggml_new_graph_custom(ctx, 8192, false);
+        auto input_tensor = [&](ggml_type type, std::initializer_list<int64_t> dimensions) {
+            auto t = ggml_new_tensor(ctx, type, int(dimensions.size()), dimensions.begin());
+            ggml_set_input(t); return t;
+        };
+        if (action) {
+            s.action_input = input_tensor(GGML_TYPE_F32, {1028, s.batch});
+            s.action_output = linear(ctx, gelu(ctx, linear(ctx, s.action_input, "act_head.0", true)), "act_head.2", true);
+            ggml_set_output(s.action_output);
+            ggml_build_forward_expand(s.graph, s.action_output);
+        } else {
+            auto trace = [&](const std::string& name, tensor* t) {
+                if (std::getenv("LAYA_TRACE_DIR")) {
+                    ggml_set_output(t);
+                    s.traces.emplace_back(name, t);
+                }
+            };
+            int tokens = s.length * s.batch;
+            s.ids = input_tensor(GGML_TYPE_I32, {tokens});
+            s.types = input_tensor(GGML_TYPE_I32, {tokens});
+            for (int kind = 0; kind < 2; ++kind) {
+                s.cosine[kind] = input_tensor(GGML_TYPE_F32, {64, 1, s.length, 1});
+                s.sine[kind] = input_tensor(GGML_TYPE_F32, {64, 1, s.length, 1});
+                // These inputs are initialized once per shape. Keep their buffers
+                // live after the last rotary operation for subsequent replays.
+                ggml_set_output(s.cosine[kind]); ggml_set_output(s.sine[kind]);
+            }
+            s.markers = input_tensor(GGML_TYPE_I32, {s.options * s.batch});
+            s.cls = input_tensor(GGML_TYPE_I32, {s.batch});
+            // Flash attention requires mask query rows padded to a multiple of 64.
+            auto mask_rows = flash ? ((s.length + 63) / 64) * 64 : s.length;
+            s.global_mask = input_tensor(flash ? GGML_TYPE_F16 : GGML_TYPE_F32, {s.length, mask_rows, 1, s.batch});
+            s.local_mask = input_tensor(flash ? GGML_TYPE_F16 : GGML_TYPE_F32, {s.length, mask_rows, 1, s.batch});
+            auto h = norm(ctx, ggml_get_rows(ctx, w("encoder.embeddings.tok_embeddings.weight"), s.ids), "encoder.embeddings.norm");
+            trace("embedding", h);
+            for (int layer = 0; layer < layers; ++layer) {
+                auto prefix = "encoder.layers." + std::to_string(layer);
+                h = ggml_add(ctx, h, attention(s, layer == 0 ? h : norm(ctx, h, prefix + ".attn_norm"), prefix, layer, false));
+                auto gated = linear(ctx, norm(ctx, h, prefix + ".mlp_norm"), prefix + ".mlp.Wi");
+                auto first = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], 0));
+                auto second = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], intermediate * sizeof(float)));
+                auto activation = rounded(ctx, ggml_mul(ctx, gelu(ctx, first), second));
+                h = ggml_add(ctx, h, linear(ctx, activation, prefix + ".mlp.Wo"));
+                trace("encoder-" + std::to_string(layer), h);
+            }
+            h = norm(ctx, h, "encoder.final_norm");
+            trace("final-norm", h);
+            h = ggml_add(ctx, h, ggml_get_rows(ctx, w("type_emb.weight"), s.types));
+            for (int layer = 0; layer < 2; ++layer) {
+                auto prefix = "head.layers." + std::to_string(layer);
+                h = ggml_add(ctx, h, attention(s, norm(ctx, h, prefix + ".norm1", true), prefix, layer, true));
+                auto activation = ggml_relu(ctx, linear(ctx, norm(ctx, h, prefix + ".norm2", true), prefix + ".linear1", true));
+                h = ggml_add(ctx, h, linear(ctx, activation, prefix + ".linear2", true));
+                trace("head-" + std::to_string(layer), h);
+            }
+            s.pooled = ggml_get_rows(ctx, h, s.cls);
+            auto selected = norm(ctx, ggml_get_rows(ctx, h, s.markers), "scorer.0", true);
+            s.logits = linear(ctx, gelu(ctx, linear(ctx, selected, "scorer.1", true)), "scorer.3", true);
+            ggml_set_output(s.pooled); ggml_set_output(s.logits);
+            ggml_build_forward_expand(s.graph, s.pooled);
+            ggml_build_forward_expand(s.graph, s.logits);
+        }
+        for (int i = 0; i < ggml_graph_n_nodes(s.graph); ++i)
+            if (!ggml_backend_supports_op(backend, ggml_graph_node(s.graph, i)))
+                throw std::runtime_error(std::string("Requested backend does not support ") + ggml_op_name(ggml_graph_node(s.graph, i)->op));
+        s.allocator = ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+        if (!ggml_gallocr_alloc_graph(s.allocator, s.graph)) throw std::runtime_error("Insufficient memory for this batch");
+        if (!action) {
+            for (int kind = 0; kind < 2; ++kind) {
+                std::vector<float> cosine(64*s.length), sine(64*s.length);
+                for (int i = 0; i < 32; ++i) {
+                    const float inverse = 1.0f/std::pow(kind == 0 ? 160000.0f : 10000.0f, float(2*i)/64.0f);
+                    for (int position = 0; position < s.length; ++position) {
+                        const float angle = float(position)*inverse;
+                        cosine[position*64+i] = cosine[position*64+i+32] = std::cos(angle);
+                        sine[position*64+i] = sine[position*64+i+32] = std::sin(angle);
+                    }
+                }
+                ggml_backend_tensor_set(s.cosine[kind], cosine.data(), 0, ggml_nbytes(s.cosine[kind]));
+                ggml_backend_tensor_set(s.sine[kind], sine.data(), 0, ggml_nbytes(s.sine[kind]));
+            }
+        }
+        return state;
+    }
+
+    raw_result run(const batch& input) {
+        if (input.size < 1 || input.length < 1 || input.length > config.value("max_len", 512) || input.options < 2 ||
+            input.ids.size() != size_t(input.size * input.length)) throw std::runtime_error("Invalid model batch");
+        if (input.lengths.size() != size_t(input.size) || input.types.size() != size_t(input.size) ||
+            input.counts.size() != size_t(input.size) || input.markers.size() != size_t(input.size*input.options))
+            throw std::runtime_error("Invalid batch metadata sizes");
+        for (int row = 0; row < input.size; ++row) {
+            if (input.lengths[row] < 1 || input.lengths[row] > input.length || input.types[row] < 0 || input.types[row] > 2 ||
+                input.counts[row] < 2 || input.counts[row] > input.options)
+                throw std::runtime_error("Invalid batch row metadata");
+            for (int k = 0; k < input.options; ++k) {
+                auto marker = input.markers[row*input.options+k] - row*input.length;
+                if (marker < 0 || marker >= input.lengths[row]) throw std::runtime_error("Option marker outside its sequence");
+            }
+        }
+        if (std::any_of(input.ids.begin(), input.ids.end(), [](int id) { return id < 0 || id >= 50368; }))
+            throw std::runtime_error("Token ID outside the vocabulary");
+        if (!main_graph || main_graph->batch != input.size || main_graph->length != input.length || main_graph->options != input.options) {
+            main_graph.reset();
+            main_graph = make_graph(input, false);
+        }
+        if (!action_graph || action_graph->batch != input.size) {
+            action_graph.reset();
+            action_graph = make_graph(input, true);
+        }
+        auto& s = *main_graph;
+        auto put = [](tensor* t, const auto& data) { ggml_backend_tensor_set(t, data.data(), 0, ggml_nbytes(t)); };
+        put(s.ids, input.ids); put(s.markers, input.markers);
+        std::vector<int32_t> types(input.ids.size()), cls(input.size);
+        for (int row = 0; row < input.size; ++row) {
+            cls[row] = row * input.length;
+            std::fill_n(types.begin() + cls[row], input.length, input.types[row]);
+        }
+        put(s.types, types); put(s.cls, cls);
+        auto fill_mask = [&](tensor* t, bool local) {
+            std::vector<float> mask(ggml_nelements(t), -INFINITY);
+            for (int row = 0; row < input.size; ++row)
+                for (int q = 0; q < input.length; ++q) {
+                    for (int k = 0; k < input.lengths[row]; ++k)
+                        if (!local || std::abs(q-k) <= 64)
+                            mask[(row*t->ne[1]+q)*input.length+k] = 0;
+                    // Padded query rows never contribute to valid tokens. Give
+                    // all-masked padded rows one valid key to avoid 0/0 softmax.
+                    if (local && q >= input.lengths[row]+64)
+                        mask[(row*t->ne[1]+q)*input.length] = 0;
+                }
+            if (t->type == GGML_TYPE_F16) {
+                std::vector<ggml_fp16_t> half(mask.size());
+                ggml_fp32_to_fp16_row(mask.data(), half.data(), mask.size()); put(t, half);
+            } else put(t, mask);
+        };
+        fill_mask(s.global_mask, false); fill_mask(s.local_mask, true);
+        auto start = std::chrono::steady_clock::now();
+        if (ggml_backend_graph_compute(backend, s.graph) != GGML_STATUS_SUCCESS) throw std::runtime_error("Encoder computation failed");
+        raw_result result;
+        result.action_count = n_actions;
+        result.logits.resize(input.size * input.options);
+        std::vector<float> pooled(width * input.size), features((width+4) * input.size);
+        ggml_backend_tensor_get(s.logits, result.logits.data(), 0, ggml_nbytes(s.logits));
+        ggml_backend_tensor_get(s.pooled, pooled.data(), 0, ggml_nbytes(s.pooled));
+        if (const char* directory = std::getenv("LAYA_TRACE_DIR")) {
+            std::filesystem::create_directories(directory);
+            for (auto& [name, t] : s.traces) {
+                std::vector<float> values(ggml_nelements(t));
+                ggml_backend_tensor_get(t, values.data(), 0, ggml_nbytes(t));
+                std::ofstream file(std::filesystem::path(directory)/(name+".f32"), std::ios::binary);
+                file.write(reinterpret_cast<char*>(values.data()), values.size()*sizeof(float));
+            }
+        }
+        for (int row = 0; row < input.size; ++row) {
+            auto out = features.data() + row*(width+4);
+            std::copy_n(pooled.data()+row*width, width, out);
+            auto scores = result.logits.data()+row*input.options;
+            std::fill(scores+input.counts[row], scores+input.options, -1e4f);
+            float maximum = *std::max_element(scores, scores+input.options), total = 0;
+            std::vector<float> probabilities(input.options);
+            for (int j = 0; j < input.options; ++j) total += probabilities[j] = std::exp(scores[j]-maximum);
+            float entropy = 0;
+            for (auto& v : probabilities) { v /= total; entropy -= v*std::log(std::max(v, 1e-9f)); }
+            std::partial_sort(probabilities.begin(), probabilities.begin()+2, probabilities.end(), std::greater<float>());
+            out[width] = probabilities[0]; out[width+1] = probabilities[0]-probabilities[1];
+            out[width+2] = entropy/std::log(float(std::max(2, input.counts[row])));
+            out[width+3] = float(std::max(2, input.counts[row]))/255.0f;
+        }
+        put(action_graph->action_input, features);
+        if (ggml_backend_graph_compute(backend, action_graph->graph) != GGML_STATUS_SUCCESS) throw std::runtime_error("Action computation failed");
+        result.actions.resize(input.size*n_actions);
+        ggml_backend_tensor_get(action_graph->action_output, result.actions.data(), 0, ggml_nbytes(action_graph->action_output));
+        result.compute_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now()-start).count();
+        return result;
+    }
+};
+runtime::runtime(const std::filesystem::path& path, bool cuda, bool bf16, bool flash, bool tensor_core) : p(std::make_unique<impl>()) {
+    if (tensor_core && (bf16 || !cuda)) throw std::invalid_argument("Compensated Tensor Cores require CUDA and FP32 mode");
+    p->bf16 = bf16; p->flash = flash; p->tensor_core = tensor_core;
+    p->load(path, cuda);
+}
+runtime::~runtime() = default;
+raw_result runtime::forward(const batch& input) { return p->run(input); }
+const json& runtime::config() const { return p->config; }
+std::string runtime::backend_name() const { return ggml_backend_name(p->backend); }
+}

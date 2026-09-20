@@ -13,7 +13,8 @@ def compare_values(a, b, tolerance, path='result'):
         for key in a:
             compare_values(a[key], b[key], tolerance, f'{path}.{key}')
     elif isinstance(a, (float, int)) and isinstance(b, (float, int)):
-        if not math.isfinite(a) or not math.isfinite(b) or abs(a - b) > tolerance:
+        error = abs(a-b)
+        if not math.isfinite(a) or not math.isfinite(b) or (error > tolerance and not math.isclose(error,tolerance,rel_tol=1e-9,abs_tol=1e-12)):
             raise ValueError(f'{path}: {a} != {b} (tolerance {tolerance})')
     elif a != b:
         raise ValueError(f'{path}: {a!r} != {b!r}')
