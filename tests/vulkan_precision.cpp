@@ -4,6 +4,7 @@
 #include "ggml-vulkan.h"
 #include "vulkan_ops.hpp"
 #include "vulkan/gelu_tables.hpp"
+#include "vulkan/gelu_rocm_patches.hpp"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -69,7 +70,7 @@ int main() {
                     throw std::runtime_error("compensated split overflow or precision loss");
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
-        for (bool bf16 : {false,true}) for (bool gated : {false,true}) {
+        for (bool bf16 : {false,true}) for (bool gated : {false,true}) for (bool rocm : {false,true}) {
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             constexpr int width=256,rows=256;
             auto x=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,width*(gated ? 2 : 1),rows);
@@ -80,7 +81,12 @@ int main() {
             if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("activation allocation failed");
             auto decode=[&](uint16_t bits) { return bf16 ? ggml_bf16_to_fp32(ggml_bf16_t{bits}) : ggml_fp16_to_fp32(bits); };
             auto round=[&](float value) { return bf16 ? ggml_bf16_to_fp32(ggml_fp32_to_bf16(value)) : ggml_fp16_to_fp32(ggml_fp32_to_fp16(value)); };
-            const auto* bits=bf16 ? laya::vulkan_precision::gelu_bf16_nvidia : laya::vulkan_precision::gelu_fp16_nvidia;
+            const auto* base_bits=bf16 ? laya::vulkan_precision::gelu_bf16_nvidia : laya::vulkan_precision::gelu_fp16_nvidia;
+            std::vector<uint16_t> bits(base_bits,base_bits+65536);
+            if (rocm) {
+                if (bf16) for (auto patch:laya::vulkan_precision::gelu_bf16_rocm) bits[patch.index]=patch.value;
+                else for (auto patch:laya::vulkan_precision::gelu_fp16_rocm) bits[patch.index]=patch.value;
+            }
             std::vector<float> inputs(65536*(gated ? 2 : 1)),lookup(65536),expected(65536),actual(65536);
             for (int i=0;i<65536;++i) {
                 int source=(i/width)*width*(gated ? 2 : 1)+i%width;

@@ -4,19 +4,56 @@ layout(binding=0) readonly buffer Input { float x[]; };
 layout(binding=1) readonly buffer Table { float table[]; };
 layout(binding=2) writeonly buffer Output { float y[]; };
 layout(push_constant) uniform Params { uint width; uint rows; uint gated; uint bf16; } p;
+// packHalf2x16 may use round-toward-zero on some Vulkan drivers.
+// Encode round-to-nearest-even explicitly, including half subnormals.
+uint halfBits(float value) {
+    uint bits=floatBitsToUint(value), sign=(bits>>16)&0x8000, magnitude=bits&0x7fffffff;
+    if (magnitude>=0x7f800000) return sign|0x7c00|(magnitude>0x7f800000 ? 0x200 : 0);
+    if (magnitude>=0x477ff000) return sign|0x7c00;
+    if (magnitude<0x33000000) return sign;
+    if (magnitude>=0x38800000)
+        return sign|((magnitude-0x38000000+0xfff+((magnitude>>13)&1))>>13);
+    uint shift=126-(magnitude>>23), mantissa=(magnitude&0x7fffff)|0x800000;
+    return sign|((mantissa+((1u<<(shift-1))-1)+((mantissa>>shift)&1))>>shift);
+}
 float rounded(float value) {
-    if (p.bf16==0) return unpackHalf2x16(packHalf2x16(vec2(value,0))).x;
+    if (p.bf16==0) return unpackHalf2x16(halfBits(value)).x;
     uint bits=floatBitsToUint(value);
     if ((bits & 0x7fffffff)>0x7f800000) return uintBitsToFloat(bits|0x00400000);
     return uintBitsToFloat((bits+0x7fff+((bits>>16)&1))&0xffff0000);
+}
+// Preserve BF16 subnormals on devices whose default FP32 ALU mode flushes
+// them. An 8-by-8-bit significand product fits exactly in an integer.
+float tinyBfloatProduct(float a,float b) {
+    uint aa=floatBitsToUint(a)>>16, bb=floatBitsToUint(b)>>16;
+    uint sign=((aa^bb)&0x8000)<<16;
+    int ea=int((aa>>7)&255), eb=int((bb>>7)&255);
+    uint ma=(aa&127)|(ea!=0 ? 128u : 0u), mb=(bb&127)|(eb!=0 ? 128u : 0u);
+    uint product=ma*mb;
+    if (product==0) return uintBitsToFloat(sign);
+    int exponent=(ea==0 ? -126 : ea-127)+(eb==0 ? -126 : eb-127)-14;
+    int leading=findMSB(product), unbiased=leading+exponent;
+    int shift=unbiased < -126 ? -(exponent+133) : leading-7;
+    uint mantissa;
+    if (shift>16) mantissa=0;
+    else if (shift>0) mantissa=(product+((1u<<uint(shift-1))-1u)+((product>>uint(shift))&1u))>>uint(shift);
+    else mantissa=product<<uint(-shift);
+    if (unbiased < -126) return uintBitsToFloat(sign|(mantissa<<16));
+    if (mantissa==256) { mantissa=128; unbiased+=1; }
+    return uintBitsToFloat(sign|(uint(unbiased+127)<<23)|((mantissa&127)<<16));
 }
 void main() {
     uint i=gl_GlobalInvocationID.x;
     if (i>=p.width*p.rows) return;
     uint source=(i/p.width)*p.width*(1+p.gated)+i%p.width;
     float v=x[source];
-    uint index=p.bf16!=0 ? floatBitsToUint(v)>>16 : packHalf2x16(vec2(v,0))&0xffff;
+    uint index=p.bf16!=0 ? floatBitsToUint(v)>>16 : halfBits(v);
     float value=table[index];
-    if (p.gated!=0) value=rounded(value*x[source+p.width]);
+    if (p.gated!=0) {
+        float gate=x[source+p.width];
+        uint a=(floatBitsToUint(value)>>23)&255, b=(floatBitsToUint(gate)>>23)&255;
+        value=p.bf16!=0 && a!=255 && b!=255 && (a==0 || b==0 || a+b<=128)
+            ? tinyBfloatProduct(value,gate) : rounded(value*gate);
+    }
     y[i]=value;
 }
