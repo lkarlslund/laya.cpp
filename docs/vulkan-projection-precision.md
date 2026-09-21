@@ -27,5 +27,6 @@ disabled, subnormal inputs, and large values. Rotary products round separately
 before addition. All 6,000 NVIDIA FP16/BF16 public-answer comparisons also pass with the
 fused operator integrated ([record](measurements/vulkan-packed-16bit-validation.json)).
 The NVIDIA plain and compensated FP32 modes also pass all 6,000 comparisons
-([record](measurements/vulkan-packed-fp32-nvidia-validation.json)). AMD FP32
-regression and before/after performance testing remain pending.
+([record](measurements/vulkan-packed-fp32-nvidia-validation.json)). Plain AMD FP32 passes all 3,000 comparisons against Python on the same GPU
+([record](measurements/vulkan-packed-fp32-amd-validation.json)). Compensated AMD
+FP32 regression and before/after performance testing remain pending.

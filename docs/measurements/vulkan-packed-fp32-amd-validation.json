@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "total_comparisons": 3000,
+  "scope": "Plain FP32; compensated FP32 regression remains pending. Python uses the same AMD GPU through ROCm.",
+  "passed": true,
+  "runs": [
+    {
+      "backend": "vulkan",
+      "precision": "fp32",
+      "tensor_core_fp32": false,
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "native_build_sha256": "affe042856feac8bd73731acaf18d136255c6bc3fd7750c5c09cc7aa7bb07b17",
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+      "gpu": "Radeon 8060S Graphics",
+      "torch": "2.11.0+rocm7.13.0",
+      "python_runtime": "rocm",
+      "python_runtime_version": "7.13.99004",
+      "acceptance": "exact_categories_absolute_numeric_0.0001",
+      "passed": true,
+      "variant": "english-plain",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        }
+      ]
+    },
+    {
+      "backend": "vulkan",
+      "precision": "fp32",
+      "tensor_core_fp32": false,
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "native_build_sha256": "affe042856feac8bd73731acaf18d136255c6bc3fd7750c5c09cc7aa7bb07b17",
+      "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+      "gpu": "Radeon 8060S Graphics",
+      "torch": "2.11.0+rocm7.13.0",
+      "python_runtime": "rocm",
+      "python_runtime_version": "7.13.99004",
+      "acceptance": "exact_categories_absolute_numeric_0.0001",
+      "passed": true,
+      "variant": "multilingual-plain",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        }
+      ]
+    },
+    {
+      "backend": "vulkan",
+      "precision": "fp32",
+      "tensor_core_fp32": false,
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "native_build_sha256": "affe042856feac8bd73731acaf18d136255c6bc3fd7750c5c09cc7aa7bb07b17",
+      "weights_sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e",
+      "gpu": "Radeon 8060S Graphics",
+      "torch": "2.11.0+rocm7.13.0",
+      "python_runtime": "rocm",
+      "python_runtime_version": "7.13.99004",
+      "acceptance": "exact_categories_absolute_numeric_0.0001",
+      "passed": true,
+      "variant": "typed-decisions-plain",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0
+        }
+      ]
+    }
+  ]
+}
