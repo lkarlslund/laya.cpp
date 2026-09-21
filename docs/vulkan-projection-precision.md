@@ -44,11 +44,12 @@ Explicitly marked NVIDIA low-precision matrix products can retain FP16/BF16
 inputs while preserving FP32 accumulation and the requested unsplit reduction.
 Bitwise tests compare these products with the rounded-FP32-input path at small
 and large batch dimensions, including signed zeros and cancellation. Scalar
-projections retain their existing policy. Eligible unsplit NVIDIA projections
-now use this path. All 6,000 matching-precision public-answer comparisons pass
+projections retain their existing policy. All 6,000 matching-precision public-answer comparisons pass
 for the three models in FP16 and BF16 at batches 1, 2, 4 and 8
-([record](measurements/vulkan-low-input-16bit-validation.json)). Throughput
-measurements for this conversion optimization remain pending.
+([record](measurements/vulkan-low-input-16bit-validation.json)). However, paired
+English FP16 timings showed a 26–31% throughput loss across batches 1–8. The
+runtime therefore retains rounded FP32 inputs; direct 16-bit inputs remain a
+tested backend capability rather than an enabled inference optimization.
 
 The fused QKV packing operator combines layout conversion, rotary multiplication,
 and storage rounding in one dispatch. Its operator tests pass on NVIDIA and AMD
