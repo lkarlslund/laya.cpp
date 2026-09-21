@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "torch": "2.11.0+cu130",
+  "cuda": "13.0",
+  "precision": [
+    "fp16",
+    "bf16"
+  ],
+  "columns": [
+    1,
+    8192
+  ],
+  "profiled_shapes": 327680,
+  "weight_geometries": 20,
+  "precision_plan_differences": 0,
+  "method": "Synthetic binary weights, unit inputs, and quarter-ULP bias probe storage boundaries; cuBLASLt diagnostics identify reduction schemes and partition counts. Profiles are independent of corpus answers. Partition lengths use 64-element alignment.",
+  "plans_sha256": "ad66dc1761946de9395787f0af8216f8e24e21ee317ad0bd530aea887a3491e7",
+  "profile_sha256": "e588ef5fb105f76d4d644ad18a110b7ff274d20c65e11455c8ea05d3a55c944e",
+  "validation": {
+    "vulkan_operator_tests": "passed",
+    "typed_decisions_bf16_two_request_trace": "All captured intermediates exactly match, including all 28 encoder layers and both decision heads."
+  },
+  "full_model_acceptance": false
+}
