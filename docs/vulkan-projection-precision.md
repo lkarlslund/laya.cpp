@@ -47,7 +47,8 @@ and large batch dimensions, including signed zeros and cancellation. Scalar
 projections retain their existing policy. All 6,000 matching-precision public-answer comparisons pass
 for the three models in FP16 and BF16 at batches 1, 2, 4 and 8
 ([record](measurements/vulkan-low-input-16bit-validation.json)). However, paired
-English FP16 timings showed a 26–31% throughput loss across batches 1–8. The
+English FP16 timings showed a 26–31% throughput loss across batches 1–8
+([measurements](measurements/vulkan-low-input-performance.json)). The
 runtime therefore retains rounded FP32 inputs; direct 16-bit inputs remain a
 tested backend capability rather than an enabled inference optimization.
 
