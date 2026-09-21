@@ -1,0 +1,110 @@
+{
+  "source_base_revision": "374536815d07e5dab7b047dc8396398957939a47",
+  "projection_extension_sha256": "0fcc2f7c0006b3e0384e6585168576f4e156acee41705fcd473937b57a12b069",
+  "source_note": "Immutable tracked source snapshot plus the projection extension and its include; later masked 16-bit attention changes are not part of this FP32 build.",
+  "acceptance": "exact_categories_absolute_numeric_0.0001",
+  "schema_version": 1,
+  "precision": "fp32",
+  "mode": "compensated_fused_split_merge_nvidia_split_k",
+  "questions": 250,
+  "warmup": 3,
+  "iterations": 5,
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "driver": "610.43.03",
+  "power_limit_watts": 450,
+  "exclusive_gpu": false,
+  "other_builds_or_gpu_tests_during_timing": false,
+  "models": {
+    "english": {
+      "schema_version": 2,
+      "backend": "vulkan",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "model_revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "precision": "fp32",
+      "iterations": 5,
+      "python_runtime": "cuda",
+      "python_runtime_version": "13.0",
+      "fused_attention": false,
+      "tensor_core_fp32": true,
+      "native_build_sha256": "12edf7e7ad79ecbf9f5f0ac30883eb7dc3f63212163e12a142a728f1f9a26ec7",
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+      "warmup": 3,
+      "batch_sizes": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "passed": true,
+      "ggml_revision": "456172ec733a135778adcd32d00e576a58232e45",
+      "baseline_revision": "d113dca2512fb3eaca313534bc54c7162d87c1d4",
+      "native_device": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "harness_project_revision": "9e8d6d35c4279739c42e0eaf3a3326a41840534a",
+      "rows": [
+        {
+          "batch_size": 1,
+          "failures": [],
+          "speedup": 0.7152119709676492,
+          "baseline": {
+            "p50_ms": 5.771739000920206,
+            "p95_ms": 13.498482020804657,
+            "questions_per_second": 148.9680525127486
+          },
+          "native": {
+            "p50_ms": 8.5352545,
+            "p95_ms": 12.65913915,
+            "questions_per_second": 106.54373444885522
+          }
+        },
+        {
+          "batch_size": 2,
+          "failures": [],
+          "speedup": 0.7952778773249929,
+          "baseline": {
+            "p50_ms": 7.592582958750427,
+            "p95_ms": 23.44477779697627,
+            "questions_per_second": 209.30371589722702
+          },
+          "native": {
+            "p50_ms": 10.433706,
+            "p95_ms": 20.55092,
+            "questions_per_second": 166.45461489498007
+          }
+        },
+        {
+          "batch_size": 4,
+          "failures": [],
+          "speedup": 0.8948426543866941,
+          "baseline": {
+            "p50_ms": 11.15828799083829,
+            "p95_ms": 44.859953213017434,
+            "questions_per_second": 253.2169417456757
+          },
+          "native": {
+            "p50_ms": 14.669791,
+            "p95_ms": 37.120639800000006,
+            "questions_per_second": 226.58932028738133
+          }
+        },
+        {
+          "batch_size": 8,
+          "failures": [],
+          "speedup": 1.0299137767728195,
+          "baseline": {
+            "p50_ms": 18.9296449534595,
+            "p95_ms": 88.79326278110966,
+            "questions_per_second": 260.09083703342526
+          },
+          "native": {
+            "p50_ms": 20.160276500000002,
+            "p95_ms": 74.96478135,
+            "questions_per_second": 267.8711362730989
+          }
+        }
+      ]
+    }
+  },
+  "complete": false
+}
