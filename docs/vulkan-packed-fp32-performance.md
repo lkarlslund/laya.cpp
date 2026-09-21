@@ -1,0 +1,27 @@
+# Vulkan FP32 performance after QKV packing
+
+These paired measurements use the validated QKV-packing build, preserved with
+its shared libraries. Python runs on the same GPU as Vulkan: CUDA on the RTX PRO
+6000 Blackwell capped at **450 W**, and ROCm on the Radeon 8060S. Plain FP32 and
+compensated projections each use matching Python FP32 as their baseline.
+
+Each row covers all 250 fixed questions, three warmups and five timed iterations
+per group. Execution order alternates. Tokenization, inference and formatting
+are timed; model loading and native JSON transport are excluded. Background
+services retain allocations; no other GPU experiments or builds run concurrently.
+Every recorded answer comparison passes exact categories and absolute numeric
+tolerance 0.0001.
+
+Rates are questions/second.
+
+| GPU | Model | Mode | Batch | Python FP32 | Vulkan | Vulkan/Python |
+|---|---|---|---:|---:|---:|---:|
+| NVIDIA | english | compensated | 1 | 147.0 | 117.6 | 0.80× |
+| NVIDIA | english | compensated | 2 | 204.9 | 178.1 | 0.87× |
+| NVIDIA | english | compensated | 4 | 247.3 | 240.2 | 0.97× |
+| NVIDIA | english | compensated | 8 | 246.6 | 280.1 | 1.14× |
+
+Measurements for remaining GPU/model/mode combinations are pending.
+
+See [measurement metadata](measurements/vulkan-packed-fp32-performance.json) for
+binary, weight, corpus and report identities.
