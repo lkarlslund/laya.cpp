@@ -121,3 +121,9 @@ sizes 1, 2, 4 and 8. All 6,000 HTTP question evaluations match CLI replay exactl
 the 3,000 dynamically grouped HTTP evaluations also pass the Python FP32 gate.
 The combined CUDA+Vulkan build additionally tests both backends in one process,
 comparing answers and replaying cached graphs after changing padding lengths.
+
+The [compensated FP32 validation](measurements/vulkan-optimized-nvidia.json)
+also passes all 3,000 public-answer comparisons on NVIDIA, with exact categories
+and numeric error at most 0.0001. This gate concerns public answers; raw tensor
+differences remain separate diagnostics. The matrix-level FP32/FP16 test passes
+on both RTX PRO 6000 Blackwell and Radeon 8060S.
