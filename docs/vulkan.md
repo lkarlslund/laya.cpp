@@ -211,9 +211,11 @@ products; these checks do not change the full-model requirements for 16-bit mode
 Masked 16-bit attention now preserves eight-element accumulation boundaries with
 zero-padded hardware matrix tiles and a 32-key softmax reduction order. Operator
 tests pass on both tested GPUs, including fully masked rows. A diagnostic NVIDIA
-trace matches all 28 encoder outputs and the first head attention output exactly
-in FP16 and BF16. This is component-level progress: later head outputs still
-differ, so neither 16-bit mode has passed the full-model acceptance gate.
+trace matches all 28 encoder outputs and both head layers exactly in FP16 and
+BF16 after also preserving the stored reduction before a split projection’s bias
+epilogue. Tests cover that extra rounding boundary. This is component-level
+progress: an eight-question FP16 smoke test still has answer mismatches at all
+four batch sizes, so neither 16-bit mode has passed full-model acceptance.
 
 NVIDIA compensated FP32 projections now use additional K partitions when a
 small token batch would leave most compute units idle. The change retains FP32

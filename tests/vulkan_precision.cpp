@@ -113,12 +113,15 @@ int main() {
                 throw std::runtime_error("Fused compensated operations changed a rounding boundary");
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
-        for (int width : {1,17,257}) for (int parts : {3,21}) {
+        for (int width : {1,17,257}) for (int parts : {3,21}) for (bool stored_half : {false,true}) {
             constexpr int rows=5;
             const int count=width*rows;
             auto ctx=ggml_init({8*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             auto x=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,width,rows,parts);
-            auto output=laya::vulkan_precision::reduce_partials(ctx,x);
+            auto output=laya::vulkan_precision::reduce_partials(ctx,x,stored_half ? GGML_TYPE_F16 : GGML_TYPE_F32);
+            auto bias=stored_half ? ggml_new_tensor_1d(ctx,GGML_TYPE_F32,1) : nullptr;
+            const float bias_value=ggml_fp16_to_fp32(ggml_fp32_to_fp16(.0002f));
+            if (bias) output=ggml_cast(ctx,ggml_cast(ctx,ggml_add1(ctx,output,bias),GGML_TYPE_F16),GGML_TYPE_F32);
             if (!ggml_backend_supports_op(backend,output)) throw std::runtime_error("ordered reduction unsupported");
             auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output);
             auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
@@ -133,8 +136,13 @@ int main() {
                 input[count+i]=std::ldexp(scale,-24);
                 input[2*count+i]=-0.499755859375f*scale;
                 for (int part=0;part<parts;++part) expected[i]+=input[part*count+i];
+                if (stored_half) {
+                    expected[i]=ggml_fp16_to_fp32(ggml_fp32_to_fp16(expected[i]));
+                    expected[i]=ggml_fp16_to_fp32(ggml_fp32_to_fp16(expected[i]+bias_value));
+                }
             }
             ggml_backend_tensor_set(x,input.data(),0,ggml_nbytes(x));
+            if (bias) ggml_backend_tensor_set(bias,&bias_value,0,sizeof(bias_value));
             if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("ordered reduction compute failed");
             ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
             if (actual!=expected) throw std::runtime_error("ordered reduction changed the FP32 addition order");
