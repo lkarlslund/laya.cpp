@@ -59,6 +59,12 @@ remains unchanged. A matrix-level precision test exercises both paths on the
 same device, including non-aligned dimensions and values with significant bits
 that a single FP16 conversion would lose.
 
+On AMD, compensated products accumulate cooperative-matrix tile results with
+separate FP32 additions. This reduces the accumulation drift observed when a
+long dot product stays entirely inside cooperative-matrix multiply-adds. The
+regression check includes the multilingual numeric answer that exceeded the
+0.0001 tolerance with the original accumulation path.
+
 The encoder, attention, decision layers and action projections execute on Vulkan.
 Q/K/V packing and rotary multiplication use portable ggml operations. The host
 prepares and uploads attention masks for each call; tokenizer preprocessing and
