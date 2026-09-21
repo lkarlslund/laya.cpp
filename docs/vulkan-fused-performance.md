@@ -58,6 +58,10 @@ The native CUDA/Vulkan pair was timed separately from the Python/Vulkan pair.
 | english | 2 | 441.0 | 139.8 |
 | english | 4 | 477.3 | 212.2 |
 | english | 8 | 413.3 | 253.5 |
+| multilingual | 1 | 477.4 | 96.4 |
+| multilingual | 2 | 632.1 | 175.0 |
+| multilingual | 4 | 719.0 | 271.7 |
+| multilingual | 8 | 590.0 | 331.7 |
 
 Measurements are added after each model finishes all four batch settings.
 Further model and GPU comparisons are in progress.
