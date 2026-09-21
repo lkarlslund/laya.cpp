@@ -147,7 +147,7 @@ python benchmarks/models.py --backend vulkan \
   --executable build-vulkan/bin/laya-cli --cases tests/edge-requests.json \
   --output results/vulkan-edges
 
-python benchmarks/http_validate.py --backend vulkan \
+python benchmarks/http_validate.py --backend vulkan --tensor-core-fp32 \
   --executable build-vulkan/bin/laya-cli --output results/vulkan-http/validation.json
 ```
 

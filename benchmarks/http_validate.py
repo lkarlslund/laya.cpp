@@ -39,7 +39,7 @@ def validate(args, variant, cases):
     groups = {size: [cases[i:i+size] for i in range(0, len(cases), size)] for size in (1, 2, 4, 8)}
     expected = {}
     # Do not keep a second checkpoint resident while testing the server.
-    with Native(args.executable, model, fp32=not args.bf16, flash=args.backend == 'cuda', tensor_core=not args.bf16 and args.backend == 'cuda', backend=args.backend) as native:
+    with Native(args.executable, model, fp32=not args.bf16, flash=args.backend == 'cuda', tensor_core=not args.bf16 and (args.backend == 'cuda' or args.tensor_core_fp32), backend=args.backend) as native:
         for size, batches in groups.items():
             expected[size] = [native.call(batch)['results'] for batch in batches]
     with socket.socket() as sock:
@@ -53,6 +53,7 @@ def validate(args, variant, cases):
                    '--server', '--port', str(port), '--tensor-core-fp32', '--flash-fp32']
     if args.backend == 'vulkan':
         command = [arg for arg in command if arg not in ('--tensor-core-fp32', '--flash-fp32')] + ['--vulkan']
+        if args.tensor_core_fp32: command.append('--tensor-core-fp32')
     if args.bf16:
         command = [arg for arg in command if arg not in ('--tensor-core-fp32', '--flash-fp32')] + ['--bf16']
     if args.no_batching:
@@ -121,7 +122,7 @@ def validate(args, variant, cases):
         if [item[0] for item in items] != list(range(len(items))):
             raise AssertionError('Missing or duplicated batch offsets')
         replay.append(([item[1] for item in items], [item[2] for item in items]))
-    with Native(args.executable, model, fp32=not args.bf16, flash=args.backend == 'cuda', tensor_core=not args.bf16 and args.backend == 'cuda', backend=args.backend) as native:
+    with Native(args.executable, model, fp32=not args.bf16, flash=args.backend == 'cuda', tensor_core=not args.bf16 and (args.backend == 'cuda' or args.tensor_core_fp32), backend=args.backend) as native:
         for requests, observed in replay:
             wanted = native.call(requests)['results']
             wanted = [{**item, 'model': canonical} for item in wanted]
@@ -153,6 +154,7 @@ def main():
     parser.add_argument('--no-batching', action='store_true')
     parser.add_argument('--backend', choices=['cuda', 'vulkan'], default='cuda')
     parser.add_argument('--bf16', action='store_true')
+    parser.add_argument('--tensor-core-fp32', action='store_true', help='Use compensated projections for Vulkan HTTP and CLI comparisons')
     parser.add_argument('--source', default='research/laya')
     parser.add_argument('--model-root', default='models/laya')
     parser.add_argument('--direct-model-path', action='store_true', help='Exercise direct checkpoint paths without --variant')
@@ -161,13 +163,15 @@ def main():
                         choices=['english', 'multilingual', 'typed-decisions'])
     parser.add_argument('--output', default='results/http/validation.json')
     args = parser.parse_args()
+    if args.bf16 and args.tensor_core_fp32: parser.error('Choose BF16 or compensated FP32')
     if args.backend == 'vulkan' and args.bf16: parser.error('Vulkan currently supports FP32 only')
     cases = json.loads(Path(args.cases).read_text())
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     report = {'backend': args.backend, 'complete': False, 'variants': [], 'native_sha256': native_hash(args.executable),
               'cases_sha256': file_hash(args.cases), 'direct_model_path': args.direct_model_path,
-              'precision': 'bf16' if args.bf16 else 'fp32', 'batching': not args.no_batching}
+              'precision': 'bf16' if args.bf16 else 'fp32',
+              'tensor_core_fp32': not args.bf16 and (args.backend == 'cuda' or args.tensor_core_fp32), 'batching': not args.no_batching}
     output.write_text(json.dumps(report, indent=2) + '\n')
     for variant in args.variants:
         report['variants'].append(validate(args, variant, cases))
