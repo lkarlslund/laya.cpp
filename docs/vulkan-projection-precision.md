@@ -82,3 +82,9 @@ result: 1, 2, 30 and 45 public-answer failures at batches 1, 2, 4 and 8.
 Consequently neither prototype is accepted for AMD 16-bit deployment. The single
 batch-1 failure first diverges in the scoring projection after matching encoder,
 head and scorer-normalization tensors.
+
+A subsequent scorer diagnostic uses the matrix pipeline instead of the small
+vector path for low-precision products with multiple input columns and at least
+64 output rows. This resolves the batch-1 `accessibility-05` discrepancy: all
+captured tensors, including the four scorer stages, match at their storage
+boundaries. Full-corpus validation of this additional change remains pending.

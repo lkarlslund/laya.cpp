@@ -72,5 +72,14 @@
         }
       ]
     }
-  ]
+  ],
+  "scorer_diagnostic": {
+    "case": "accessibility-05",
+    "tokens": 102,
+    "passed": true,
+    "scope": "Single-case full trace comparison, including all four scorer stages, at matching storage boundaries.",
+    "change": "Use the matrix pipeline for low-precision AMD products with more than one input column and at least 64 output rows.",
+    "backend_sha256": "11a0e8b8471be639ad82d82bb0d41f3e4dc692068f149636b247e0fedaa6403c",
+    "runtime_sha256": "9cd48f34a07d5bd82e885ab52976f19a90241abd6d508021bd869acb40149ba0"
+  }
 }
