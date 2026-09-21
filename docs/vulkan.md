@@ -196,3 +196,10 @@ ROCm on the same device. It uses a clean snapshot of the recorded source commit.
 The residual component uses a scale of 1024 to avoid FP16 overflow at large
 activations; regression tests include values near half-precision rounding
 boundaries above 32,000.
+
+The [fused split/merge build](measurements/vulkan-fused-fp32.json) also passes all
+3,000 fixed-corpus comparisons on each GPU. Its NVIDIA regression checks include
+144 edge-case comparisons and a small HTTP batching smoke test across all three
+models, checking CLI replay and Python answers. Operator tests additionally
+isolate attention reciprocal rounding and ordered reduction of split projection
+products; these checks do not change the full-model requirements for 16-bit modes.
