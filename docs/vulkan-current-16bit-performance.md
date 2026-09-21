@@ -35,8 +35,10 @@ Rates are questions/second.
 | typed-decisions | BF16 | 2 | 246.8 | 206.4 | 0.84× |
 | typed-decisions | BF16 | 4 | 409.0 | 306.1 | 0.75× |
 | typed-decisions | BF16 | 8 | 546.5 | 346.0 | 0.63× |
-
-Measurements for the remaining model/precision pairs are pending.
+| typed-decisions | FP16 | 1 | 142.1 | 126.9 | 0.89× |
+| typed-decisions | FP16 | 2 | 250.2 | 207.9 | 0.83× |
+| typed-decisions | FP16 | 4 | 403.1 | 304.1 | 0.75× |
+| typed-decisions | FP16 | 8 | 532.3 | 342.6 | 0.64× |
 
 See [measurement metadata](measurements/vulkan-current-16bit-performance.json) for binary,
 weight and corpus identities. AMD 16-bit timing awaits its correctness gate.

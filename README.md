@@ -96,9 +96,12 @@ The performance table above measures CUDA. [Current NVIDIA Vulkan measurements](
 compare compensated FP32 with Python on RTX PRO 6000 at 450 W.
 [Additional paired measurements](docs/vulkan-fused-performance.md) cover Radeon 8060S
 and native CUDA comparisons using the earlier fused projection build.
-[16-bit measurements](docs/vulkan-16bit-performance.md) compare Vulkan with
-matching-precision Python; the subsequent [QKV packing optimization](docs/vulkan-packed-performance.md)
-improves native throughput by 12–16% across all three models.
+[Current 16-bit measurements](docs/vulkan-current-16bit-performance.md) compare
+FP16 and BF16 Vulkan with matching-precision Python for all three models.
+Vulkan reaches 63–102% of Python throughput across the measured batches.
+[QKV packing](docs/vulkan-packed-performance.md) and
+[fused projection storage](docs/vulkan-finish-performance.md) document the
+individual optimization gains.
 
 ## Run
 
