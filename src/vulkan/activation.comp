@@ -4,18 +4,7 @@ layout(binding=0) readonly buffer Input { float x[]; };
 layout(binding=1) readonly buffer Table { float table[]; };
 layout(binding=2) writeonly buffer Output { float y[]; };
 layout(push_constant) uniform Params { uint width; uint rows; uint gated; uint bf16; } p;
-// packHalf2x16 may use round-toward-zero on some Vulkan drivers.
-// Encode round-to-nearest-even explicitly, including half subnormals.
-uint halfBits(float value) {
-    uint bits=floatBitsToUint(value), sign=(bits>>16)&0x8000, magnitude=bits&0x7fffffff;
-    if (magnitude>=0x7f800000) return sign|0x7c00|(magnitude>0x7f800000 ? 0x200 : 0);
-    if (magnitude>=0x477ff000) return sign|0x7c00;
-    if (magnitude<0x33000000) return sign;
-    if (magnitude>=0x38800000)
-        return sign|((magnitude-0x38000000+0xfff+((magnitude>>13)&1))>>13);
-    uint shift=126-(magnitude>>23), mantissa=(magnitude&0x7fffff)|0x800000;
-    return sign|((mantissa+((1u<<(shift-1))-1)+((mantissa>>shift)&1))>>shift);
-}
+#include "rounding.glsl"
 float rounded(float value) {
     if (p.bf16==0) return unpackHalf2x16(halfBits(value)).x;
     uint bits=floatBitsToUint(value);

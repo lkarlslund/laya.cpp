@@ -1,5 +1,13 @@
 // Included inside the generated ggml Vulkan translation unit.
 static bool laya_vk_supports(const ggml_tensor* op) {
+    if (std::strcmp(op->name,"laya.split-vulkan")==0 || std::strcmp(op->name,"laya.merge-vulkan")==0) {
+        bool split=std::strcmp(op->name,"laya.split-vulkan")==0;
+        auto x=op->src[0];
+        return x && x->type==GGML_TYPE_F32 && op->type==(split ? GGML_TYPE_F16 : GGML_TYPE_F32) &&
+            ggml_is_contiguous(x) && ggml_is_contiguous(op) && x->ne[0]%2==0 && x->ne[2]==1 && x->ne[3]==1 &&
+            op->ne[2]==1 && op->ne[3]==1 && x->ne[0]==op->ne[0] && ggml_nelements(op)<=UINT32_MAX &&
+            (split ? op->ne[1]==2*x->ne[1] : x->ne[1]==2*op->ne[1]);
+    }
     if (std::strcmp(op->name,"laya.mlp-bf16-vulkan")==0 || std::strcmp(op->name,"laya.mlp-f16-vulkan")==0 ||
         std::strcmp(op->name,"laya.gelu-bf16-vulkan")==0 || std::strcmp(op->name,"laya.gelu-f16-vulkan")==0) {
         bool gated=std::strncmp(op->name,"laya.mlp-",9)==0;
@@ -18,6 +26,16 @@ static bool laya_vk_supports(const ggml_tensor* op) {
 }
 static bool laya_vk_custom(ggml_backend_vk_context* ctx,vk_context& subctx,ggml_tensor* op) {
     GGML_ASSERT(laya_vk_supports(op));
+    if (std::strcmp(op->name,"laya.split-vulkan")==0 || std::strcmp(op->name,"laya.merge-vulkan")==0) {
+        bool split=std::strcmp(op->name,"laya.split-vulkan")==0;
+        auto pipeline=split ? ctx->device->pipeline_laya_split : ctx->device->pipeline_laya_merge;
+        ggml_pipeline_request_descriptor_sets(ctx,pipeline,1);
+        uint32_t count=uint32_t(ggml_nelements(split ? op->src[0] : op));
+        const std::array<uint32_t,4> params={count,0,0,0};
+        ggml_vk_dispatch_pipeline(ctx,subctx,pipeline,{ggml_vk_tensor_subbuffer(ctx,op->src[0]),ggml_vk_tensor_subbuffer(ctx,op)},
+            params,{split ? count/2 : count,1,1});
+        return true;
+    }
     if (std::strcmp(op->name,"laya.norm-vulkan")!=0) {
         auto pipeline=ctx->device->pipeline_laya_activation;
         ggml_pipeline_request_descriptor_sets(ctx,pipeline,1);

@@ -81,6 +81,37 @@ int main() {
                     throw std::runtime_error("compensated split overflow or precision loss");
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
+        for (int width : {64,768,1024}) for (int columns : {1,17,129}) {
+            auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+            auto x=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,width,columns);
+            ggml_set_input(x);
+            auto packed=laya::vulkan_precision::split_half(ctx,x);
+            ggml_set_output(packed);
+            auto output=laya::vulkan_precision::merge_half(ctx,ggml_cast(ctx,packed,GGML_TYPE_F32));
+            auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output);
+            auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+            if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("fused split allocation failed");
+            const int count=width*columns;
+            std::vector<float> input(count),actual(count),expected(count);
+            std::vector<ggml_fp16_t> packed_actual(2*count),packed_expected(2*count);
+            for (int i=0;i<count;++i) {
+                float value=(i%4093-2046)*.015625f+(i*17%31-15)/8192.f;
+                if (i%7==0) value*=1024;
+                if (i%11==0) value=(i%97-48)*1e-9f;
+                input[i]=value;
+                auto high=ggml_fp32_to_fp16(value);
+                auto low=ggml_fp32_to_fp16((value-ggml_fp16_to_fp32(high))*1024.f);
+                packed_expected[i]=high; packed_expected[count+i]=low;
+                expected[i]=ggml_fp16_to_fp32(high)+ggml_fp16_to_fp32(low)*(1.f/1024.f);
+            }
+            ggml_backend_tensor_set(x,input.data(),0,ggml_nbytes(x));
+            if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("fused split compute failed");
+            ggml_backend_tensor_get(packed,packed_actual.data(),0,ggml_nbytes(packed));
+            ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+            if (packed_actual!=packed_expected || actual!=expected)
+                throw std::runtime_error("Fused compensated operations changed a rounding boundary");
+            ggml_gallocr_free(allocator); ggml_free(ctx);
+        }
         for (int keys : {54,129}) for (bool masked : {false,true}) {
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             constexpr int width=64,heads=2,queries=17;

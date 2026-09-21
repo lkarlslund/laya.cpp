@@ -1,0 +1,27 @@
+#version 450
+layout(local_size_x=256,local_size_y=1,local_size_z=1) in;
+layout(binding=0) readonly buffer Input { float x[]; };
+#if defined(SPLIT)
+layout(binding=1) writeonly buffer Output { uint y[]; };
+#else
+layout(binding=1) writeonly buffer Output { float y[]; };
+#endif
+layout(push_constant) uniform Params { uint count; uint unused0; uint unused1; uint unused2; } p;
+#include "rounding.glsl"
+void main() {
+    uint i=gl_GlobalInvocationID.x;
+#if defined(SPLIT)
+    if (i>=p.count/2) return;
+    float a=x[2*i],b=x[2*i+1];
+    uint ah=halfBits(a),bh=halfBits(b);
+    precise float al=(a-unpackHalf2x16(ah).x)*1024.0;
+    precise float bl=(b-unpackHalf2x16(bh).x)*1024.0;
+    y[i]=ah|(bh<<16);
+    y[p.count/2+i]=halfBits(al)|(halfBits(bl)<<16);
+#else
+    if (i>=p.count) return;
+    precise float low=x[p.count+i]*(1.0/1024.0);
+    precise float sum=x[i]+low;
+    y[i]=sum;
+#endif
+}
