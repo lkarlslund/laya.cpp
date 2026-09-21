@@ -38,6 +38,7 @@ laya_vk_replace(
 laya_vk_replace(
   "    const bool y_non_contig = (ctx->device->coopmat2 && src1->type == GGML_TYPE_F32) ||"
   "    const bool y_non_contig = (ctx->device->coopmat2 && src1->type == GGML_TYPE_F32 && !strict_f32) ||")
+include(${CMAKE_CURRENT_LIST_DIR}/VulkanOperators.cmake)
 set(generated_vulkan "${CMAKE_CURRENT_BINARY_DIR}/laya-ggml-vulkan.cpp")
 if(EXISTS "${generated_vulkan}")
   file(READ "${generated_vulkan}" previous_vulkan_code)

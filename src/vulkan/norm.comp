@@ -1,0 +1,48 @@
+#version 450
+layout(local_size_x_id=0,local_size_y=1,local_size_z=1) in;
+layout(constant_id=0) const uint threads=128;
+layout(binding=0) readonly buffer Input { float x[]; };
+layout(binding=1) readonly buffer Weight { float weight[]; };
+layout(binding=2) readonly buffer Bias { float bias[]; };
+layout(binding=3) writeonly buffer Output { float y[]; };
+layout(push_constant) uniform Params { uint width; uint rows; uint has_bias; uint padding; } p;
+shared vec3 partial[256];
+
+vec3 combine(vec3 left,vec3 right) {
+    float count=left.z+right.z;
+    if (count==0.0) return vec3(0.0);
+    float reciprocal=1.0/count;
+    float a=right.z*reciprocal, b=left.z*reciprocal;
+    float delta=left.x-right.x;
+    return vec3(fma(a,right.x,b*left.x),fma(delta*delta*right.z,b,right.y+left.y),count);
+}
+void main() {
+    uint row=gl_WorkGroupID.x, tid=gl_LocalInvocationID.x;
+    if (row>=p.rows) return;
+    vec3 value=vec3(0.0);
+    for (uint base=tid*4; base<p.width; base+=threads*4) {
+        for (uint j=0;j<4;++j) {
+            float v=x[row*p.width+base+j], delta=v-value.x;
+            value.z+=1.0;
+            value.x=fma(delta,1.0/value.z,value.x);
+            value.y=fma(delta,v-value.x,value.y);
+        }
+    }
+    // Emulate 32-lane reduction independently of the Vulkan subgroup width.
+    // ROCm on RDNA uses 256 threads; CUDA uses 128, both with 32-lane warps.
+    for (uint offset=16;offset>0;offset/=2) {
+        partial[tid]=value; barrier();
+        if ((tid%32)+offset<32) value=combine(value,partial[tid+offset]);
+        barrier();
+    }
+    partial[tid]=value; barrier();
+    for (uint offset=threads/64;offset>0;offset/=2) {
+        if (tid%32==0 && tid/32<offset) value=combine(value,partial[tid+offset*32]);
+        barrier(); partial[tid]=value; barrier();
+    }
+    float mean=partial[0].x, inverse=inversesqrt(partial[0].y/float(p.width)+1e-5);
+    for (uint i=tid;i<p.width;i+=threads) {
+        float normalized=inverse*(x[row*p.width+i]-mean);
+        y[row*p.width+i]=p.has_bias!=0 ? fma(weight[i],normalized,bias[i]) : weight[i]*normalized;
+    }
+}

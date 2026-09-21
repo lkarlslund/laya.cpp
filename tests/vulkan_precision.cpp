@@ -2,6 +2,7 @@
 #include "ggml-alloc.h"
 #include "ggml-backend.h"
 #include "ggml-vulkan.h"
+#include "vulkan_ops.hpp"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -48,7 +49,51 @@ int main() {
             }
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
-        std::cout << "FP32 and FP16-input/FP32-accumulator Vulkan matrices passed on "
+        for (int width : {768,1024,1028}) for (bool affine_bias : {false,true}) {
+            auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+            auto x=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,width,3);
+            auto weight=ggml_new_tensor_1d(ctx,GGML_TYPE_F32,width);
+            auto bias=ggml_new_tensor_1d(ctx,GGML_TYPE_F32,width);
+            ggml_set_input(x); ggml_set_input(weight); ggml_set_input(bias);
+            auto output=laya::vulkan_precision::norm(ctx,x,weight,affine_bias ? bias : nullptr);
+            if (!ggml_backend_supports_op(backend,output)) throw std::runtime_error("normalization not supported");
+            auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output);
+            // Keep an unused bias allocated for the no-bias case as well.
+            ggml_build_forward_expand(graph,bias);
+            auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+            if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("allocation failed");
+            std::vector<float> input(width*3),gamma(width),beta(width),actual(width*3);
+            for (int i=0;i<width;++i) { gamma[i]=.5f+(i%13)/32.f; beta[i]=(i%7-3)/16.f; }
+            for (int i=0;i<width*3;++i) input[i]=i/width==1 ? 7.f : (i%97-48)/16.f;
+            ggml_backend_tensor_set(x,input.data(),0,ggml_nbytes(x));
+            ggml_backend_tensor_set(weight,gamma.data(),0,ggml_nbytes(weight));
+            ggml_backend_tensor_set(bias,beta.data(),0,ggml_nbytes(bias));
+            if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("normalization compute failed");
+            ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+            for (int row=0;row<3;++row) {
+                double mean=0,variance=0;
+                for (int i=0;i<width;++i) mean+=input[row*width+i];
+                mean/=width;
+                for (int i=0;i<width;++i) { double d=input[row*width+i]-mean; variance+=d*d; }
+                for (int i=0;i<width;++i) {
+                    double expected=gamma[i]*(input[row*width+i]-mean)/std::sqrt(variance/width+1e-5)+(affine_bias ? beta[i] : 0.f);
+                    // Golden constant-row residuals measured with PyTorch 2.11
+                    // CUDA 13.0 / ROCm 7.13. Welford reduction at width 768
+                    // leaves a small, vendor-dependent mean-rounding residual.
+                    if (row==1 && width==768) {
+                        bool amd=std::string(ggml_backend_dev_description(ggml_backend_get_device(backend))).find("AMD")!=std::string::npos;
+                        double difference=amd ? 1.0/1048576 : -1.0/2097152;
+                        expected=gamma[i]*difference/std::sqrt(1e-5)+(affine_bias ? beta[i] : 0.f);
+                    }
+                    if (!std::isfinite(actual[row*width+i]) || std::abs(actual[row*width+i]-expected)>0.000005) {
+                        std::cerr << "width=" << width << " row=" << row << " col=" << i << " expected=" << expected << " actual=" << actual[row*width+i] << '\n';
+                        throw std::runtime_error("affine normalization mismatch");
+                    }
+                }
+            }
+            ggml_gallocr_free(allocator); ggml_free(ctx);
+        }
+        std::cout << "Vulkan matrices and affine normalization passed on "
                   << ggml_backend_dev_description(ggml_backend_get_device(backend)) << '\n';
     } catch (const std::exception& e) { std::cerr << e.what() << '\n'; ggml_backend_free(backend); return 1; }
     ggml_backend_free(backend);
