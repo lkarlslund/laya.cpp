@@ -273,3 +273,8 @@ adding epsilon. This preserves rounding at non-power-of-two hidden widths.
 The multilingual BF16 diagnostic now matches all 22 encoder layers and both
 head outputs exactly on NVIDIA; normalization operator tests pass on both
 GPUs. Full-corpus acceptance remains a separate requirement.
+
+The first unmasked probability addition uses a fused multiply-add with the
+previous tile's partial sum and rescale factor. A 184-token FP16 diagnostic now
+matches all 28 encoder layers, both head outputs, and the public answer exactly.
+The operator suite passes on both GPUs; full-corpus validation is still required.
