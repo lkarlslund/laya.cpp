@@ -19,7 +19,7 @@ def file_hash(path):
         return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
-def native_hash(executable):
+def native_hash(executable, *, env=None):
     executable = Path(executable).resolve()
     build = executable.parent.parent if executable.parent.name == 'bin' else executable.parent
     paths = {executable}
@@ -31,7 +31,7 @@ def native_hash(executable):
         digest.update(file_hash(path).encode())
     # Loader overrides can replace native backends or math libraries without
     # changing the build directory. Hash what the child will actually load.
-    linked=subprocess.run(['ldd',str(executable)],capture_output=True,text=True,check=True)
+    linked=subprocess.run(['ldd',str(executable)],capture_output=True,text=True,check=True,env=env)
     libraries={}
     for line in linked.stdout.splitlines():
         match=re.match(r'\s*(liblaya\.so[^ ]*|libggml[^ ]*\.so[^ ]*|libcublas(?:Lt)?\.so[^ ]*|libcudart\.so[^ ]*) => (.+) \(0x[0-9a-f]+\)',line)

@@ -44,3 +44,10 @@ Vulkan currently reaches 56–84% of Python throughput in these runs. This is th
 for further dispatch and conversion optimizations, not a completed speed target.
 See [measurement metadata](measurements/vulkan-16bit-performance.json) for binary,
 weight and corpus identities. AMD 16-bit timing awaits its correctness gate.
+
+For before/after native comparisons, use benchmarks/compare_native.py with
+--bf16 or --fp16 and Vulkan selected on both sides. The --before-library-path
+and --after-library-path options set separate loader paths for the two child
+processes, so archived executables retain their archived shared libraries.
+The harness hashes the libraries resolved under each environment. The after
+build still requires a passing matching-precision validation report.
