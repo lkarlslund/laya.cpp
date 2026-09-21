@@ -18,6 +18,15 @@ inline ggml_tensor* merge_half(ggml_context* ctx, ggml_tensor* x) {
     ggml_set_name(output,"laya.merge-vulkan");
     return output;
 }
+// Keep split-K partials in their original order. Tree reductions can cross
+// a half-precision rounding midpoint even when every partial is exact.
+inline ggml_tensor* reduce_partials(ggml_context* ctx, ggml_tensor* x) {
+    ggml_tensor* inputs[]={x};
+    auto output=ggml_custom_4d(ctx,GGML_TYPE_F32,x->ne[0],x->ne[1],1,1,inputs,1,
+        [](ggml_tensor*,int,int,void*) { throw std::runtime_error("Vulkan reduction requires a Vulkan GPU"); },1,nullptr);
+    ggml_set_name(output,"laya.reduce-vulkan");
+    return output;
+}
 inline ggml_tensor* activation(ggml_context* ctx,ggml_tensor* x,ggml_tensor* table,bool gated,bool bf16) {
     ggml_tensor* inputs[]={x,table};
     auto output=ggml_custom_4d(ctx,GGML_TYPE_F32,x->ne[0]/(gated ? 2 : 1),x->ne[1],x->ne[2],x->ne[3],inputs,2,

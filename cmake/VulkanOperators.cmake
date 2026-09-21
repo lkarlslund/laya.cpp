@@ -35,11 +35,13 @@ laya_vk_replace("    vk_pipeline pipeline_norm_f32;"
 laya_vk_replace("    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,"
   "    ggml_vk_create_pipeline(device, device->pipeline_laya_activation, \"laya_activation\", sizeof(laya_activation_spv), laya_activation_spv, \"main\", 3, 16, {256,1,1}, {}, 1);\n    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,")
 
-foreach(operation split merge)
+foreach(operation split merge reduce)
   set(laya_compensated_header "${CMAKE_CURRENT_BINARY_DIR}/laya_${operation}.spv.h")
   set(laya_compensated_flags)
   if(operation STREQUAL "split")
     set(laya_compensated_flags -DSPLIT=1)
+  elseif(operation STREQUAL "reduce")
+    set(laya_compensated_flags -DREDUCE=1)
   endif()
   add_custom_command(OUTPUT "${laya_compensated_header}"
     COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O -mfmt=c ${laya_compensated_flags}

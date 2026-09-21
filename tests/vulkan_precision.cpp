@@ -112,6 +112,33 @@ int main() {
                 throw std::runtime_error("Fused compensated operations changed a rounding boundary");
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
+        for (int width : {1,17,257}) for (int parts : {3,21}) {
+            constexpr int rows=5;
+            const int count=width*rows;
+            auto ctx=ggml_init({8*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+            auto x=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,width,rows,parts);
+            auto output=laya::vulkan_precision::reduce_partials(ctx,x);
+            if (!ggml_backend_supports_op(backend,output)) throw std::runtime_error("ordered reduction unsupported");
+            auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output);
+            auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+            if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("ordered reduction allocation failed");
+            std::vector<float> input(count*parts),actual(count),expected(count);
+            for (int i=0;i<count;++i) {
+                // Each term is representable in FP16. The tiny second term
+                // disappears in an ordered F32 sum but survives an exact sum,
+                // changing which side of an FP16 midpoint the result occupies.
+                const float scale=std::ldexp(1.f,i%5);
+                input[i]=scale;
+                input[count+i]=std::ldexp(scale,-24);
+                input[2*count+i]=-0.499755859375f*scale;
+                for (int part=0;part<parts;++part) expected[i]+=input[part*count+i];
+            }
+            ggml_backend_tensor_set(x,input.data(),0,ggml_nbytes(x));
+            if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("ordered reduction compute failed");
+            ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+            if (actual!=expected) throw std::runtime_error("ordered reduction changed the FP32 addition order");
+            ggml_gallocr_free(allocator); ggml_free(ctx);
+        }
         for (int keys : {33,54,129}) for (bool masked : {false,true}) {
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             constexpr int width=64,heads=2,queries=17;
