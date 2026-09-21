@@ -29,12 +29,12 @@ def native_hash(executable):
     for path in sorted(paths):
         digest.update(str(path.relative_to(build)).encode())
         digest.update(file_hash(path).encode())
-    # Math-library kernel selection can change BF16 rounding without changing
-    # the executable. Resolve the same loader environment used by the child.
+    # Loader overrides can replace native backends or math libraries without
+    # changing the build directory. Hash what the child will actually load.
     linked=subprocess.run(['ldd',str(executable)],capture_output=True,text=True,check=True)
     libraries={}
     for line in linked.stdout.splitlines():
-        match=re.match(r'\s*(libcublas(?:Lt)?\.so[^ ]*|libcudart\.so[^ ]*) => (.+) \(0x[0-9a-f]+\)',line)
+        match=re.match(r'\s*(liblaya\.so[^ ]*|libggml[^ ]*\.so[^ ]*|libcublas(?:Lt)?\.so[^ ]*|libcudart\.so[^ ]*) => (.+) \(0x[0-9a-f]+\)',line)
         if match: libraries[match[1]]=Path(match[2]).resolve()
     for name,path in sorted(libraries.items()):
         digest.update(name.encode())
