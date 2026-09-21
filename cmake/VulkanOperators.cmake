@@ -3,7 +3,12 @@ add_custom_command(OUTPUT "${laya_norm_header}"
   COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O -mfmt=c
     "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/norm.comp" -o "${laya_norm_header}"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/norm.comp" VERBATIM)
-add_custom_target(laya-vulkan-shaders DEPENDS "${laya_norm_header}")
+set(laya_activation_header "${CMAKE_CURRENT_BINARY_DIR}/laya_activation.spv.h")
+add_custom_command(OUTPUT "${laya_activation_header}"
+  COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O -mfmt=c
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/activation.comp" -o "${laya_activation_header}"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/activation.comp" VERBATIM)
+add_custom_target(laya-vulkan-shaders DEPENDS "${laya_norm_header}" "${laya_activation_header}")
 add_dependencies(ggml-vulkan laya-vulkan-shaders)
 target_include_directories(ggml-vulkan PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}")
 laya_vk_replace("#include \"ggml-vulkan-shaders.hpp\""
@@ -22,3 +27,10 @@ laya_vk_replace(
 laya_vk_replace(
   "    switch (op->op) {\n        case GGML_OP_UNARY:"
   "    switch (op->op) {\n        case GGML_OP_CUSTOM: return laya_vk_supports(op);\n        case GGML_OP_UNARY:")
+
+laya_vk_replace("#include \"ggml-vulkan-shaders.hpp\""
+  "#include \"ggml-vulkan-shaders.hpp\"\nstatic const uint32_t laya_activation_spv[] =\n#include \"laya_activation.spv.h\"\n;")
+laya_vk_replace("    vk_pipeline pipeline_norm_f32;"
+  "    vk_pipeline pipeline_norm_f32;\n    vk_pipeline pipeline_laya_activation;")
+laya_vk_replace("    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,"
+  "    ggml_vk_create_pipeline(device, device->pipeline_laya_activation, \"laya_activation\", sizeof(laya_activation_spv), laya_activation_spv, \"main\", 3, 16, {256,1,1}, {}, 1);\n    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,")

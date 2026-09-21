@@ -3,6 +3,7 @@
 #include "ggml-backend.h"
 #include "ggml-vulkan.h"
 #include "vulkan_ops.hpp"
+#include "vulkan/gelu_tables.hpp"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -66,6 +67,39 @@ int main() {
             for (size_t i=0;i<input.size();++i)
                 if (!std::isfinite(actual[i]) || std::abs(actual[i]-input[i])>1e-7f)
                     throw std::runtime_error("compensated split overflow or precision loss");
+            ggml_gallocr_free(allocator); ggml_free(ctx);
+        }
+        for (bool bf16 : {false,true}) for (bool gated : {false,true}) {
+            auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+            constexpr int width=256,rows=256;
+            auto x=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,width*(gated ? 2 : 1),rows);
+            auto table=ggml_new_tensor_1d(ctx,GGML_TYPE_F32,65536);
+            auto output=laya::vulkan_precision::activation(ctx,x,table,gated,bf16);
+            auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output);
+            auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+            if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("activation allocation failed");
+            auto decode=[&](uint16_t bits) { return bf16 ? ggml_bf16_to_fp32(ggml_bf16_t{bits}) : ggml_fp16_to_fp32(bits); };
+            auto round=[&](float value) { return bf16 ? ggml_bf16_to_fp32(ggml_fp32_to_bf16(value)) : ggml_fp16_to_fp32(ggml_fp32_to_fp16(value)); };
+            const auto* bits=bf16 ? laya::vulkan_precision::gelu_bf16_nvidia : laya::vulkan_precision::gelu_fp16_nvidia;
+            std::vector<float> inputs(65536*(gated ? 2 : 1)),lookup(65536),expected(65536),actual(65536);
+            for (int i=0;i<65536;++i) {
+                int source=(i/width)*width*(gated ? 2 : 1)+i%width;
+                inputs[source]=decode(uint16_t(i)); lookup[i]=decode(bits[i]);
+                expected[i]=lookup[i];
+                if (gated) {
+                    float gate=round((i%17-8)/16.f);
+                    inputs[source+width]=gate; expected[i]=round(expected[i]*gate);
+                }
+            }
+            ggml_backend_tensor_set(x,inputs.data(),0,ggml_nbytes(x));
+            ggml_backend_tensor_set(table,lookup.data(),0,ggml_nbytes(table));
+            if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("activation compute failed");
+            ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+            for (int i=0;i<65536;++i)
+                if (!(std::isnan(expected[i]) ? std::isnan(actual[i]) : expected[i]==actual[i])) {
+                    std::cerr << "activation bf16=" << bf16 << " gated=" << gated << " input=" << inputs[(i/width)*width*(gated ? 2 : 1)+i%width] << " expected=" << expected[i] << " actual=" << actual[i] << '\n';
+                    throw std::runtime_error("16-bit activation changed the numerical table");
+                }
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
         for (int width : {768,1024,1028}) for (bool affine_bias : {false,true}) {

@@ -16,6 +16,14 @@ inline ggml_tensor* merge_half(ggml_context* ctx, ggml_tensor* x) {
     auto low=ggml_view_2d(ctx,x,x->ne[0],columns,x->nb[1],columns*x->nb[1]);
     return ggml_add(ctx,high,ggml_scale(ctx,low,1.f/1024.f));
 }
+inline ggml_tensor* activation(ggml_context* ctx,ggml_tensor* x,ggml_tensor* table,bool gated,bool bf16) {
+    ggml_tensor* inputs[]={x,table};
+    auto output=ggml_custom_4d(ctx,GGML_TYPE_F32,x->ne[0]/(gated ? 2 : 1),x->ne[1],x->ne[2],x->ne[3],inputs,2,
+        [](ggml_tensor*,int,int,void*) { throw std::runtime_error("Vulkan activation requires a Vulkan GPU"); },1,nullptr);
+    ggml_set_name(output,gated ? (bf16 ? "laya.mlp-bf16-vulkan" : "laya.mlp-f16-vulkan") :
+                                (bf16 ? "laya.gelu-bf16-vulkan" : "laya.gelu-f16-vulkan"));
+    return output;
+}
 inline ggml_tensor* norm(ggml_context* ctx,ggml_tensor* x,ggml_tensor* weight,ggml_tensor* bias) {
     ggml_tensor* inputs[]={x,weight,bias};
     auto output=ggml_custom_4d(ctx,GGML_TYPE_F32,x->ne[0],x->ne[1],x->ne[2],x->ne[3],inputs,bias ? 3 : 2,

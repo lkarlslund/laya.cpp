@@ -1,0 +1,22 @@
+#version 450
+layout(local_size_x=256,local_size_y=1,local_size_z=1) in;
+layout(binding=0) readonly buffer Input { float x[]; };
+layout(binding=1) readonly buffer Table { float table[]; };
+layout(binding=2) writeonly buffer Output { float y[]; };
+layout(push_constant) uniform Params { uint width; uint rows; uint gated; uint bf16; } p;
+float rounded(float value) {
+    if (p.bf16==0) return unpackHalf2x16(packHalf2x16(vec2(value,0))).x;
+    uint bits=floatBitsToUint(value);
+    if ((bits & 0x7fffffff)>0x7f800000) return uintBitsToFloat(bits|0x00400000);
+    return uintBitsToFloat((bits+0x7fff+((bits>>16)&1))&0xffff0000);
+}
+void main() {
+    uint i=gl_GlobalInvocationID.x;
+    if (i>=p.width*p.rows) return;
+    uint source=(i/p.width)*p.width*(1+p.gated)+i%p.width;
+    float v=x[source];
+    uint index=p.bf16!=0 ? floatBitsToUint(v)>>16 : packHalf2x16(vec2(v,0))&0xffff;
+    float value=table[index];
+    if (p.gated!=0) value=rounded(value*x[source+p.width]);
+    y[i]=value;
+}
