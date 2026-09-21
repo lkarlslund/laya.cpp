@@ -120,7 +120,7 @@ int main() {
             auto x=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,width,rows,parts);
             auto output=laya::vulkan_precision::reduce_partials(ctx,x,stored_half ? GGML_TYPE_F16 : GGML_TYPE_F32);
             auto bias=stored_half ? ggml_new_tensor_1d(ctx,GGML_TYPE_F32,1) : nullptr;
-            const float bias_value=ggml_fp16_to_fp32(ggml_fp32_to_fp16(.0002f));
+            const float bias_value=ggml_fp16_to_fp32(ggml_fp32_to_fp16(.0003f));
             if (bias) output=ggml_cast(ctx,ggml_cast(ctx,ggml_add1(ctx,output,bias),GGML_TYPE_F16),GGML_TYPE_F32);
             if (!ggml_backend_supports_op(backend,output)) throw std::runtime_error("ordered reduction unsupported");
             auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output);
