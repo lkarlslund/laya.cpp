@@ -3,6 +3,8 @@
 #include "ggml-backend.h"
 #include "ggml-vulkan.h"
 #include "vulkan_ops.hpp"
+#include "vulkan/attention_partitions.hpp"
+#include "vulkan_partition_golden.hpp"
 #include "vulkan/gelu_tables.hpp"
 #include "vulkan/gelu_rocm_patches.hpp"
 #include "vulkan_rotary.hpp"
@@ -256,6 +258,53 @@ int main() {
                     throw std::runtime_error("attention reciprocal is not correctly rounded");
             }
             ggml_gallocr_free(allocator); ggml_free(ctx);
+        }
+        if (std::string(ggml_backend_dev_description(ggml_backend_get_device(backend))).find("NVIDIA")!=std::string::npos) {
+            using laya::vulkan_precision::attention_partitions;
+            if (attention_partitions(512,512,16,1,188)!=2 ||
+                attention_partitions(512,512,16,2,188)!=1 ||
+                attention_partitions(720,720,12,1,188)!=2 ||
+                attention_partitions(1024,1024,16,1,188)!=4 ||
+                attention_partitions(512,512,16,1,0)!=1)
+                throw std::runtime_error("attention partition policy mismatch");
+            for (bool bf16 : {false,true}) {
+                constexpr int width=64,keys=257,heads=2;
+                const auto type=bf16 ? GGML_TYPE_BF16 : GGML_TYPE_F16;
+                auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+                auto q=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,width,keys,heads);
+                auto k=ggml_new_tensor_3d(ctx,type,width,keys,heads);
+                auto v=ggml_new_tensor_3d(ctx,type,width,keys,heads);
+                auto attention=ggml_flash_attn_ext(ctx,q,k,v,nullptr,.125f,0,0);
+                ggml_set_name(attention,"laya.sdpa-flash");
+                ggml_prec_set_acc(attention,GGML_PREC_F32);
+                // The model contract stores the attention result at its selected
+                // precision before the following projection.
+                auto output=ggml_cast(ctx,attention,type);
+                auto graph=ggml_new_graph(ctx);ggml_build_forward_expand(graph,output);
+                auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+                if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("partition allocation failed");
+                std::vector<float> queries(width*keys*heads);
+                std::vector<uint16_t> key_values(queries.size()),values(queries.size()),actual(queries.size());
+                auto encode=[&](float value) -> uint16_t {
+                    if (bf16) return ggml_fp32_to_bf16(value).bits;
+                    return ggml_fp32_to_fp16(value);
+                };
+                for (int h=0;h<heads;++h) for (int t=0;t<keys;++t) {
+                    queries[(h*keys+t)*width]=1;
+                    key_values[(h*keys+t)*width]=encode(float(t%13-6)/8);
+                    for (int d=0;d<width;++d) values[(h*keys+t)*width+d]=encode(float((t*3+d*5+h*7)%31-15)/64);
+                }
+                ggml_backend_tensor_set(q,queries.data(),0,ggml_nbytes(q));
+                ggml_backend_tensor_set(k,key_values.data(),0,ggml_nbytes(k));
+                ggml_backend_tensor_set(v,values.data(),0,ggml_nbytes(v));
+                if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("partition compute failed");
+                ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+                const auto* expected=bf16 ? partition_bf16 : partition_fp16;
+                for (int t=0;t<keys;++t) for (int h=0;h<heads;++h) for (int d=0;d<width;++d)
+                    if (actual[(t*heads+h)*width+d]!=expected[h*width+d])
+                        throw std::runtime_error("partition attention differs from matching-precision SDPA");
+                ggml_gallocr_free(allocator);ggml_free(ctx);
+            }
         }
         for (bool bf16 : {false,true}) for (bool gated : {false,true}) for (bool rocm : {false,true}) {
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});

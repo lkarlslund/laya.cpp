@@ -64,6 +64,11 @@ if(laya_coopmat2_supported)
     endif()
     laya_attention_replace("${original}" "        if (MASK_ENABLE) {\n${fragment_code}\n        } else {\n${original}\n        }")
   endforeach()
+  set(partition_fragment "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/attention_partition_store.glsl")
+  file(READ "${partition_fragment}" partition_store)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${partition_fragment}")
+  laya_attention_replace("ACC_TYPE Max(" "ACC_TYPE partitionLse(const uint row, const uint col, const ACC_TYPE sum, const ACC_TYPE maximum) {\n    precise ACC_TYPE logarithm=log2(sum)*ACC_TYPE(0.6931471805599453);\n    return maximum+logarithm;\n}\n\nACC_TYPE Max(")
+  laya_attention_replace("    if (p.k_num > 1) {\n        coopmat<D_TYPE" "    if (p.k_num > 1) {\n${partition_store}\n        coopmat<D_TYPE")
   set(attention_source "${CMAKE_CURRENT_BINARY_DIR}/laya_attention.comp")
   if(EXISTS "${attention_source}")
     file(READ "${attention_source}" previous_attention_shader)
@@ -145,3 +150,5 @@ laya_vk_replace("const uint32_t float_type_size = (device->fp16 && k_type != GGM
 # the online attention update across key tiles for the 64-wide model heads.
 laya_vk_replace("    // Reserve space for split_k temporaries. For each split x batch, we need to store the O matrix (D x ne1)"
   "    if (f32acc && HSK==64 && HSV==64 && (k_type_eff==GGML_TYPE_F16 || k_type_eff==GGML_TYPE_BF16) && tuning_params.path==FA_COOPMAT2) { split_k=1; split_kv=KV; }\n    // Reserve space for split_k temporaries. For each split x batch, we need to store the O matrix (D x ne1)")
+
+include(${CMAKE_CURRENT_LIST_DIR}/VulkanAttentionPartitions.cmake)

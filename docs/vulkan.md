@@ -283,3 +283,13 @@ After the variance-division correction, all three models pass the full NVIDIA an
 regression: 250 fixed questions at batches 1, 2, 4 and 8, compared with Python
 on the same GPU. The [validation record](measurements/vulkan-normalization-validation.json)
 covers all 6,000 public-answer comparisons. It does not establish 16-bit acceptance.
+
+Sequence-parallel model attention now selects up to four 256-key partitions
+from the GPU width. It stores normalized FP32 partial outputs and log-sum-exp
+values, then combines them with the required rounding boundaries. The path
+requires an explicit model-precision marker; generic FP32 attention retains its
+normalization contract. A reproducible 257-key fixture passes at FP16 and BF16
+on NVIDIA, and the existing operator suite passes on both GPUs, including the
+exact reciprocal checks. The integrated 512-token BF16 diagnostic matches all
+28 encoder layers, both heads, and the public answer exactly. Full-corpus
+16-bit acceptance remains pending.

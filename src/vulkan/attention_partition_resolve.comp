@@ -1,0 +1,58 @@
+#version 450
+layout(local_size_x=32) in;
+layout(binding=0) readonly buffer Input { float x[]; };
+layout(binding=1) readonly buffer Unused { float unused[]; };
+layout(binding=2) writeonly buffer Output { float y[]; };
+// Storage order is [feature, head, partition, query, batch].
+layout(push_constant) uniform Params { uint width; uint heads; uint queries; uint batches; uint parts; uint sinks; } p;
+float partitionExp(float value) {
+    float scaled=clamp(fma(value,uintBitsToFloat(0x3bbb989du),0.5),0.0,1.0);
+    uint bits=floatBitsToUint(scaled), exponent=(bits>>23)&255u;
+    uint shift=150u-exponent;
+    uint integral=shift>=32u ? 0u : (((bits&0x7fffffu)|0x800000u)*252u)>>shift;
+    float power=float(int(integral)-126);
+    float reduced=fma(value,uintBitsToFloat(0x3fb8aa3bu),-power);
+    reduced=fma(value,uintBitsToFloat(0x32a57060u),reduced);
+    return exp2(reduced)*uintBitsToFloat((integral+1u)<<23);
+}
+// The combine pass only logs a positive sum in [1,4].
+float partitionLog(float value) {
+    int bits=floatBitsToInt(value);
+    int exponent=(bits-1059760811)&int(0xff800000u);
+    precise float reduced=intBitsToFloat(bits-exponent)-1.0;
+    float count=float(exponent)*uintBitsToFloat(0x34000000u);
+    float poly=fma(reduced,uintBitsToFloat(0xbe055027u),uintBitsToFloat(0x3e1039f6u));
+    poly=fma(poly,reduced,uintBitsToFloat(0xbdf8cdccu));
+    poly=fma(poly,reduced,uintBitsToFloat(0x3e0f2955u));
+    poly=fma(poly,reduced,uintBitsToFloat(0xbe2ad8b9u));
+    poly=fma(poly,reduced,uintBitsToFloat(0x3e4ced0bu));
+    poly=fma(poly,reduced,uintBitsToFloat(0xbe7fff22u));
+    poly=fma(poly,reduced,uintBitsToFloat(0x3eaaaa78u));
+    poly=fma(poly,reduced,-0.5);
+    precise float product=reduced*poly;
+    poly=fma(product,reduced,reduced);
+    return fma(count,uintBitsToFloat(0x3f317218u),poly);
+}
+
+void main() {
+    uint head=gl_WorkGroupID.x, feature=gl_WorkGroupID.y*32+gl_LocalInvocationIndex;
+    uint query_batch=gl_WorkGroupID.z;
+    if (feature>=p.width) return;
+    uint total=p.width*p.heads*p.queries*p.batches*p.parts;
+    uint lbase=total+2*p.heads*(p.parts*query_batch)+head;
+    float lse[4],weights[4];
+    float maximum=-uintBitsToFloat(0x7f800000);
+    for (uint i=0;i<4;++i) {
+        lse[i]=i<p.parts ? x[lbase+2*p.heads*i] : -uintBitsToFloat(0x7f800000);
+        maximum=max(maximum,lse[i]);
+    }
+    for (uint i=0;i<4;++i) weights[i]=partitionExp(lse[i]-maximum);
+    precise float sum=p.parts<=2 ? weights[0]+weights[1] : (weights[0]+weights[2])+(weights[1]+weights[3]);
+    precise float combined=partitionLog(sum)+maximum;
+    float result=0;
+    for (uint i=0;i<p.parts;++i) {
+        uint offset=p.width*p.heads*(i+p.parts*query_batch)+p.width*head+feature;
+        result=fma(partitionExp(lse[i]-combined),x[offset],result);
+    }
+    y[p.width*(p.heads*query_batch+head)+feature]=result;
+}
