@@ -14,7 +14,8 @@ int main(int argc, char** argv) {
         }, nullptr);
         std::string model = "models/laya", input_file, variant = "english";
         laya::backend_type backend = laya::backend_type::cuda;
-        bool bf16 = false, flash = false, tensor_core = false, raw = false, prepare = false;
+        laya::precision_type precision = laya::precision_type::fp32;
+        bool flash = false, tensor_core = false, raw = false, prepare = false;
         bool server = false, http_option = false;
         laya::http_options http;
         auto number = [](const std::string& value, int maximum, int minimum = 1) {
@@ -40,10 +41,11 @@ int main(int argc, char** argv) {
             else if (arg == "--cpu") backend = laya::backend_type::cpu;
             else if (arg == "--vulkan") backend = laya::backend_type::vulkan;
             else if (arg == "--cuda") backend = laya::backend_type::cuda;
-            else if (arg == "--fp32") { bf16 = false; flash = false; }
-            else if (arg == "--flash-fp32") { bf16 = false; flash = true; }
-            else if (arg == "--tensor-core-fp32") { bf16 = false; tensor_core = true; }
-            else if (arg == "--bf16" || arg == "--experimental-bf16") { bf16 = true; flash = true; }
+            else if (arg == "--fp32") { precision = laya::precision_type::fp32; flash = false; }
+            else if (arg == "--flash-fp32") { precision = laya::precision_type::fp32; flash = true; }
+            else if (arg == "--tensor-core-fp32") { precision = laya::precision_type::fp32; tensor_core = true; }
+            else if (arg == "--bf16" || arg == "--experimental-bf16") { precision = laya::precision_type::bf16; flash = true; }
+            else if (arg == "--fp16") { precision = laya::precision_type::fp16; flash = true; }
             else if (arg == "--no-flash") flash = false;
             else if (arg == "--raw") raw = true;
             else if (arg == "--prepare") prepare = true;
@@ -65,7 +67,7 @@ int main(int argc, char** argv) {
             throw std::invalid_argument("--server cannot be combined with --input, --raw or --prepare");
         if (http_option && !server) throw std::invalid_argument("HTTP options require --server");
         if (variant!="english") model=(std::filesystem::path(model)/variant).string();
-        laya::agent agent(model, backend, bf16, flash, tensor_core);
+        laya::agent agent(model, backend, precision, flash, tensor_core);
         std::cerr << "Ready: " << agent.backend_name() << " (" << agent.device_name() << ")\n";
         if (server) {
             // A direct --model checkpoint path must identify its actual variant too.

@@ -7,6 +7,7 @@
 
 namespace laya {
 enum class backend_type { cuda, cpu, vulkan };
+enum class precision_type { fp32, fp16, bf16 };
 using json = nlohmann::ordered_json;
 struct batch {
     int size = 0, length = 0, options = 0;
@@ -31,6 +32,7 @@ class runtime {
 public:
     runtime(const std::filesystem::path& directory, bool cuda = true, bool bf16 = false, bool flash = false, bool tensor_core = false);
     runtime(const std::filesystem::path& directory, backend_type backend, bool bf16 = false, bool flash = false, bool tensor_core = false);
+    runtime(const std::filesystem::path& directory, backend_type backend, precision_type precision, bool flash = false, bool tensor_core = false);
     ~runtime();
     raw_result forward(const batch& input);
     const json& config() const;
@@ -44,6 +46,7 @@ class agent {
 public:
     agent(const std::filesystem::path& directory, bool cuda = true, bool bf16 = false, bool flash = false, bool tensor_core = false);
     agent(const std::filesystem::path& directory, backend_type backend, bool bf16 = false, bool flash = false, bool tensor_core = false);
+    agent(const std::filesystem::path& directory, backend_type backend, precision_type precision, bool flash = false, bool tensor_core = false);
     json predict(const json& requests, bool raw = false);
     json prepare_json(const json& requests) const;
     std::string backend_name() const;

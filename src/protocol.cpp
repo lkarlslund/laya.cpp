@@ -31,7 +31,9 @@ double rounded(double x) { return std::nearbyint(x*10000.0)/10000.0; }
 agent::agent(const std::filesystem::path& directory, bool cuda, bool bf16, bool flash, bool tensor_core)
     : agent(directory, cuda ? backend_type::cuda : backend_type::cpu, bf16, flash, tensor_core) {}
 agent::agent(const std::filesystem::path& directory, backend_type backend, bool bf16, bool flash, bool tensor_core)
-    : model(directory, backend, bf16, flash, tensor_core), tok(directory / "tokenizer/tokenizer.json") {
+    : agent(directory,backend,bf16 ? precision_type::bf16 : precision_type::fp32,flash,tensor_core) {}
+agent::agent(const std::filesystem::path& directory, backend_type backend, precision_type precision, bool flash, bool tensor_core)
+    : model(directory, backend, precision, flash, tensor_core), tok(directory / "tokenizer/tokenizer.json") {
     std::ifstream f(directory / "tokenizer/tokenizer_config.json"); settings = json::parse(f);
 }
 std::string agent::backend_name() const { return model.backend_name(); }

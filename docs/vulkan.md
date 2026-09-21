@@ -42,8 +42,9 @@ boolean CUDA/CPU constructors remain supported.
 
 ## Precision and implementation
 
-Vulkan supports plain FP32 and compensated FP32 (`--tensor-core-fp32`). It
-currently rejects `--bf16` and `--flash-fp32` combinations.
+Vulkan supports plain FP32 and compensated FP32 (`--tensor-core-fp32`), plus
+mixed FP16 and BF16 on the validated NVIDIA profile described below.
+`--flash-fp32` remains unsupported.
 
 Compensated FP32 splits each projection input into two FP16 components, computes
 both products with FP32 accumulators, and combines them in FP32. The checkpoints'
@@ -82,11 +83,10 @@ activation and multiplication dispatches. Small decision projections run at thei
 actual batch size; the CUDA-specific minimum-column padding is not applied to
 Vulkan.
 
-The development kernels also retain FP32 output accumulation for 16-bit fused
-attention. Operator tests cover unaligned key lengths, uniform attention,
-nonuniform masked attention and empty masked rows on both tested GPUs. This
-operator-level coverage does not establish full-model 16-bit acceptance; the
-supported serving modes above remain the release contract.
+The 16-bit fused attention kernels retain FP32 output accumulation. Operator
+tests cover unaligned key lengths, uniform attention, nonuniform masked
+attention and empty masked rows on both tested GPUs. Full-model acceptance
+for 16-bit inference currently covers the measured NVIDIA profile.
 
 Dense FP32 attention uses more memory than fused attention at long sequence
 lengths. Begin with the default eight-question HTTP limit and reduce it on
@@ -208,95 +208,25 @@ models, checking CLI replay and Python answers. Operator tests additionally
 isolate attention reciprocal rounding and ordered reduction of split projection
 products; these checks do not change the full-model requirements for 16-bit modes.
 
-Masked 16-bit attention now preserves eight-element accumulation boundaries with
-zero-padded hardware matrix tiles and a 32-key softmax reduction order. Operator
-tests pass on both tested GPUs, including fully masked rows. A diagnostic NVIDIA
-trace matches all 28 encoder outputs and both head layers exactly in FP16 and
-BF16 after also preserving the stored reduction before a split projection’s bias
-epilogue. Tests cover that extra rounding boundary. This is component-level
-progress: an eight-question FP16 smoke test still has answer mismatches at all
-four batch sizes, so neither 16-bit mode has passed full-model acceptance.
+The [NVIDIA projection measurements](vulkan-projection-performance.md) record
+the additional compensated FP32 projection partitions and their full-model gate.
 
-NVIDIA compensated FP32 projections now use additional K partitions when a
-small token batch would leave most compute units idle. The change retains FP32
-partial accumulation and does not alter the AMD projection policy. All three
-models pass the [3,000-comparison acceptance run](measurements/vulkan-projection-split-fp32.json).
-A preliminary 16-question paired sweep measured 1.63×, 1.26×, 1.08× and 1.06×
-speedups over the fused build at batches 1, 2, 4 and 8 respectively; these are
-diagnostic results, not a replacement for the full-corpus performance table.
+## FP16 and BF16 on NVIDIA
 
-The NVIDIA 16-bit attention path now keeps key tiles in one online reduction
-instead of independently normalizing automatic key partitions. Masked updates
-preserve separate maximum scaling and ordered 32-key denominator additions.
-Tests include 65 queries over 129 keys and fully masked rows. A 68-token FP16
-diagnostic now matches all 28 encoder outputs exactly and passes the public
-answer tolerance; raw head differences remain under investigation.
+The native Vulkan graph supports mixed FP16 and BF16 storage, FP32 accumulation,
+affine normalization and residuals. All three models pass the fixed 250-question
+corpus at batches 1, 2, 4 and 8 on RTX PRO 6000 Blackwell against matching-precision
+Python with PyTorch 2.11 / CUDA 13.0. Categories match exactly; public numeric
+outputs use absolute tolerance 0.0001. See the [combined validation record](measurements/vulkan-nvidia-16bit-validation.json)
+and [projection precision notes](vulkan-projection-precision.md).
 
-The [updated NVIDIA performance table](vulkan-projection-performance.md) includes
-all three models after the projection partition change, with full-corpus paired
-Python measurements at 450 W.
+```sh
+build-vulkan/bin/laya-cli --vulkan --bf16 --model models/laya --input benchmarks/cases/smoke.json
+build-vulkan/bin/laya-cli --vulkan --fp16 --model models/laya --variant multilingual --input benchmarks/cases/smoke.json
+```
 
-The [16-bit projection plans](measurements/vulkan-low-precision-reduction-plans.json)
-profile 12,288 precision/shape combinations and directly verify all 2,250 split
-layouts with synthetic impulses. This corrected 688 boundaries inferred from
-kernel names. The eight-question NVIDIA FP16 smoke test now passes at batches
-1, 2 and 4; BF16 passes at 1 and 2. Larger-batch discrepancies still prevent
-full-model acceptance of either 16-bit mode.
-
-Automatic NVIDIA matrix partitioning is also disabled for low-precision
-projections whose explicit graph plan controls accumulation. This preserves
-deliberately unsplit operations while retaining the optimized FP32 policy.
-The eight-question batch-8 FP16 trace now matches all 28 encoder outputs exactly;
-head projection differences remain, so the full-model gate is still open.
-
-A native serial reduction operator now stores FP16 or BF16 running sums between
-matrix partitions. Its tests distinguish serial storage from a single FP32 sum
-and cover both bias epilogue positions, with and without bias, on both tested
-GPUs. Full-corpus validation after integrating serial projection plans still
-fails for all three models in both 16-bit modes. These remain experimental.
-
-Unmasked NVIDIA attention now preserves four partial denominator sums across
-key tiles before combining them for normalization. Operator tests cover
-nonuniform scores across two and three tiles, masked attention, and exact
-reciprocals on both GPUs. In a 184-token FP16 diagnostic this reduces the first
-attention mismatch from 13 values to one; the public answer still exceeds the
-acceptance tolerance. This is a component correction, not full-model acceptance.
-
-Padded eight-feature attention products explicitly clamp key loads to the
-logical feature width, including aligned matrices. A regression test poisons
-row padding with NaNs: it fails before the fix and passes afterward on NVIDIA,
-and also passes on AMD. This fixes a buffer-layout-dependent FP16 failure in
-which enabling intermediate tracing hid nonfinite outputs.
-
-Normalization refines variance division and stores its FP32 result before
-adding epsilon. This preserves rounding at non-power-of-two hidden widths.
-The multilingual BF16 diagnostic now matches all 22 encoder layers and both
-head outputs exactly on NVIDIA; normalization operator tests pass on both
-GPUs. Full-corpus acceptance remains a separate requirement.
-
-The first unmasked probability addition uses a fused multiply-add with the
-previous tile's partial sum and rescale factor. A 184-token FP16 diagnostic now
-matches all 28 encoder layers, both head outputs, and the public answer exactly.
-The operator suite passes on both GPUs; full-corpus validation is still required.
-
-After the variance-division correction, all three models pass the full NVIDIA and AMD FP32
-regression: 250 fixed questions at batches 1, 2, 4 and 8, compared with Python
-on the same GPU. The [validation record](measurements/vulkan-normalization-validation.json)
-covers all 6,000 public-answer comparisons. It does not establish 16-bit acceptance.
-
-Sequence-parallel model attention now selects up to four 256-key partitions
-from the GPU width. It stores normalized FP32 partial outputs and log-sum-exp
-values, then combines them with the required rounding boundaries. The path
-requires an explicit model-precision marker; generic FP32 attention retains its
-normalization contract. A reproducible 257-key fixture passes at FP16 and BF16
-on NVIDIA, and the existing operator suite passes on both GPUs, including the
-exact reciprocal checks. The integrated 512-token BF16 diagnostic matches all
-28 encoder layers, both heads, and the public answer exactly. Full-corpus
-16-bit acceptance remains pending.
-
-Small NVIDIA projection batches with at least two columns and 64 output
-features use the cooperative matrix path for FP16/BF16 operands and FP32
-accumulation. This preserves the required dot-product reduction order instead
-of switching to a matrix-vector kernel. A multilingual BF16 scorer diagnostic
-now matches through every traced layer and its public answer, with tracing
-both enabled and disabled. Operator tests pass on both GPUs.
+These modes execute entirely in native C++ and Vulkan shaders. GPU/library-specific
+rounding plans are validated only for the measured profile; this result does not
+establish parity on other NVIDIA devices. AMD FP16/BF16 correctness is still being
+implemented. Its validated mode remains FP32. Performance measurements for the
+16-bit Vulkan modes are pending.

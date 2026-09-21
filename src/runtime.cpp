@@ -1,6 +1,10 @@
 #include "laya/runtime.hpp"
 #include "laya/precision.hpp"
-#include "vulkan_ops.hpp"
+#include "vulkan_precision.hpp"
+#include "vulkan/gelu_tables.hpp"
+#include "vulkan/gelu_rocm_patches.hpp"
+#include "vulkan/reduction_plans.hpp"
+#include "vulkan_rotary.hpp"
 #include "ggml.h"
 #include "ggml-alloc.h"
 #include "ggml-backend.h"
@@ -54,7 +58,9 @@ struct runtime::impl {
     std::map<std::string, tensor*> weights;
     std::set<std::string> compensated_weights;
     std::unique_ptr<graph_state> main_graph, action_graph;
-    bool bf16, flash, tensor_core;
+    bool low_precision, flash, tensor_core;
+    bool vulkan_nvidia=false, vulkan_amd=false;
+    ggml_type low_type = GGML_TYPE_BF16;
     bool vulkan = false;
     int width = 1024, heads = 16, layers = 28, intermediate = 2624, vocabulary = 50368, n_actions;
     float local_rope = 10000.f;
@@ -73,7 +79,7 @@ struct runtime::impl {
         // from cooperative half-precision products on the same device.
         // The CUDA backend enables TF32 in cuBLAS by default. Strict FP32 must
         // disable that permission before CUDA/cuBLAS initialization.
-        if (cuda && !bf16 && setenv("NVIDIA_TF32_OVERRIDE", "0", 1) != 0)
+        if (cuda && !low_precision && setenv("NVIDIA_TF32_OVERRIDE", "0", 1) != 0)
             throw std::runtime_error("Cannot enforce FP32 CUDA arithmetic");
         config = read_json(directory / "rl_agent_config.json");
         encoder = read_json(directory / "encoder/config.json");
@@ -108,7 +114,7 @@ struct runtime::impl {
 #ifdef LAYA_CUDA
         if (cuda) {
             backend = ggml_backend_cuda_init(0);
-            if (backend && bf16)
+            if (backend && low_precision)
                 if (auto error=laya_cuda_bf16_compatibility_error()) throw std::runtime_error(error);
         }
 #else
@@ -121,6 +127,9 @@ struct runtime::impl {
 #endif
         if (selected == backend_type::cpu) backend = ggml_backend_cpu_init();
         if (!backend) throw std::runtime_error("Cannot initialize requested backend");
+        const std::string device=ggml_backend_dev_description(ggml_backend_get_device(backend));
+        vulkan_nvidia=vulkan && device.find("NVIDIA")!=std::string::npos;
+        vulkan_amd=vulkan && device.find("AMD")!=std::string::npos;
 
         std::ifstream file(directory / "model.safetensors", std::ios::binary | std::ios::ate);
         if (!file) throw std::runtime_error("Cannot open model.safetensors");
@@ -173,7 +182,7 @@ struct runtime::impl {
             std::reverse(shape.begin(), shape.end());
             bool projection = shape.size() == 2 && name != "type_emb.weight" && name != "encoder.embeddings.tok_embeddings.weight";
             bool compensated = tensor_core && projection && (name.starts_with("encoder.layers.") || name.starts_with("head.layers."));
-            auto type = compensated ? GGML_TYPE_F16 : bf16 && projection ? GGML_TYPE_BF16 : GGML_TYPE_F32;
+            auto type = compensated ? GGML_TYPE_F16 : low_precision && projection ? low_type : GGML_TYPE_F32;
             auto value = ggml_new_tensor(weight_context, type, int(shape.size()), shape.data());
             ggml_set_name(value, name.c_str());
             weights[name] = value;
@@ -182,6 +191,8 @@ struct runtime::impl {
                 compensated_weights.insert(name);
             }
         }
+        tensor* gelu_table=nullptr;
+        if (vulkan && low_precision) gelu_table=ggml_new_tensor_1d(weight_context,GGML_TYPE_F32,65536);
         weight_buffer = ggml_backend_alloc_ctx_tensors(weight_context, backend);
         if (!weight_buffer) throw std::runtime_error("Insufficient device memory for model weights");
         ggml_backend_buffer_set_usage(weight_buffer, GGML_BACKEND_BUFFER_USAGE_WEIGHTS);
@@ -209,20 +220,33 @@ struct runtime::impl {
                 ggml_backend_tensor_set(tensor, converted.data(), 0, ggml_nbytes(tensor));
 
             } else if (tensor->type == GGML_TYPE_F16) {
-                ggml_backend_tensor_set(tensor, bytes.data(), 0, ggml_nbytes(tensor));
+                std::vector<ggml_fp16_t> converted(count);
+                ggml_fp32_to_fp16_row(values.data(),converted.data(),count);
+                ggml_backend_tensor_set(tensor, converted.data(), 0, ggml_nbytes(tensor));
             } else {
                 bool linear_bias = name.ends_with(".bias") && name.find("norm") == std::string::npos && !name.starts_with("scorer.0.");
                 linear_bias = linear_bias || name.ends_with("in_proj_bias");
-                if (bf16 && linear_bias)
-                    for (auto& x : values) x = ggml_bf16_to_fp32(ggml_fp32_to_bf16(x));
+                if (low_precision && linear_bias)
+                    for (auto& x : values) x = low_type==GGML_TYPE_F16 ? ggml_fp16_to_fp32(ggml_fp32_to_fp16(x)) : ggml_bf16_to_fp32(ggml_fp32_to_bf16(x));
                 ggml_backend_tensor_set(tensor, values.data(), 0, ggml_nbytes(tensor));
             }
+        }
+        if (gelu_table) {
+            const auto* bits=low_type==GGML_TYPE_F16 ? vulkan_precision::gelu_fp16_nvidia : vulkan_precision::gelu_bf16_nvidia;
+            std::vector<float> values(65536);
+            for (int i=0;i<65536;++i) values[i]=low_type==GGML_TYPE_F16 ? ggml_fp16_to_fp32(bits[i]) : ggml_bf16_to_fp32(ggml_bf16_t{bits[i]});
+            if (vulkan_amd) {
+                if (low_type==GGML_TYPE_F16) for (auto patch:vulkan_precision::gelu_fp16_rocm) values[patch.index]=ggml_fp16_to_fp32(patch.value);
+                else for (auto patch:vulkan_precision::gelu_bf16_rocm) values[patch.index]=ggml_bf16_to_fp32(ggml_bf16_t{patch.value});
+            }
+            ggml_backend_tensor_set(gelu_table,values.data(),0,ggml_nbytes(gelu_table));
+            weights["laya.gelu_table"]=gelu_table;
         }
     }
 
     tensor* w(const std::string& name) { return weights.at(name); }
     tensor* rounded(ggml_context* ctx, tensor* value) {
-        return bf16 ? ggml_cast(ctx, ggml_cast(ctx, value, GGML_TYPE_BF16), GGML_TYPE_F32) : value;
+        return low_precision ? ggml_cast(ctx, ggml_cast(ctx, value, low_type), GGML_TYPE_F32) : value;
     }
     tensor* split_half(ggml_context* ctx, tensor* x) {
         if (!vulkan) return split_f16(ctx, x);
@@ -234,19 +258,29 @@ struct runtime::impl {
     }
 
     tensor* norm(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool compact = true) {
-        if (bf16) return norm_bf16(ctx, x, w(name+".weight"), bias ? w(name+".bias") : nullptr, compact);
+        if (low_precision && vulkan) return vulkan_precision::norm(ctx,x,w(name+".weight"),bias ? w(name+".bias") : nullptr);
+        if (low_precision && !vulkan) return norm_bf16(ctx, x, w(name+".weight"), bias ? w(name+".bias") : nullptr, compact);
         auto value = ggml_mul(ctx, ggml_norm(ctx, x, 1e-5f), w(name + ".weight"));
         return bias ? ggml_add(ctx, value, w(name + ".bias")) : value;
     }
     tensor* linear(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool packed = false, bool compact = false, tensor* residual = nullptr) {
-        x = bf16 && x->type!=GGML_TYPE_BF16 ? ggml_cast(ctx, x, GGML_TYPE_BF16) : x;
+        x = low_precision && x->type!=low_type ? ggml_cast(ctx, x, low_type) : x;
         const auto key = name + (packed ? "_weight" : ".weight");
-        if (bf16) return linear_bf16(ctx,x,w(key),bias ? w(name+(packed ? "_bias" : ".bias")) : nullptr, compact, residual);
+        if (low_precision) {
+            auto b = bias ? w(name+(packed ? "_bias" : ".bias")) : nullptr;
+            vulkan_precision::projection_plan plan;
+            if (vulkan_nvidia)
+                plan=vulkan_precision::select_projection_plan(w(key)->ne[0],w(key)->ne[1],x->ne[1],bias);
+            // Bound cancellation error in batched scalar heads by accumulating
+            // short FP32 dot products before the final low-precision rounding.
+            if (vulkan_nvidia && low_type==GGML_TYPE_BF16 && w(key)->ne[1]==1 && x->ne[1]>1 && !plan.chunk) plan.chunk=64;
+            return vulkan ? vulkan_precision::linear(ctx,x,w(key),b,residual,low_type,plan) : linear_bf16(ctx,x,w(key),b,compact,residual);
+        }
         const bool compensated = tensor_core && compensated_weights.contains(key);
         const int64_t columns = x->ne[1];
         // ggml's small-matrix CUDA kernel uses TF32 even for F32 weights.
         // Keep strict FP32 on the cuBLAS path, including tiny decision heads.
-        const bool pad_columns = !vulkan && !bf16 && !compensated && columns <= 16;
+        const bool pad_columns = !vulkan && !low_precision && !compensated && columns <= 16;
         if (pad_columns) x = ggml_pad(ctx, x, 0, 17-columns, 0, 0);
         tensor* value;
         if (compensated) {
@@ -255,13 +289,15 @@ struct runtime::impl {
             value = merge_half(ctx,product);
         } else {
             value = ggml_mul_mat(ctx, w(key), x);
-            if (!bf16) ggml_prec_set_acc(value, GGML_PREC_F32);
+            if (!low_precision) ggml_prec_set_acc(value, GGML_PREC_F32);
         }
         if (bias) value = ggml_add(ctx, value, w(name + (packed ? "_bias" : ".bias")));
         if (pad_columns) value = ggml_cont(ctx, ggml_view_2d(ctx, value, value->ne[0], columns, value->nb[1], 0));
         return rounded(ctx, value);
     }
-    tensor* gelu(ggml_context* ctx, tensor* x) { return bf16 ? gelu_bf16(ctx,x) : ggml_gelu_erf(ctx,x); }
+    tensor* gelu(ggml_context* ctx, tensor* x) {
+        return low_precision ? (vulkan ? vulkan_precision::activation(ctx,x,w("laya.gelu_table"),false,low_type==GGML_TYPE_BF16) : gelu_bf16(ctx,x)) : ggml_gelu_erf(ctx,x);
+    }
 
     void trace_tensor(graph_state& s, const std::string& name, tensor* value) {
         if (std::getenv("LAYA_TRACE_DIR")) {
@@ -275,8 +311,8 @@ struct runtime::impl {
         trace_tensor(s, prefix+".qkv-input", x);
         // Batched head inputs have a transposed sequence/batch layout in the
         // mixed-precision contract: round the product before adding this bias.
-        const bool separate_bias=bf16 && head && s.batch>1;
-        auto qkv = linear(ctx, x, prefix + (head ? ".self_attn.in_proj" : ".attn.Wqkv"), head && !separate_bias, head, bf16 && !head);
+        const bool separate_bias=low_precision && head && s.batch>1;
+        auto qkv = linear(ctx, x, prefix + (head ? ".self_attn.in_proj" : ".attn.Wqkv"), head && !separate_bias, head, low_precision && !head);
         if(separate_bias) qkv=rounded(ctx,ggml_add(ctx,qkv,w(prefix+".self_attn.in_proj_bias")));
         trace_tensor(s, prefix+".attn.Wqkv", qkv);
         tensor* split[3];
@@ -295,26 +331,32 @@ struct runtime::impl {
                     auto rotated = ggml_concat(ctx, ggml_neg(ctx, ggml_cont(ctx, second)), ggml_cont(ctx, first), 0);
                     part = ggml_add(ctx, ggml_mul(ctx, part, s.cosine[kind]), ggml_mul(ctx, rotated, s.sine[kind]));
                 }
-                split[i] = ggml_cont(ctx, ggml_permute(ctx, part, 0, 2, 1, 3));
+                split[i] = rounded(ctx,ggml_cont(ctx, ggml_permute(ctx, part, 0, 2, 1, 3)));
             }
         } else {
-            auto packed_qkv=pack_qkv(ctx,qkv,head ? nullptr : s.cosine[kind],head ? nullptr : s.sine[kind],s.length,s.batch,bf16);
+            auto packed_qkv=pack_qkv(ctx,qkv,head ? nullptr : s.cosine[kind],head ? nullptr : s.sine[kind],s.length,s.batch,low_precision);
             for (int i=0;i<3;++i)
                 split[i]=ggml_view_4d(ctx,packed_qkv,64,s.length,heads,s.batch,
                     packed_qkv->nb[1],packed_qkv->nb[2],packed_qkv->nb[3],i*s.batch*packed_qkv->nb[3]);
         }
-        if (bf16) split[0]=ggml_cast(ctx,split[0],GGML_TYPE_F32);
+        if (low_precision) split[0]=ggml_cast(ctx,split[0],GGML_TYPE_F32);
         if (std::getenv("LAYA_TRACE_DIR")) split[0]=ggml_cont(ctx,split[0]);
         trace_tensor(s,prefix+".q",split[0]);
         if (std::getenv("LAYA_TRACE_DIR")) split[1]=ggml_cont(ctx,split[1]);
         trace_tensor(s,prefix+".k",split[1]);
         auto mask = head || layer % 3 == 0 ? s.global_mask : s.local_mask;
         tensor* value;
-        if (flash && (bf16 || s.length <= 128)) {
+        if (flash && (low_precision || s.length <= 128)) {
+            if (vulkan && low_precision && !head && !s.padding && (layer%3==0 || s.length<64)) mask=nullptr;
             auto k = split[1];
             auto v = split[2];
+            if (vulkan && low_precision) {
+                k = ggml_cast(ctx,k,low_type);
+                v = ggml_cast(ctx,v,low_type);
+            }
             value = ggml_flash_attn_ext(ctx, split[0], k, v, mask, 1.0f / 8.0f, 0, 0);
-            if (bf16 && (head || s.padding || (layer%3!=0 && s.length>=64))) ggml_set_name(value,!head && layer%3!=0 && s.length>=64 ? "laya.sdpa-local" : "laya.sdpa-masked");
+            if (low_precision && (head || s.padding || (layer%3!=0 && s.length>=64))) ggml_set_name(value,!head && layer%3!=0 && s.length>=64 ? "laya.sdpa-local" : "laya.sdpa-masked");
+            if (vulkan && low_precision && !mask) ggml_set_name(value,"laya.sdpa-flash");
             ggml_prec_set_acc(value, GGML_PREC_F32);
             value = ggml_reshape_2d(ctx, ggml_is_contiguous(value) ? value : ggml_cont(ctx, value), width, s.length * s.batch);
         } else {
@@ -323,6 +365,7 @@ struct runtime::impl {
             auto probabilities = ggml_soft_max_ext(ctx, scores, mask, 1.0f / 8.0f, 0);
             auto v = ggml_cont(ctx, ggml_transpose(ctx, split[2]));
             value = ggml_mul_mat(ctx, v, probabilities);
+            if (vulkan && low_precision && !mask) ggml_set_name(value,"laya.sdpa-flash");
             ggml_prec_set_acc(value, GGML_PREC_F32);
             value = ggml_reshape_2d(ctx, ggml_cont(ctx, ggml_permute(ctx, value, 0, 2, 1, 3)), width, s.length * s.batch);
         }
@@ -373,8 +416,8 @@ struct runtime::impl {
             // Flash attention requires mask query rows padded to a multiple of 64.
             auto mask_rows = flash ? ((s.length + 63) / 64) * 64 : s.length;
             if (vulkan) {
-                s.global_mask = input_tensor(GGML_TYPE_F32, {s.length, mask_rows, 1, s.batch});
-                s.local_mask = input_tensor(GGML_TYPE_F32, {s.length, mask_rows, 1, s.batch});
+                s.global_mask = input_tensor(flash ? GGML_TYPE_F16 : GGML_TYPE_F32, {s.length, mask_rows, 1, s.batch});
+                s.local_mask = input_tensor(flash ? GGML_TYPE_F16 : GGML_TYPE_F32, {s.length, mask_rows, 1, s.batch});
             } else {
                 s.lengths = input_tensor(GGML_TYPE_I32, {s.batch});
                 s.global_mask = attention_mask(ctx,s.lengths,s.length,mask_rows,false,flash);
@@ -384,18 +427,20 @@ struct runtime::impl {
             trace("embedding", h);
             for (int layer = 0; layer < layers; ++layer) {
                 auto prefix = "encoder.layers." + std::to_string(layer);
-                auto attended = attention(s, layer == 0 ? h : norm(ctx, h, prefix + ".attn_norm"), prefix, layer, false, bf16 ? h : nullptr);
-                h = bf16 ? attended : ggml_add(ctx, h, attended);
+                auto attended = attention(s, layer == 0 ? h : norm(ctx, h, prefix + ".attn_norm"), prefix, layer, false, low_precision ? h : nullptr);
+                h = low_precision ? attended : ggml_add(ctx, h, attended);
                 if (tensor_core && !vulkan) {
                     auto normalized=norm(ctx,h,prefix+".mlp_norm");
                     auto products=ggml_mul_mat(ctx,w(prefix+".mlp.Wi.weight"),split_f16(ctx,normalized));
                     auto projected=ggml_mul_mat(ctx,w(prefix+".mlp.Wo.weight"),mlp_split_f16(ctx,products));
                     h=ggml_add(ctx,h,merge_f16(ctx,projected));
                 } else {
-                    auto gated = linear(ctx, norm(ctx, h, prefix + ".mlp_norm"), prefix + ".mlp.Wi", false, false, bf16);
+                    auto normalized=norm(ctx,h,prefix+".mlp_norm");
+                    trace_tensor(s,prefix+".mlp.Wi.input",normalized);
+                    auto gated = linear(ctx, normalized, prefix + ".mlp.Wi", false, false, low_precision);
                     trace_tensor(s,prefix+".mlp.Wi",gated);
                     tensor* activation;
-                    if (bf16) activation = mlp_bf16(ctx, gated);
+                    if (low_precision) activation = vulkan ? vulkan_precision::activation(ctx,gated,w("laya.gelu_table"),true,low_type==GGML_TYPE_BF16) : mlp_bf16(ctx, gated);
                     else if (vulkan) activation = ggml_geglu_erf(ctx, gated);
                     else {
                         auto first = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], 0));
@@ -403,9 +448,9 @@ struct runtime::impl {
                         activation = ggml_mul(ctx, gelu(ctx, first), second);
                     }
                     trace_tensor(s,prefix+".mlp.Wo.input",activation);
-                    auto projected = linear(ctx, activation, prefix + ".mlp.Wo", false, false, false, bf16 ? h : nullptr);
-                    trace_tensor(s,prefix+(bf16 ? ".mlp.residual" : ".mlp.Wo"),projected);
-                    h = bf16 ? projected : ggml_add(ctx, h, projected);
+                    auto projected = linear(ctx, activation, prefix + ".mlp.Wo", false, false, false, low_precision ? h : nullptr);
+                    trace_tensor(s,prefix+(low_precision ? ".mlp.residual" : ".mlp.Wo"),projected);
+                    h = low_precision ? projected : ggml_add(ctx, h, projected);
                 }
                 trace("encoder-" + std::to_string(layer), h);
             }
@@ -414,14 +459,14 @@ struct runtime::impl {
             h = ggml_add(ctx, h, ggml_get_rows(ctx, w("type_emb.weight"), s.types));
             for (int layer = 0; layer < 2; ++layer) {
                 auto prefix = "head.layers." + std::to_string(layer);
-                auto attended = attention(s, norm(ctx, h, prefix + ".norm1", true), prefix, layer, true, bf16 ? h : nullptr);
-                h = bf16 ? attended : ggml_add(ctx, h, attended);
+                auto attended = attention(s, norm(ctx, h, prefix + ".norm1", true), prefix, layer, true, low_precision ? h : nullptr);
+                h = low_precision ? attended : ggml_add(ctx, h, attended);
                 auto first=linear(ctx,norm(ctx,h,prefix+".norm2",true),prefix+".linear1",true);
                 trace_tensor(s,prefix+".linear1",first);
                 auto activation=ggml_relu(ctx,first);
-                auto second=linear(ctx,activation,prefix+".linear2",true,false,false,bf16 ? h : nullptr);
-                trace_tensor(s,prefix+(bf16 ? ".linear2-residual" : ".linear2"),second);
-                h=bf16 ? second : ggml_add(ctx,h,second);
+                auto second=linear(ctx,activation,prefix+".linear2",true,false,false,low_precision ? h : nullptr);
+                trace_tensor(s,prefix+(low_precision ? ".linear2-residual" : ".linear2"),second);
+                h=low_precision ? second : ggml_add(ctx,h,second);
                 trace("head-" + std::to_string(layer), h);
             }
             s.pooled = ggml_get_rows(ctx, h, s.cls);
@@ -443,8 +488,13 @@ struct runtime::impl {
                     const float inverse = 1.0f/std::pow(kind == 0 ? 160000.0f : local_rope, float(2*i)/64.0f);
                     for (int position = 0; position < s.length; ++position) {
                         const float angle = float(position)*inverse;
-                        cosine[position*64+i] = cosine[position*64+i+32] = bf16 ? angle : std::cos(angle);
+                        cosine[position*64+i] = cosine[position*64+i+32] = low_precision && !vulkan ? angle : std::cos(angle);
                         sine[position*64+i] = sine[position*64+i+32] = std::sin(angle);
+                        if (vulkan && low_precision) {
+                            const int base=kind==0 || local_rope==160000.f ? 0 : 1;
+                            cosine[position*64+i]=cosine[position*64+i+32]=vulkan_precision::rotary(vulkan_amd,base,position,i,false);
+                            sine[position*64+i]=sine[position*64+i+32]=vulkan_precision::rotary(vulkan_amd,base,position,i,true);
+                        }
                     }
                 }
                 ggml_backend_tensor_set(s.cosine[kind], cosine.data(), 0, ggml_nbytes(s.cosine[kind]));
@@ -471,7 +521,7 @@ struct runtime::impl {
         }
         if (std::any_of(input.ids.begin(), input.ids.end(), [&](int id) { return id < 0 || id >= vocabulary; }))
             throw std::runtime_error("Token ID outside the vocabulary");
-        if (!main_graph || main_graph->batch != input.size || main_graph->length != input.length || main_graph->options != input.options || (bf16 && main_graph->padding!=std::any_of(input.lengths.begin(),input.lengths.end(),[&](auto n){return n<input.length;}))) {
+        if (!main_graph || main_graph->batch != input.size || main_graph->length != input.length || main_graph->options != input.options || (low_precision && main_graph->padding!=std::any_of(input.lengths.begin(),input.lengths.end(),[&](auto n){return n<input.length;}))) {
             main_graph.reset();
             main_graph = make_graph(input, false);
         }
@@ -489,16 +539,24 @@ struct runtime::impl {
         }
         put(s.types, types); put(s.cls, cls);
         if (vulkan) {
-            std::vector<float> global(size_t(s.length)*s.length*s.batch), local(global.size());
+            const int mask_rows = s.global_mask->ne[1];
+            std::vector<float> global(size_t(s.length)*mask_rows*s.batch, -INFINITY), local(global.size(), -INFINITY);
             for (int row = 0; row < s.batch; ++row)
                 for (int query = 0; query < s.length; ++query)
                     for (int key = 0; key < s.length; ++key) {
-                        const size_t index = (size_t(row)*s.length + query)*s.length + key;
+                        const size_t index = (size_t(row)*mask_rows + query)*s.length + key;
                         global[index] = key < input.lengths[row] ? 0.f : -INFINITY;
                         local[index] = ((key < input.lengths[row] && std::abs(query-key) <= 64) ||
                             (query >= input.lengths[row]+64 && key == 0)) ? 0.f : -INFINITY;
                     }
-            put(s.global_mask, global); put(s.local_mask, local);
+            if (flash) {
+                std::vector<ggml_fp16_t> global_half(global.size()), local_half(local.size());
+                ggml_fp32_to_fp16_row(global.data(),global_half.data(),global.size());
+                ggml_fp32_to_fp16_row(local.data(),local_half.data(),local.size());
+                put(s.global_mask,global_half); if (s.local_mask->buffer) put(s.local_mask,local_half);
+            } else {
+                put(s.global_mask, global); put(s.local_mask, local);
+            }
         } else put(s.lengths, input.lengths);
         auto start = std::chrono::steady_clock::now();
         if (ggml_backend_graph_compute(backend, s.graph) != GGML_STATUS_SUCCESS) throw std::runtime_error("Encoder computation failed");
@@ -544,14 +602,19 @@ struct runtime::impl {
         return result;
     }
 };
-runtime::runtime(const std::filesystem::path& path, bool cuda, bool bf16, bool flash, bool tensor_core) : runtime(path, cuda ? backend_type::cuda : backend_type::cpu, bf16, flash, tensor_core) {}
-runtime::runtime(const std::filesystem::path& path, backend_type selected, bool bf16, bool flash, bool tensor_core) : p(std::make_unique<impl>()) {
-    const bool cuda = selected == backend_type::cuda;
-    if (selected == backend_type::vulkan && (bf16 || flash))
+runtime::runtime(const std::filesystem::path& path, bool cuda, bool low_precision, bool flash, bool tensor_core) : runtime(path, cuda ? backend_type::cuda : backend_type::cpu, low_precision, flash, tensor_core) {}
+runtime::runtime(const std::filesystem::path& path, backend_type selected, bool low_precision, bool flash, bool tensor_core)
+    : runtime(path,selected,low_precision ? precision_type::bf16 : precision_type::fp32,flash,tensor_core) {}
+runtime::runtime(const std::filesystem::path& path, backend_type selected, precision_type precision, bool flash, bool tensor_core) : p(std::make_unique<impl>()) {
+    const bool low_precision = precision != precision_type::fp32;
+    if (precision==precision_type::fp16 && selected!=backend_type::vulkan) throw std::invalid_argument("FP16 currently requires Vulkan");
+    p->low_type = precision==precision_type::fp16 ? GGML_TYPE_F16 : GGML_TYPE_BF16;
+    if (selected == backend_type::vulkan && !low_precision && flash)
         throw std::invalid_argument("Vulkan currently supports FP32 without fused attention");
-    if (bf16 && (!cuda || !flash)) throw std::invalid_argument("BF16 mode requires fused CUDA attention");
-    if (tensor_core && (bf16 || selected == backend_type::cpu)) throw std::invalid_argument("Compensated matrix operations require a GPU and FP32 mode");
-    p->bf16 = bf16; p->flash = flash; p->tensor_core = tensor_core;
+    if (low_precision && (selected == backend_type::cpu || (selected == backend_type::cuda && !flash)))
+        throw std::invalid_argument("BF16 mode requires a GPU; CUDA requires fused attention");
+    if (tensor_core && (low_precision || selected == backend_type::cpu)) throw std::invalid_argument("Compensated matrix operations require a GPU and FP32 mode");
+    p->low_precision = low_precision; p->flash = flash; p->tensor_core = tensor_core;
     p->load(path, selected);
 }
 runtime::~runtime() = default;
