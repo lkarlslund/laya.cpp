@@ -1,0 +1,52 @@
+{
+  "backend": "vulkan",
+  "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+  "precision": "bf16",
+  "native_build_sha256": "73560e6d9aaaa6eb9b07a31014652aa386376e05bc0606fb52ef4264b2a94914",
+  "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "torch": "2.11.0+cu130",
+  "python_runtime": "cuda",
+  "python_runtime_version": "13.0",
+  "acceptance": "exact_categories_absolute_numeric_0.0001",
+  "passed": true,
+  "batches": [
+    {
+      "batch_size": 1,
+      "questions": 250,
+      "max_logit_error": 0.0,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 2,
+      "questions": 250,
+      "max_logit_error": 0.0,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 4,
+      "questions": 250,
+      "max_logit_error": 0.0,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 8,
+      "questions": 250,
+      "max_logit_error": 2.980232238769531e-07,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    }
+  ],
+  "scope": "English BF16 NVIDIA Vulkan prototype with short scalar dot products. Combined precision regression remains pending."
+}
