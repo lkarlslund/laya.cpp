@@ -252,4 +252,12 @@ head projection differences remain, so the full-model gate is still open.
 A native serial reduction operator now stores FP16 or BF16 running sums between
 matrix partitions. Its tests distinguish serial storage from a single FP32 sum
 and cover both bias epilogue positions, with and without bias, on both tested
-GPUs. Full-model 16-bit validation is still required.
+GPUs. Full-corpus validation after integrating serial projection plans still
+fails for all three models in both 16-bit modes. These remain experimental.
+
+Unmasked NVIDIA attention now preserves four partial denominator sums across
+key tiles before combining them for normalization. Operator tests cover
+nonuniform scores across two and three tiles, masked attention, and exact
+reciprocals on both GPUs. In a 184-token FP16 diagnostic this reduces the first
+attention mismatch from 13 values to one; the public answer still exceeds the
+acceptance tolerance. This is a component correction, not full-model acceptance.

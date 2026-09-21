@@ -180,7 +180,7 @@ int main() {
             if (actual!=expected) throw std::runtime_error("serial reduction changed a storage or bias boundary");
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
-        for (int keys : {33,54,129}) for (bool masked : {false,true}) for (int queries : {17,65}) {
+        for (int keys : {33,54,129,184,257}) for (bool masked : {false,true}) for (int queries : {17,65}) {
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             constexpr int width=64,heads=2;
             const int mask_rows=((queries+63)/64)*64;
@@ -202,9 +202,13 @@ int main() {
                 auto half=ggml_fp32_to_fp16(.125f+float((h*5+t%7+d%5)%17)/1024.f);
                 values[(h*keys+t)*width+d]=half;
             }
-            if (masked) {
+            // Nonuniform scores spanning several key tiles exercise online
+            // rescaling; zero scores separately test the exact reciprocal.
+            if (masked || keys>=184) {
                 for (size_t i=0;i<zeros.size();++i) zeros[i]=float(int(i%13)-6)/16;
                 for (size_t i=0;i<kz.size();++i) kz[i]=ggml_fp32_to_fp16(float(int(i%11)-5)/8);
+            }
+            if (masked) {
                 for (int row=1;row<queries;++row) for (int key=0;key<keys;++key)
                     if (std::abs(row-key)<23) mask_values[row*keys+key]=ggml_fp32_to_fp16(0);
                 ggml_backend_tensor_set(mask,mask_values.data(),0,ggml_nbytes(mask));
@@ -227,11 +231,13 @@ int main() {
             if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("attention compute failed");
             ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
             for (int i=0;i<int(actual.size());++i)
-                if (!std::isfinite(actual[i]) || std::abs(actual[i]-expected[i])>(masked ? 0.0001 : 0.000001))
+                if (!std::isfinite(actual[i]) || std::abs(actual[i]-expected[i])>((masked || keys>=184) ? 0.0001 : 0.000001))
                     { std::cerr << "keys=" << keys << " i=" << i << " actual=" << actual[i] << " expected=" << expected[i] << '\n'; throw std::runtime_error("FP32 attention accumulator lost low-precision value contributions"); }
             if (!masked) {
                 // A single nonzero value isolates normalization from dot-product
                 // rounding: the correctly rounded output is exactly 1 / keys.
+                std::fill(zeros.begin(),zeros.end(),0.f);
+                ggml_backend_tensor_set(q,zeros.data(),0,ggml_nbytes(q));
                 std::fill(values.begin(),values.end(),ggml_fp32_to_fp16(0));
                 for (int h=0;h<heads;++h) for (int d=0;d<width;++d)
                     values[h*keys*width+d]=ggml_fp32_to_fp16(1);
