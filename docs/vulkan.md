@@ -54,6 +54,11 @@ prepares and uploads attention masks for each call; tokenizer preprocessing and
 action statistics use the existing host implementation. All graph operations are
 checked for backend support before execution.
 
+FP32 feed-forward layers use a fused GEGLU shader, avoiding separate gate copies,
+activation and multiplication dispatches. Small decision projections run at their
+actual batch size; the CUDA-specific minimum-column padding is not applied to
+Vulkan.
+
 Dense FP32 attention uses more memory than fused attention at long sequence
 lengths. Begin with the default eight-question HTTP limit and reduce it on
 smaller GPUs. Cold calls also include Vulkan shader/pipeline creation; benchmark

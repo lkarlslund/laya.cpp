@@ -239,7 +239,7 @@ struct runtime::impl {
         const int64_t columns = x->ne[1];
         // ggml's small-matrix CUDA kernel uses TF32 even for F32 weights.
         // Keep strict FP32 on the cuBLAS path, including tiny decision heads.
-        const bool pad_columns = !bf16 && !compensated && columns <= 16;
+        const bool pad_columns = !vulkan && !bf16 && !compensated && columns <= 16;
         if (pad_columns) x = ggml_pad(ctx, x, 0, 17-columns, 0, 0);
         tensor* value;
         if (compensated) {
@@ -387,6 +387,7 @@ struct runtime::impl {
                     trace_tensor(s,prefix+".mlp.Wi",gated);
                     tensor* activation;
                     if (bf16) activation = mlp_bf16(ctx, gated);
+                    else if (vulkan) activation = ggml_geglu_erf(ctx, gated);
                     else {
                         auto first = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], 0));
                         auto second = ggml_cont(ctx, ggml_view_2d(ctx, gated, intermediate, tokens, gated->nb[1], intermediate * sizeof(float)));
