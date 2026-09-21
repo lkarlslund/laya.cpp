@@ -2,6 +2,19 @@
 #include "ggml.h"
 #include <stdexcept>
 namespace laya::vulkan_precision {
+// Bias precedes storage rounding; the FP32 residual is added afterwards.
+inline ggml_tensor* finish_projection(ggml_context* ctx, ggml_tensor* x, ggml_tensor* bias,
+                                      ggml_tensor* residual, ggml_type stored_type) {
+    if (stored_type!=GGML_TYPE_F32 && stored_type!=GGML_TYPE_F16 && stored_type!=GGML_TYPE_BF16)
+        throw std::invalid_argument("Invalid Vulkan projection storage precision");
+    ggml_tensor* inputs[]={x,bias ? bias : x,residual ? residual : x};
+    auto output=ggml_custom_4d(ctx,GGML_TYPE_F32,x->ne[0],x->ne[1],x->ne[2],x->ne[3],inputs,3,
+        [](ggml_tensor*,int,int,void*) { throw std::runtime_error("Vulkan projection storage requires a Vulkan GPU"); },1,nullptr);
+    output->op_params[0]=(stored_type==GGML_TYPE_F16 ? 1 : stored_type==GGML_TYPE_BF16 ? 2 : 0)|
+                         (bias ? 4 : 0)|(residual ? 8 : 0);
+    ggml_set_name(output,"laya.finish-projection-vulkan");
+    return output;
+}
 // Pack Q/K/V and apply rotary positions in one dispatch, retaining explicit
 // product/addition rounding and the requested projection storage precision.
 inline ggml_tensor* pack_qkv(ggml_context* ctx, ggml_tensor* x, ggml_tensor* cosine,

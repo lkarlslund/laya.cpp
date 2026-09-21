@@ -1,0 +1,25 @@
+#version 450
+layout(local_size_x=256,local_size_y=1,local_size_z=1) in;
+layout(binding=0) readonly buffer Input { float x[]; };
+layout(binding=1) readonly buffer Bias { float bias[]; };
+layout(binding=2) readonly buffer Residual { float residual[]; };
+layout(binding=3) writeonly buffer Output { float y[]; };
+layout(push_constant) uniform Params { uint width,count,flags,unused; } p;
+#include "rounding.glsl"
+float stored(float value) {
+    uint format_code=p.flags&3u;
+    if (format_code==0u) return value;
+    if (format_code==1u) return unpackHalf2x16(halfBits(value)).x;
+    uint bits=floatBitsToUint(value);
+    if ((bits&0x7fffffffu)>0x7f800000u) return uintBitsToFloat(bits|0x00400000u);
+    return uintBitsToFloat((bits+0x7fffu+((bits>>16)&1u))&0xffff0000u);
+}
+void main() {
+    uint i=gl_GlobalInvocationID.x;
+    if (i>=p.count) return;
+    precise float value=x[i];
+    if ((p.flags&4u)!=0u) value+=bias[i%p.width];
+    value=stored(value);
+    if ((p.flags&8u)!=0u) value=residual[i]+value;
+    y[i]=value;
+}

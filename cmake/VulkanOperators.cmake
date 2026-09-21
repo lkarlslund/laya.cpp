@@ -61,6 +61,20 @@ foreach(operation split merge reduce serial)
     "    ggml_vk_create_pipeline(device, device->pipeline_laya_${operation}, \"laya_${operation}\", sizeof(laya_${operation}_spv), laya_${operation}_spv, \"main\", ${laya_compensated_bindings}, 16, {256,1,1}, {}, 1);\n    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,")
 endforeach()
 
+set(laya_finish_header "${CMAKE_CURRENT_BINARY_DIR}/laya_finish_projection.spv.h")
+add_custom_command(OUTPUT "${laya_finish_header}"
+  COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O -mfmt=c
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/finish_projection.comp" -o "${laya_finish_header}"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/finish_projection.comp" "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/rounding.glsl" VERBATIM)
+add_custom_target(laya-vulkan-finish-projection DEPENDS "${laya_finish_header}")
+add_dependencies(ggml-vulkan laya-vulkan-finish-projection)
+laya_vk_replace("#include \"ggml-vulkan-shaders.hpp\""
+  "#include \"ggml-vulkan-shaders.hpp\"\nstatic const uint32_t laya_finish_projection_spv[] =\n#include \"laya_finish_projection.spv.h\"\n;")
+laya_vk_replace("    vk_pipeline pipeline_norm_f32;"
+  "    vk_pipeline pipeline_norm_f32;\n    vk_pipeline pipeline_laya_finish_projection;")
+laya_vk_replace("    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,"
+  "    ggml_vk_create_pipeline(device, device->pipeline_laya_finish_projection, \"laya_finish_projection\", sizeof(laya_finish_projection_spv), laya_finish_projection_spv, \"main\", 4, 16, {256,1,1}, {}, 1);\n    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,")
+
 set(laya_pack_header "${CMAKE_CURRENT_BINARY_DIR}/laya_pack_qkv.spv.h")
 add_custom_command(OUTPUT "${laya_pack_header}"
   COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O -mfmt=c

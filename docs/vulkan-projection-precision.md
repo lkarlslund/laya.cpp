@@ -28,6 +28,14 @@ outputs. Regenerate and check the tables with `benchmarks/generate_gelu_tables.p
 and `--check` in the matching ROCm environment. This operator check does not establish
 full-model AMD 16-bit acceptance.
 
+The projection-storage operator combines optional bias addition, FP16/BF16
+rounding, and an optional FP32 residual addition in one dispatch. Bias precedes
+rounding; the residual follows it. Independent bitwise operator tests pass on
+NVIDIA and AMD for all three storage formats, biased and unbiased inputs,
+residuals, rounding midpoints, signed zeros, and subnormals. The exhaustive GPU
+activation tests also check zero signs. Projection-storage runtime integration
+and full-model regression remain pending.
+
 The fused QKV packing operator combines layout conversion, rotary multiplication,
 and storage rounding in one dispatch. Its operator tests pass on NVIDIA and AMD
 for FP32, FP16 and BF16, with batched inputs, rotary positions enabled and

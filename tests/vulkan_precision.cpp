@@ -9,6 +9,7 @@
 #include "vulkan/gelu_rocm_patches.hpp"
 #include "vulkan_rotary.hpp"
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -18,6 +19,45 @@ int main() {
     auto backend = ggml_backend_vk_init(0);
     if (!backend) return 1;
     try {
+        for (ggml_type type : {GGML_TYPE_F32,GGML_TYPE_F16,GGML_TYPE_BF16})
+        for (bool biased : {false,true}) for (bool residual : {false,true}) {
+            constexpr int width=257,rows=3,count=width*rows;
+            auto ctx=ggml_init({24*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+            auto x=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,width,rows);
+            auto b=ggml_new_tensor_1d(ctx,GGML_TYPE_F32,width);
+            auto r=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,width,rows);
+            auto output=laya::vulkan_precision::finish_projection(ctx,x,biased ? b : nullptr,residual ? r : nullptr,type);
+            if (!ggml_backend_supports_op(backend,output)) throw std::runtime_error("Projection storage unsupported");
+            auto graph=ggml_new_graph(ctx);ggml_build_forward_expand(graph,output);
+            auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+            if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("Projection storage allocation failed");
+            std::vector<float> input(count),bias(width),skip(count),expected(count),actual(count);
+            const float samples[]={0.0f,-0.0f,1.00048828125f,-1.00048828125f,
+                1.00390625f,-1.00390625f,0x1p-24f,-0x1p-24f,0x1p-25f,-0x1p-25f,
+                0x1.ffcp+14f,-0x1.ffcp+14f};
+            for (int i=0;i<width;++i) bias[i]=float(i%7-3)*0x1p-12f;
+            for (int i=0;i<count;++i) {
+                input[i]=samples[i%(sizeof(samples)/sizeof(*samples))];
+                if (i%3==0 && input[i]!=0.0f) input[i]=std::nextafter(input[i],0.0f);
+                if (type==GGML_TYPE_BF16 && !biased && !residual && i<6) {
+                    const uint32_t tiny[]={0x00010000u,0x80010000u,0x00008000u,0x80008000u,0x00018000u,0x80018000u};
+                    std::memcpy(&input[i],&tiny[i],sizeof(float));
+                }
+                skip[i]=float(i%11-5)*0.125f;
+                float value=biased ? input[i]+bias[i%width] : input[i];
+                if (type==GGML_TYPE_F16) value=ggml_fp16_to_fp32(ggml_fp32_to_fp16(value));
+                if (type==GGML_TYPE_BF16) value=ggml_bf16_to_fp32(ggml_fp32_to_bf16(value));
+                expected[i]=residual ? skip[i]+value : value;
+            }
+            ggml_backend_tensor_set(x,input.data(),0,ggml_nbytes(x));
+            if (biased) ggml_backend_tensor_set(b,bias.data(),0,ggml_nbytes(b));
+            if (residual) ggml_backend_tensor_set(r,skip.data(),0,ggml_nbytes(r));
+            if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("Projection storage compute failed");
+            ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+            if (std::memcmp(actual.data(),expected.data(),count*sizeof(float))!=0)
+                throw std::runtime_error("Projection storage changed rounding, signed zero, or residual order");
+            ggml_gallocr_free(allocator);ggml_free(ctx);
+        }
         for (ggml_type type : {GGML_TYPE_F32,GGML_TYPE_F16,GGML_TYPE_BF16}) for (bool rotary : {false,true}) {
             constexpr int length=17,heads=3,batches=2,width=64*heads,count=3*width*length*batches;
             auto ctx=ggml_init({16*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
@@ -388,7 +428,8 @@ int main() {
             if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("activation compute failed");
             ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
             for (int i=0;i<65536;++i)
-                if (!(std::isnan(expected[i]) ? std::isnan(actual[i]) : expected[i]==actual[i])) {
+                if (!(std::isnan(expected[i]) ? std::isnan(actual[i]) :
+                      std::memcmp(&expected[i],&actual[i],sizeof(float))==0)) {
                     std::cerr << "activation bf16=" << bf16 << " gated=" << gated << " input=" << inputs[(i/width)*width*(gated ? 2 : 1)+i%width] << " expected=" << expected[i] << " actual=" << actual[i] << '\n';
                     throw std::runtime_error("16-bit activation changed the numerical table");
                 }
