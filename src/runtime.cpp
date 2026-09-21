@@ -1,5 +1,6 @@
 #include "laya/runtime.hpp"
 #include "laya/precision.hpp"
+#include "vulkan_ops.hpp"
 #include "ggml.h"
 #include "ggml-alloc.h"
 #include "ggml-backend.h"
@@ -225,18 +226,13 @@ struct runtime::impl {
     }
     tensor* split_half(ggml_context* ctx, tensor* x) {
         if (!vulkan) return split_f16(ctx, x);
-        auto high = ggml_cast(ctx, x, GGML_TYPE_F16);
-        auto low = ggml_cast(ctx, ggml_scale(ctx,
-            ggml_sub(ctx, x, ggml_cast(ctx, high, GGML_TYPE_F32)), 4096.f), GGML_TYPE_F16);
-        return ggml_concat(ctx, high, low, 1);
+        return vulkan_precision::split_half(ctx,x);
     }
     tensor* merge_half(ggml_context* ctx, tensor* x) {
         if (!vulkan) return merge_f16(ctx, x);
-        const int64_t columns = x->ne[1]/2;
-        auto high = ggml_view_2d(ctx, x, x->ne[0], columns, x->nb[1], 0);
-        auto low = ggml_view_2d(ctx, x, x->ne[0], columns, x->nb[1], columns*x->nb[1]);
-        return ggml_add(ctx, high, ggml_scale(ctx, low, 1.f/4096.f));
+        return vulkan_precision::merge_half(ctx,x);
     }
+
     tensor* norm(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool compact = true) {
         if (bf16) return norm_bf16(ctx, x, w(name+".weight"), bias ? w(name+".bias") : nullptr, compact);
         auto value = ggml_mul(ctx, ggml_norm(ctx, x, 1e-5f), w(name + ".weight"));

@@ -49,6 +49,25 @@ int main() {
             }
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
+        {
+            auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+            const std::vector<float> input={34032.f,-34032.f,32784.f,-32784.f,65504.f,-65504.f,1.0001f,-.00012345f};
+            auto x=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,input.size(),1);
+            ggml_set_input(x);
+            auto packed=laya::vulkan_precision::split_half(ctx,x);
+            auto output=laya::vulkan_precision::merge_half(ctx,ggml_cast(ctx,packed,GGML_TYPE_F32));
+            auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output);
+            auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+            if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("split allocation failed");
+            ggml_backend_tensor_set(x,input.data(),0,ggml_nbytes(x));
+            if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("split compute failed");
+            std::vector<float> actual(input.size());
+            ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+            for (size_t i=0;i<input.size();++i)
+                if (!std::isfinite(actual[i]) || std::abs(actual[i]-input[i])>1e-7f)
+                    throw std::runtime_error("compensated split overflow or precision loss");
+            ggml_gallocr_free(allocator); ggml_free(ctx);
+        }
         for (int width : {768,1024,1028}) for (bool affine_bias : {false,true}) {
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             auto x=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,width,3);
