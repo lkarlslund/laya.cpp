@@ -62,9 +62,10 @@ The native CUDA/Vulkan pair was timed separately from the Python/Vulkan pair.
 | multilingual | 2 | 632.1 | 175.0 |
 | multilingual | 4 | 719.0 | 271.7 |
 | multilingual | 8 | 590.0 | 331.7 |
-
-Measurements are added after each model finishes all four batch settings.
-Further model and GPU comparisons are in progress.
+| typed-decisions | 1 | 273.7 | 67.2 |
+| typed-decisions | 2 | 331.5 | 117.7 |
+| typed-decisions | 4 | 317.6 | 158.0 |
+| typed-decisions | 8 | 253.5 | 175.1 |
 
 See [validation](measurements/vulkan-fused-fp32.json) and
 [measurement metadata](measurements/vulkan-fused-performance.json) for the
