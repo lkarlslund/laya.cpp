@@ -52,6 +52,12 @@ matrix hardware without reducing each input to a single FP16 value. Attention,
 normalization and residuals remain FP32. The option name is shared with CUDA;
 Vulkan uses the device's cooperative-matrix implementation, including AMD's.
 
+Each input split and output merge uses a single GPU dispatch. The split explicitly
+rounds FP16 values to nearest-even, including subnormals, and scales the residual
+by 1024. Operator tests check both packed components and the merged FP32 results
+bit-for-bit across multiple matrix shapes and large activation values on both
+tested GPUs.
+
 A build-time extension of the pinned Vulkan backend supplies true FP32 matrix
 kernels alongside cooperative half-precision kernels. It prevents implicit
 FP16 conversion of explicitly FP32 matrix operands. The dependency checkout
