@@ -5,7 +5,8 @@ import torch
 
 
 class Oracle:
-    def __init__(self, source, model, fp32=False):
+    def __init__(self, source, model, fp32=False, fp16=False):
+        if fp32 and fp16: raise ValueError('Choose one baseline precision')
         sys.path.insert(0, str(Path(source).resolve()))
         import laya
         from laya.common import build_sequence, collate_items, QTYPES
@@ -14,8 +15,9 @@ class Oracle:
         if self.agent.device.type != 'cuda':
             raise RuntimeError('Baseline did not load on the CUDA/ROCm GPU')
         self.fp32 = fp32
-        if not fp32 and self.agent.dtype != torch.bfloat16:
-            raise RuntimeError('BF16 baseline selected a different autocast dtype')
+        if fp16: self.agent.dtype = torch.float16
+        if not fp32 and self.agent.dtype != (torch.float16 if fp16 else torch.bfloat16):
+            raise RuntimeError('Baseline selected a different autocast dtype')
         if fp32:
             torch.backends.cuda.matmul.allow_tf32 = False
             torch.backends.cudnn.allow_tf32 = False

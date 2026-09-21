@@ -5,13 +5,14 @@ from pathlib import Path
 
 
 class Native:
-    def __init__(self, executable, model, *, raw=False, prepare=False, fp32=True, flash=False, tensor_core=False, backend="cuda"):
+    def __init__(self, executable, model, *, raw=False, prepare=False, fp32=True, fp16=False, flash=False, tensor_core=False, backend="cuda"):
+        if fp32 and fp16: raise ValueError('Choose one native precision')
         command = [str(Path(executable).resolve()), '--model', str(Path(model).resolve())]
         if backend not in ('cuda', 'cpu', 'vulkan'): raise ValueError('Unknown backend')
         if backend != 'cuda': command += ['--' + backend]
         if raw: command += ['--raw']
         if prepare: command += ['--prepare']
-        command += ['--fp32'] if fp32 else ['--experimental-bf16']
+        command += ['--fp32'] if fp32 else ['--fp16'] if fp16 else ['--experimental-bf16']
         if fp32 and flash: command += ['--flash-fp32']
         if tensor_core: command += ['--tensor-core-fp32']
         if not flash: command += ['--no-flash']

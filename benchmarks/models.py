@@ -20,21 +20,26 @@ def main():
     precision.add_argument('--strict-fp32',action='store_true')
     precision.add_argument('--tensor-core-fp32',action='store_true')
     precision.add_argument('--bf16','--experimental-bf16',action='store_true')
+    precision.add_argument('--fp16',action='store_true')
+    p.add_argument('--no-flash',action='store_true')
     p.add_argument('--sweep',action='store_true')
     p.add_argument('--output',type=Path,default=Path('results/models'))
     a=p.parse_args()
+    if a.fp16 and a.backend!='vulkan': p.error('FP16 currently requires Vulkan')
     if a.backend != 'cuda':
-        if a.bf16: p.error('Non-CUDA model validation supports FP32 only')
+        if a.backend == 'cpu' and a.bf16: p.error('CPU model validation supports FP32 only')
         a.strict_fp32 = not a.tensor_core_fp32
         if a.backend == 'cpu' and a.tensor_core_fp32: p.error('CPU requires plain FP32')
     if any(b<1 for b in a.batch_sizes): p.error('Batch sizes must be positive')
     a.output.mkdir(parents=True,exist_ok=True)
-    report=dict(backend=a.backend,passed=True,complete=False,precision='bf16' if a.bf16 else 'fp32',variants=a.variants,models=[])
+    report=dict(backend=a.backend,passed=True,complete=False,precision='bf16' if a.bf16 else 'fp16' if a.fp16 else 'fp32',variants=a.variants,models=[])
     for variant in a.variants:
         directory=a.model_root if variant=='english' else a.model_root/variant
         common=['--backend',a.backend,'--model',str(directory),'--executable',a.executable,'--source',a.source,'--cases',a.cases,
                 '--batch-sizes',*map(str,a.batch_sizes)]
-        if a.bf16: common+=['--bf16']
+        if a.no_flash: common+=['--no-flash']
+        if a.fp16: common+=['--fp16']
+        elif a.bf16: common+=['--bf16']
         elif not a.strict_fp32: common+=['--tensor-core-fp32']
         validation=a.output/(variant+'-validation.json')
         entry=dict(variant=variant,model=str(directory),validation=str(validation))

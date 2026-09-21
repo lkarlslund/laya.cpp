@@ -25,17 +25,22 @@ def main():
     p.add_argument('--batch-sizes', type=int, nargs='+', default=[1,2,4,8])
     p.add_argument('--iterations', type=int, default=5)
     p.add_argument('--warmup', type=int, default=3)
-    p.add_argument('--fp32', action='store_true', default=True)
-    p.add_argument('--bf16', '--experimental-bf16', dest='fp32', action='store_false')
+    precision = p.add_mutually_exclusive_group()
+    precision.add_argument('--fp32', action='store_true', default=True)
+    precision.add_argument('--bf16', '--experimental-bf16', dest='fp32', action='store_false')
+    precision.add_argument('--fp16', action='store_true')
     p.add_argument('--no-flash', action='store_true')
     p.add_argument('--tensor-core-fp32', action='store_true')
     p.add_argument('--output', type=Path, default=Path('results/sweep.json'))
     p.add_argument('--validation', type=Path, default=Path('results/validation-250-fp32.json'))
     a = p.parse_args()
+    if a.fp16:
+        a.fp32 = False
+        if a.backend != 'vulkan': p.error('FP16 native validation currently requires Vulkan')
     if a.backend != 'cuda':
-        if not a.fp32: p.error('This backend currently requires FP32')
+        if a.backend == 'cpu' and not a.fp32: p.error('CPU requires FP32')
         if a.backend == 'cpu' and a.tensor_core_fp32: p.error('CPU requires plain FP32')
-        a.no_flash = True
+        if a.fp32: a.no_flash = True
     if a.iterations < 1 or a.warmup < 0 or any(x < 1 for x in a.batch_sizes): p.error('Invalid iteration or batch count')
     cases = json.loads(a.cases.read_text())
     validation = json.loads(a.validation.read_text())
@@ -45,13 +50,13 @@ def main():
             or validation['native_build_sha256'] != binary_hash or validation['weights_sha256'] != weights_hash
             or validation['gpu'] != torch.cuda.get_device_name() or validation['torch'] != torch.__version__
             or validation['fused_attention'] != (not a.no_flash) or validation['tensor_core_fp32'] != a.tensor_core_fp32
-            or validation['precision'] != ('fp32' if a.fp32 else 'bf16')
+            or validation['precision'] != ('fp32' if a.fp32 else 'fp16' if a.fp16 else 'bf16')
             or not set(a.batch_sizes).issubset({b['batch_size'] for b in validation['batches']})):
         p.error('A passing validation report for this corpus, binary, weights, precision and batch sizes is required')
-    oracle = Oracle(a.source, a.model, a.fp32)
+    oracle = Oracle(a.source, a.model, a.fp32, a.fp16)
     report = dict(schema_version=2, backend=a.backend, cases_sha256=hashlib.sha256(a.cases.read_bytes()).hexdigest(),
                   model_revision=(Path(a.model)/'REVISION').read_text().strip(), gpu=torch.cuda.get_device_name(),
-                  torch=torch.__version__, precision='fp32' if a.fp32 else 'bf16', iterations=a.iterations,
+                  torch=torch.__version__, precision='fp32' if a.fp32 else 'fp16' if a.fp16 else 'bf16', iterations=a.iterations,
                   python_runtime='rocm' if torch.version.hip else 'cuda',
                   python_runtime_version=torch.version.hip or torch.version.cuda,
                   fused_attention=not a.no_flash, tensor_core_fp32=a.tensor_core_fp32,
@@ -59,9 +64,9 @@ def main():
                   warmup=a.warmup, batch_sizes=a.batch_sizes, rows=[], passed=True)
     for label,path in [('project_revision','.'),('ggml_revision','third_party/ggml'),('baseline_revision',a.source)]:
         report[label] = subprocess.check_output(['git','-C',path,'rev-parse','HEAD'],text=True).strip()
-    with Native(a.executable, a.model, fp32=a.fp32, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
+    with Native(a.executable, a.model, fp32=a.fp32, fp16=a.fp16, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
         report['native_device'] = matching_device(native.call(cases[:1]), a.backend, report['gpu'])
-        if not report['native_device'] or report['native_device'] != validation.get('native_device'):
+        if (a.backend == 'vulkan' and not report['native_device']) or report['native_device'] != validation.get('native_device'):
             p.error('Validation must identify the same native GPU used for timing')
         for batch_size in a.batch_sizes:
             base_times, native_times, failures = [], [], []

@@ -21,8 +21,10 @@ def main():
     p.add_argument('--model', default='models/laya')
     p.add_argument('--cases', type=Path, default=Path('benchmarks/cases/acceptance-250.json'))
     p.add_argument('--batch-sizes', type=int, nargs='+', default=[1, 2, 4, 8])
-    p.add_argument('--fp32', action='store_true', default=True)
-    p.add_argument('--bf16', '--experimental-bf16', dest='fp32', action='store_false')
+    precision = p.add_mutually_exclusive_group()
+    precision.add_argument('--fp32', action='store_true', default=True)
+    precision.add_argument('--bf16', '--experimental-bf16', dest='fp32', action='store_false')
+    precision.add_argument('--fp16', action='store_true')
     p.add_argument('--no-flash', action='store_true')
     p.add_argument('--tensor-core-fp32', action='store_true')
     # Unnormalized action logits can exceed 4000. A scale-aware FP32 bound
@@ -32,17 +34,20 @@ def main():
     p.add_argument('--answer-atol', type=float, default=0.0001)
     p.add_argument('--output', type=Path, default=Path('results/validation.json'))
     a = p.parse_args()
+    if a.fp16:
+        a.fp32 = False
+        if a.backend != 'vulkan': p.error('FP16 native validation currently requires Vulkan')
     if a.backend != 'cuda':
-        if not a.fp32: p.error('This backend currently requires FP32')
+        if a.backend == 'cpu' and not a.fp32: p.error('CPU requires FP32')
         if a.backend == 'cpu' and a.tensor_core_fp32: p.error('CPU requires plain FP32')
-        a.no_flash = True
+        if a.fp32: a.no_flash = True
     if any(x < 1 for x in a.batch_sizes): p.error('batch sizes must be positive')
     if not all(math.isfinite(x) and x >= 0 for x in (a.raw_atol,a.raw_rtol,a.answer_atol)):
         p.error('Tolerances must be finite and nonnegative')
     if a.answer_atol > 0.0001: p.error('Answer tolerance cannot exceed the acceptance contract')
     cases = json.loads(a.cases.read_text())
-    oracle = Oracle(a.source, a.model, a.fp32)
-    report = dict(backend=a.backend, cases_sha256=hashlib.sha256(a.cases.read_bytes()).hexdigest(), precision='fp32' if a.fp32 else 'bf16',
+    oracle = Oracle(a.source, a.model, a.fp32, a.fp16)
+    report = dict(backend=a.backend, cases_sha256=hashlib.sha256(a.cases.read_bytes()).hexdigest(), precision='fp32' if a.fp32 else 'fp16' if a.fp16 else 'bf16',
                   native_build_sha256=native_hash(a.executable), weights_sha256=file_hash(Path(a.model)/'model.safetensors'),
                   gpu=torch.cuda.get_device_name(), torch=torch.__version__,
                   python_runtime='rocm' if torch.version.hip else 'cuda',
@@ -50,7 +55,7 @@ def main():
                   fused_attention=not a.no_flash, tensor_core_fp32=a.tensor_core_fp32,
                   acceptance='exact_categories_absolute_numeric_0.0001', raw_atol=a.raw_atol, raw_rtol=a.raw_rtol, answer_atol=a.answer_atol, passed=True, batches=[])
     # Run one native process at a time to avoid unnecessary duplicate device weights.
-    with Native(a.executable, a.model, raw=True, fp32=a.fp32, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
+    with Native(a.executable, a.model, raw=True, fp32=a.fp32, fp16=a.fp16, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
         report['native_device'] = matching_device(native.call(cases[:1]), a.backend, report['gpu'])
         for batch_size in a.batch_sizes:
             summary = dict(batch_size=batch_size, questions=0, max_logit_error=0., max_action_error=0., failures=[], raw_diagnostics=[])
@@ -81,7 +86,7 @@ def main():
             print({k: (len(v) if k in ('failures', 'raw_diagnostics') else v) for k, v in summary.items()}, flush=True)
             if summary['failures']: report['passed'] = False
     # Independently compare the actual native public API against baseline formatting.
-    with Native(a.executable, a.model, fp32=a.fp32, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
+    with Native(a.executable, a.model, fp32=a.fp32, fp16=a.fp16, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
         for batch_size, summary in zip(a.batch_sizes, report['batches']):
             summary['answer_failures'] = []
             for start in range(0, len(cases), batch_size):
