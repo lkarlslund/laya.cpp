@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "scope": "Experimental English FP16 AMD attention diagnostic; not a full correctness gate or performance result.",
+  "gpu": "AMD Radeon 8060S Graphics",
+  "case": "delivery-01",
+  "tokens": 184,
+  "torch": "2.11.0+rocm7.13",
+  "matched_tensor_count": 238,
+  "tensor_elements": 87283712,
+  "fp16_boundary_tensors": 30,
+  "tensor_manifest_sha256": "744cb5da92efe27751f4460f1e790f696b2d56bdbd44431962e81ecd0877b89b",
+  "artifacts": {
+    "oracle_sha256": "2d5636ca7977859d0bab6ba3916231b5ee0b895d5d43f35e4891e2a03646d55d",
+    "tiled_shader_sha256": "fb229fc8aafc2b71b4fc86f78ded0f461ce07f415dc9cea995c2ac78489da05f",
+    "backend_sha256": "a8ef4ca8c894f86b87cf9c9a6e47433245186f411421c8722afaf1858f93aedb",
+    "runtime_sha256": "fbd4628f677521bbe80395cbd8c39f5680c0799375f8a0c4353925391e929c9d"
+  }
+}

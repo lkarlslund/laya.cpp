@@ -64,3 +64,15 @@ compensated FP32 pass all 6,000 comparisons against Python on the same GPU
 ([record](measurements/vulkan-packed-fp32-amd-validation.json)).
 [Warmed before/after measurements](vulkan-packed-performance.md) show a 12–16%
 throughput gain from packing across all three models in FP16 and BF16 on NVIDIA.
+
+An AMD FP16 attention diagnostic isolated a long-input discrepancy to the final
+probability/value matrix product. For the 184-token `delivery-01` case, attention
+scores and probabilities already matched ROCm bit-for-bit. Its matrix kernel
+rotates the reduction by 64 elements for the second group of 32 output features,
+wrapping at 184 rather than at a padded tile boundary. Reproducing that order with
+32-by-32 output tiles and eight-element reduction tiles makes all 238 captured
+tensors match at their corresponding storage boundaries. Attention inputs are
+rounded to FP16 before comparison where the native trace precedes that boundary.
+See the [diagnostic record](measurements/vulkan-amd-attention-diagnostic.json).
+This is an isolated prototype result; AMD FP16/BF16 still requires full validation
+and integration, and this diagnostic establishes no performance claim.
