@@ -37,5 +37,6 @@ fused operator integrated ([record](measurements/vulkan-packed-16bit-validation.
 The NVIDIA plain and compensated FP32 modes also pass all 6,000 comparisons
 ([record](measurements/vulkan-packed-fp32-nvidia-validation.json)). AMD plain and
 compensated FP32 pass all 6,000 comparisons against Python on the same GPU
-([record](measurements/vulkan-packed-fp32-amd-validation.json)). Before/after
-performance testing remains pending.
+([record](measurements/vulkan-packed-fp32-amd-validation.json)).
+[Warmed before/after measurements](vulkan-packed-performance.md) show a 12–16%
+throughput gain from packing across all three models in FP16 and BF16 on NVIDIA.

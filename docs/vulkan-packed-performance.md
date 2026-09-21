@@ -30,9 +30,16 @@ Rates are questions/second.
 | multilingual | BF16 | 2 | 255.5 | 295.2 | 1.16× |
 | multilingual | BF16 | 4 | 406.1 | 461.9 | 1.14× |
 | multilingual | BF16 | 8 | 517.6 | 589.8 | 1.14× |
+| typed-decisions | FP16 | 1 | 106.7 | 121.8 | 1.14× |
+| typed-decisions | FP16 | 2 | 175.8 | 198.8 | 1.13× |
+| typed-decisions | FP16 | 4 | 262.6 | 293.7 | 1.12× |
+| typed-decisions | FP16 | 8 | 298.4 | 334.7 | 1.12× |
+| typed-decisions | BF16 | 1 | 107.5 | 122.6 | 1.14× |
+| typed-decisions | BF16 | 2 | 175.9 | 197.9 | 1.13× |
+| typed-decisions | BF16 | 4 | 260.6 | 293.7 | 1.13× |
+| typed-decisions | BF16 | 8 | 299.4 | 335.0 | 1.12× |
 
-Packing improves throughput by 13–16% in the completed runs.
-Measurements for the remaining model/precision pairs are pending.
+Packing improves throughput by 12–16% in the completed runs.
 See [measurement metadata](measurements/vulkan-packed-performance.json) for build,
 weight, corpus and report identities. Matching Python timings for this build and
 AMD packing timings remain pending.
