@@ -279,7 +279,7 @@ previous tile's partial sum and rescale factor. A 184-token FP16 diagnostic now
 matches all 28 encoder layers, both head outputs, and the public answer exactly.
 The operator suite passes on both GPUs; full-corpus validation is still required.
 
-After the variance-division correction, all three models pass the full AMD FP32
+After the variance-division correction, all three models pass the full NVIDIA and AMD FP32
 regression: 250 fixed questions at batches 1, 2, 4 and 8, compared with Python
 on the same GPU. The [validation record](measurements/vulkan-normalization-validation.json)
-covers all 3,000 public-answer comparisons. It does not establish 16-bit acceptance.
+covers all 6,000 public-answer comparisons. It does not establish 16-bit acceptance.
