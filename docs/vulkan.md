@@ -81,6 +81,47 @@ lengths. Begin with the default eight-question HTTP limit and reduce it on
 smaller GPUs. Cold calls also include Vulkan shader/pipeline creation; benchmark
 warmed calls separately. The README performance table describes CUDA only.
 
+## Measured FP32 throughput
+
+On an RTX PRO 6000 Blackwell capped at **450 W**, compensated Vulkan FP32
+produced the following warmed questions/second against Python FP32. Each row
+covers the fixed 250-question corpus, with three warmups and five timed runs per
+request group. Both sides run on the same GPU, alternating execution order.
+
+| Model | Batch | Python FP32 | Vulkan compensated FP32 |
+|---|---:|---:|---:|
+| english | 1 | 128.4 | 70.0 |
+| english | 2 | 188.0 | 123.9 |
+| english | 4 | 242.9 | 187.6 |
+| english | 8 | 241.5 | 220.9 |
+| multilingual | 1 | 170.5 | 84.7 |
+| multilingual | 2 | 286.3 | 154.3 |
+| multilingual | 4 | 366.1 | 233.2 |
+| multilingual | 8 | 428.8 | 298.2 |
+| typed-decisions | 1 | 125.7 | 62.1 |
+| typed-decisions | 2 | 176.1 | 106.1 |
+| typed-decisions | 4 | 194.0 | 142.3 |
+| typed-decisions | 8 | 174.8 | 153.6 |
+
+CUDA remains faster on this NVIDIA card. In a separate paired native run:
+
+| Model | Batch | CUDA optimized FP32 | Vulkan compensated FP32 |
+|---|---:|---:|---:|
+| english | 1 | 346.5 | 70.4 |
+| english | 8 | 431.0 | 225.8 |
+| multilingual | 1 | 459.9 | 85.8 |
+| multilingual | 8 | 601.1 | 298.3 |
+| typed-decisions | 1 | 268.5 | 61.8 |
+| typed-decisions | 8 | 261.4 | 154.6 |
+
+All measured groups pass the public-answer tolerance. Timings include
+preprocessing, inference and formatting, excluding loading and native JSON
+transport. Other services retained GPU allocations; the measurements do not
+claim exclusive access. These are measurements of the recorded binaries, not a
+guarantee for another driver, build or GPU. Full batch results, runtime versions
+and binary fingerprints are in the [measurement metadata](measurements/vulkan-nvidia-performance.json).
+The Vulkan-versus-Python and CUDA-versus-Vulkan pairs were timed separately.
+
 ## Validation and benchmarking
 
 ```sh

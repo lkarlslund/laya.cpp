@@ -88,9 +88,9 @@ build-vulkan/bin/laya-cli --vulkan --model models/laya \
 Vulkan needs the Vulkan loader/headers, `glslc` and SPIR-V headers (on Debian-like
 systems: `libvulkan-dev glslc spirv-headers`) and a working Vulkan driver.
 All three checkpoint variants and HTTP batching use the same `--vulkan` flag.
-The initial Vulkan path supports strict FP32; BF16 and the optimized CUDA flags
-remain CUDA-only. See [Vulkan support](docs/vulkan.md) for validation and limits.
-The performance table above measures CUDA, not Vulkan.
+Vulkan supports plain FP32 and compensated projections with `--tensor-core-fp32`.
+BF16 and `--flash-fp32` remain CUDA-only. See [Vulkan support](docs/vulkan.md) for validation and limits.
+The performance table above measures CUDA. [Vulkan measurements](docs/vulkan.md#measured-fp32-throughput) compare compensated FP32 with Python and CUDA on the same RTX PRO 6000 at 450 W.
 
 ## Run
 
