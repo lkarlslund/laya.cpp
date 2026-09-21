@@ -10,9 +10,10 @@ inference and formatting; model loading and native JSON transport are excluded.
 No other builds or GPU tests ran during these measurements. Background services
 remained running, so this is not an exclusive-machine claim.
 
-## AMD Radeon 8060S
+## AMD Radeon 8060S Graphics
 
-Mesa 26.2.2-arch3.2; PyTorch 2.11.0 with ROCm 7.13.0. Rates are questions/second.
+Mesa 26.2.2-arch3.2; PyTorch 2.11.0+rocm7.13.0 (HIP 7.13.99004).
+Rates are questions/second.
 
 | Model | Batch | Python FP32 | Vulkan compensated FP32 | Speedup |
 |---|---:|---:|---:|---:|
@@ -24,9 +25,13 @@ Mesa 26.2.2-arch3.2; PyTorch 2.11.0 with ROCm 7.13.0. Rates are questions/second
 | multilingual | 2 | 38.0 | 73.7 | 1.94× |
 | multilingual | 4 | 36.3 | 76.6 | 2.11× |
 | multilingual | 8 | 31.4 | 68.8 | 2.19× |
+| typed-decisions | 1 | 13.4 | 16.8 | 1.25× |
+| typed-decisions | 2 | 14.7 | 22.2 | 1.51× |
+| typed-decisions | 4 | 13.6 | 22.8 | 1.67× |
+| typed-decisions | 8 | 11.8 | 20.7 | 1.76× |
 
 Measurements are added after each model finishes all four batch settings.
-The AMD typed-decisions model and the NVIDIA sweep are in progress.
+Further model and GPU comparisons are in progress.
 
 See [validation](measurements/vulkan-fused-fp32.json) and
 [measurement metadata](measurements/vulkan-fused-performance.json) for the
