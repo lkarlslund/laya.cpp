@@ -60,3 +60,17 @@ foreach(operation split merge reduce serial)
   laya_vk_replace("    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,"
     "    ggml_vk_create_pipeline(device, device->pipeline_laya_${operation}, \"laya_${operation}\", sizeof(laya_${operation}_spv), laya_${operation}_spv, \"main\", ${laya_compensated_bindings}, 16, {256,1,1}, {}, 1);\n    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,")
 endforeach()
+
+set(laya_pack_header "${CMAKE_CURRENT_BINARY_DIR}/laya_pack_qkv.spv.h")
+add_custom_command(OUTPUT "${laya_pack_header}"
+  COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O -mfmt=c
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/pack_qkv.comp" -o "${laya_pack_header}"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/pack_qkv.comp" "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/rounding.glsl" VERBATIM)
+add_custom_target(laya-vulkan-pack-qkv DEPENDS "${laya_pack_header}")
+add_dependencies(ggml-vulkan laya-vulkan-pack-qkv)
+laya_vk_replace("#include \"ggml-vulkan-shaders.hpp\""
+  "#include \"ggml-vulkan-shaders.hpp\"\nstatic const uint32_t laya_pack_qkv_spv[] =\n#include \"laya_pack_qkv.spv.h\"\n;")
+laya_vk_replace("    vk_pipeline pipeline_norm_f32;"
+  "    vk_pipeline pipeline_norm_f32;\n    vk_pipeline pipeline_laya_pack_qkv;")
+laya_vk_replace("    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,"
+  "    ggml_vk_create_pipeline(device, device->pipeline_laya_pack_qkv, \"laya_pack_qkv\", sizeof(laya_pack_qkv_spv), laya_pack_qkv_spv, \"main\", 4, 16, {256,1,1}, {}, 1);\n    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,")

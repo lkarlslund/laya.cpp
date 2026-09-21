@@ -2,6 +2,21 @@
 #include "ggml.h"
 #include <stdexcept>
 namespace laya::vulkan_precision {
+// Pack Q/K/V and apply rotary positions in one dispatch, retaining explicit
+// product/addition rounding and the requested projection storage precision.
+inline ggml_tensor* pack_qkv(ggml_context* ctx, ggml_tensor* x, ggml_tensor* cosine,
+                             ggml_tensor* sine, int64_t length, int64_t batches, ggml_type stored_type) {
+    if (length<=0 || batches<=0 || x->ne[0]%192 || x->ne[1]!=length*batches ||
+        bool(cosine)!=bool(sine) ||
+        (stored_type!=GGML_TYPE_F32 && stored_type!=GGML_TYPE_F16 && stored_type!=GGML_TYPE_BF16))
+        throw std::invalid_argument("Invalid Vulkan QKV packing geometry or precision");
+    ggml_tensor* inputs[]={x,cosine ? cosine : x,sine ? sine : x};
+    auto output=ggml_custom_4d(ctx,GGML_TYPE_F32,64,length,x->ne[0]/192,3*batches,inputs,3,
+        [](ggml_tensor*,int,int,void*) { throw std::runtime_error("Vulkan QKV packing requires a Vulkan GPU"); },1,nullptr);
+    output->op_params[0]=(stored_type==GGML_TYPE_F16 ? 1 : stored_type==GGML_TYPE_BF16 ? 2 : 0)|(cosine ? 4 : 0);
+    ggml_set_name(output,"laya.pack-qkv-vulkan");
+    return output;
+}
 // A finite FP16 high part has a rounding residual of at most 16.
 // Scaling by 1024 preserves small corrections without overflowing at large inputs.
 inline ggml_tensor* split_half(ggml_context* ctx, ggml_tensor* x) {

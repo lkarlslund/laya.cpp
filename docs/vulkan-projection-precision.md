@@ -19,3 +19,10 @@ python benchmarks/generate_projection_plans.py path/to/profile.jsonl
 ```
 
 Each profile row contains `precision`, `k`, `m`, `n`, `bias`, `chunk`, `scheme`, and `round_before_bias`. The generator requires identical, complete FP16/BF16 geometry coverage and rejects unknown reduction schemes.
+
+The fused QKV packing operator combines layout conversion, rotary multiplication,
+and storage rounding in one dispatch. Its operator tests pass on NVIDIA and AMD
+for FP32, FP16 and BF16, with batched inputs, rotary positions enabled and
+disabled, subnormal inputs, and large values. Rotary products round separately
+before addition. Full-model regression and performance testing of its runtime
+integration are pending.

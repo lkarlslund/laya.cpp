@@ -8,6 +8,18 @@ static bool laya_vk_supports(const ggml_tensor* op) {
             op->ne[2]==1 && op->ne[3]==1 && x->ne[0]==op->ne[0] && ggml_nelements(op)<=UINT32_MAX &&
             (split ? op->ne[1]==2*x->ne[1] : x->ne[1]==2*op->ne[1]);
     }
+    if (std::strcmp(op->name,"laya.pack-qkv-vulkan")==0) {
+        auto x=op->src[0],c=op->src[1],s=op->src[2];
+        const uint32_t flags=uint32_t(op->op_params[0]);
+        return x && c && s && x->type==GGML_TYPE_F32 && c->type==GGML_TYPE_F32 &&
+            s->type==GGML_TYPE_F32 && op->type==GGML_TYPE_F32 &&
+            ggml_is_contiguous(x) && ggml_is_contiguous(c) && ggml_is_contiguous(s) && ggml_is_contiguous(op) &&
+            op->ne[0]==64 && op->ne[3]%3==0 && x->ne[2]==1 && x->ne[3]==1 &&
+            x->ne[0]==192*op->ne[2] && x->ne[1]==op->ne[1]*(op->ne[3]/3) &&
+            (flags&~7u)==0 && (flags&3u)!=3 &&
+            (!(flags&4u) || (ggml_nelements(c)==64*op->ne[1] && ggml_nelements(s)==64*op->ne[1])) &&
+            ggml_nelements(op)<=UINT32_MAX;
+    }
     if (std::strcmp(op->name,"laya.serial-vulkan")==0) {
         auto x=op->src[0],b=op->src[1];
         return x && b && x->type==GGML_TYPE_F32 && b->type==GGML_TYPE_F32 && op->type==GGML_TYPE_F32 &&
@@ -49,6 +61,15 @@ static bool laya_vk_custom(ggml_backend_vk_context* ctx,vk_context& subctx,ggml_
         const std::array<uint32_t,4> params={count,0,0,0};
         ggml_vk_dispatch_pipeline(ctx,subctx,pipeline,{ggml_vk_tensor_subbuffer(ctx,op->src[0]),ggml_vk_tensor_subbuffer(ctx,op)},
             params,{split ? count/2 : count,1,1});
+        return true;
+    }
+    if (std::strcmp(op->name,"laya.pack-qkv-vulkan")==0) {
+        auto pipeline=ctx->device->pipeline_laya_pack_qkv;
+        ggml_pipeline_request_descriptor_sets(ctx,pipeline,1);
+        const std::array<uint32_t,4> params={uint32_t(op->ne[1]),uint32_t(op->ne[2]),uint32_t(op->ne[3]/3),uint32_t(op->op_params[0])};
+        ggml_vk_dispatch_pipeline(ctx,subctx,pipeline,{ggml_vk_tensor_subbuffer(ctx,op->src[0]),
+            ggml_vk_tensor_subbuffer(ctx,op->src[1]),ggml_vk_tensor_subbuffer(ctx,op->src[2]),ggml_vk_tensor_subbuffer(ctx,op)},
+            params,{uint32_t(ggml_nelements(op)),1,1});
         return true;
     }
     if (std::strcmp(op->name,"laya.serial-vulkan")==0) {

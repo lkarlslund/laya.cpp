@@ -18,6 +18,55 @@ int main() {
     auto backend = ggml_backend_vk_init(0);
     if (!backend) return 1;
     try {
+        for (ggml_type type : {GGML_TYPE_F32,GGML_TYPE_F16,GGML_TYPE_BF16}) for (bool rotary : {false,true}) {
+            constexpr int length=17,heads=3,batches=2,width=64*heads,count=3*width*length*batches;
+            auto ctx=ggml_init({16*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+            auto x=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,3*width,length*batches);
+            auto c=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,64,length);
+            auto sn=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,64,length);
+            auto output=laya::vulkan_precision::pack_qkv(ctx,x,rotary ? c : nullptr,rotary ? sn : nullptr,length,batches,type);
+            if (!ggml_backend_supports_op(backend,output)) throw std::runtime_error("QKV packing unsupported");
+            auto graph=ggml_new_graph(ctx);ggml_build_forward_expand(graph,output);
+            auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+            if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("QKV packing allocation failed");
+            auto rounded=[&](float value) {
+                return type==GGML_TYPE_F16 ? ggml_fp16_to_fp32(ggml_fp32_to_fp16(value)) :
+                       type==GGML_TYPE_BF16 ? ggml_bf16_to_fp32(ggml_fp32_to_bf16(value)) : value;
+            };
+            std::vector<float> input(count),cosine(64*length),sine(64*length),expected(count),actual(count);
+            for (int i=0;i<count;++i) input[i]=rounded(std::sin(float(i)*0.137f)*13.17f);
+            input[0]=rounded(std::ldexp(1.f,-24));
+            input[32]=rounded(-std::ldexp(1.f,-23));
+            input[64]=rounded(32752.f);input[96]=rounded(-32752.f);
+            for (int t=0;t<length;++t) for (int d=0;d<64;++d) {
+                const float angle=float((t+1)*(d%32+1))*0.0317f;
+                cosine[t*64+d]=std::cos(angle);sine[t*64+d]=std::sin(angle);
+            }
+            // Traverse input tokens, then write the independently specified
+            // [component,batch,head,token,dimension] output layout.
+            for (int b=0;b<batches;++b) for (int t=0;t<length;++t)
+                for (int component=0;component<3;++component) for (int h=0;h<heads;++h) for (int d=0;d<64;++d) {
+                    const int src=((b*length+t)*3+component)*width+h*64+d;
+                    float value=input[src];
+                    if (rotary && component<2) {
+                        const int opposite=src+(d<32 ? 32 : -32);
+                        volatile float first=value*cosine[t*64+d];
+                        volatile float second=(d<32 ? -input[opposite] : input[opposite])*sine[t*64+d];
+                        value=first+second;
+                    }
+                    const int dst=((((component*batches+b)*heads+h)*length+t)*64+d);
+                    expected[dst]=rounded(value);
+                }
+            ggml_backend_tensor_set(x,input.data(),0,ggml_nbytes(x));
+            if (rotary) {
+                ggml_backend_tensor_set(c,cosine.data(),0,ggml_nbytes(c));
+                ggml_backend_tensor_set(sn,sine.data(),0,ggml_nbytes(sn));
+            }
+            if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("QKV packing compute failed");
+            ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+            if (actual!=expected) throw std::runtime_error("QKV packing changed layout or rotary rounding");
+            ggml_gallocr_free(allocator);ggml_free(ctx);
+        }
         for (bool rocm : {false,true}) {
             uint64_t fingerprint=14695981039346656037ull;
             for (int base=0;base<2;++base) for (bool sine : {false,true})

@@ -1,0 +1,36 @@
+#version 450
+layout(local_size_x=256,local_size_y=1,local_size_z=1) in;
+layout(binding=0) readonly buffer Input { float x[]; };
+layout(binding=1) readonly buffer Cosine { float cosine[]; };
+layout(binding=2) readonly buffer Sine { float sine[]; };
+layout(binding=3) writeonly buffer Output { float y[]; };
+layout(push_constant) uniform Params { uint tokens,heads,batches,flags; } p;
+#include "rounding.glsl"
+float roundOutput(float value) {
+    uint format_code=p.flags&3;
+    if (format_code==0) return value;
+    if (format_code==1) return unpackHalf2x16(halfBits(value)).x;
+    uint bits=floatBitsToUint(value);
+    if ((bits&0x7fffffff)>0x7f800000) return uintBitsToFloat(bits|0x00400000);
+    return uintBitsToFloat((bits+0x7fff+((bits>>16)&1))&0xffff0000);
+}
+void main() {
+    uint index=gl_GlobalInvocationID.x;
+    uint count=64*p.tokens*p.heads*p.batches;
+    if (index>=count*3) return;
+    uint component=index/count;
+    uint d=index%64,token=(index/64)%p.tokens,head=(index/(64*p.tokens))%p.heads;
+    uint batch=(index/(64*p.tokens*p.heads))%p.batches;
+    uint width=64*p.heads;
+    uint source=(batch*p.tokens+token)*3*width+component*width+head*64+d;
+    float value=x[source];
+    if ((p.flags&4)!=0 && component<2) {
+        uint opposite=d<32 ? source+32 : source-32;
+        float rotated=d<32 ? -x[opposite] : x[opposite];
+        precise float first=value*cosine[token*64+d];
+        precise float second=rotated*sine[token*64+d];
+        precise float sum=first+second;
+        value=sum;
+    }
+    y[index]=roundOutput(value);
+}
