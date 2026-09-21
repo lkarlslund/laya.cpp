@@ -274,7 +274,7 @@ struct runtime::impl {
             // Bound cancellation error in batched scalar heads by accumulating
             // short FP32 dot products before the final low-precision rounding.
             if (vulkan_nvidia && low_type==GGML_TYPE_BF16 && w(key)->ne[1]==1 && x->ne[1]>1 && !plan.chunk) plan.chunk=64;
-            return vulkan ? vulkan_precision::linear(ctx,x,w(key),b,residual,low_type,plan) : linear_bf16(ctx,x,w(key),b,compact,residual);
+            return vulkan ? vulkan_precision::linear(ctx,x,w(key),b,residual,low_type,plan,vulkan_nvidia) : linear_bf16(ctx,x,w(key),b,compact,residual);
         }
         const bool compensated = tensor_core && compensated_weights.contains(key);
         const int64_t columns = x->ne[1];

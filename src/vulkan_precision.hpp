@@ -12,10 +12,13 @@ inline ggml_tensor* round(ggml_context* ctx, ggml_tensor* x, ggml_type type) {
     return ggml_cast(ctx, ggml_cast(ctx,x,type),GGML_TYPE_F32);
 }
 inline ggml_tensor* linear(ggml_context* ctx, ggml_tensor* x, ggml_tensor* weight,
-                          ggml_tensor* bias, ggml_tensor* residual, ggml_type type, projection_plan plan={}) {
-    // Small matrix/vector kernels accept F32 activations. Values have already
-    // been rounded to BF16; widening here does not change them.
-    if (x->type!=GGML_TYPE_F32) x=ggml_cast(ctx,x,GGML_TYPE_F32);
+                          ggml_tensor* bias, ggml_tensor* residual, ggml_type type,
+                          projection_plan plan={}, bool native_low_input=false) {
+    // Keep eligible NVIDIA inputs in storage precision instead of widening
+    // here and converting back inside the backend. Other reduction paths retain
+    // their validated F32-input kernels and partition layout.
+    const bool keep_low=native_low_input && !plan.chunk && x->type==type && weight->ne[1]>=64 && x->ne[1]>1;
+    if (!keep_low && x->type!=GGML_TYPE_F32) x=ggml_cast(ctx,x,GGML_TYPE_F32);
     ggml_tensor* product;
     const int split_k=plan.chunk;
     if (split_k) {
@@ -38,6 +41,7 @@ inline ggml_tensor* linear(ggml_context* ctx, ggml_tensor* x, ggml_tensor* weigh
     } else {
         product=ggml_mul_mat(ctx,weight,x);
         ggml_prec_set_acc(product,GGML_PREC_F32);
+        if (keep_low) ggml_set_name(product,"laya.low-projection");
     }
     return finish_projection(ctx,product,bias,residual,type);
 }
