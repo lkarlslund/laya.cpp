@@ -293,3 +293,10 @@ on NVIDIA, and the existing operator suite passes on both GPUs, including the
 exact reciprocal checks. The integrated 512-token BF16 diagnostic matches all
 28 encoder layers, both heads, and the public answer exactly. Full-corpus
 16-bit acceptance remains pending.
+
+Small NVIDIA projection batches with at least two columns and 64 output
+features use the cooperative matrix path for FP16/BF16 operands and FP32
+accumulation. This preserves the required dot-product reduction order instead
+of switching to a matrix-vector kernel. A multilingual BF16 scorer diagnostic
+now matches through every traced layer and its public answer, with tracing
+both enabled and disabled. Operator tests pass on both GPUs.

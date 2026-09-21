@@ -18,3 +18,7 @@ laya_vk_replace(
         while (candidate > 1 && ROUNDUP_POW2(CEIL_DIV(ne10, candidate), 256) * (candidate - 1) >= ne10) --candidate;
         split_k = std::max(split_k, candidate);
     }]=])
+
+# Small low-precision batches still require the matrix accumulation order.
+laya_vk_replace("    } else if ((dst->ne[1] == 1 || (dst->ne[1] <= mul_mat_vec_max_cols && src1->ne[2] * src1->ne[3] == 1)) &&"
+  "    } else if (!(ctx->device->coopmat2 && dst->ne[1]>1 && dst->ne[0]>=64 && src1->type==GGML_TYPE_F32 && (src0->type==GGML_TYPE_F16 || src0->type==GGML_TYPE_BF16) && (ggml_prec)dst->op_params[0]==GGML_PREC_F32) && (dst->ne[1] == 1 || (dst->ne[1] <= mul_mat_vec_max_cols && src1->ne[2] * src1->ne[3] == 1)) &&")
