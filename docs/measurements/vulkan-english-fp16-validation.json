@@ -1,0 +1,92 @@
+{
+  "backend": "vulkan",
+  "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+  "precision": "fp16",
+  "native_build_sha256": "75a6ea022142a5b3e60ad1ce79ab18ad1bed60c14503878589d6bdc178f2471a",
+  "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "torch": "2.11.0+cu130",
+  "python_runtime": "cuda",
+  "python_runtime_version": "13.0",
+  "acceptance": "exact_categories_absolute_numeric_0.0001",
+  "passed": true,
+  "batches": [
+    {
+      "batch_size": 1,
+      "questions": 250,
+      "max_logit_error": 0.0,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 2,
+      "questions": 250,
+      "max_logit_error": 2.384185791015625e-07,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 4,
+      "questions": 250,
+      "max_logit_error": 0.0,
+      "max_action_error": 4.0,
+      "failures": [],
+      "raw_diagnostics": [
+        {
+          "start": 148,
+          "ids": [
+            "fraud-09",
+            "fraud-10",
+            "moderation-01",
+            "moderation-02"
+          ],
+          "error": "actions max error 4.0"
+        }
+      ],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 8,
+      "questions": 250,
+      "max_logit_error": 2.384185791015625e-07,
+      "max_action_error": 2.0,
+      "failures": [],
+      "raw_diagnostics": [
+        {
+          "start": 120,
+          "ids": [
+            "contract-01",
+            "contract-02",
+            "contract-03",
+            "contract-04",
+            "contract-05",
+            "contract-06",
+            "contract-07",
+            "contract-08"
+          ],
+          "error": "actions max error 2.0"
+        },
+        {
+          "start": 208,
+          "ids": [
+            "data_pipeline-09",
+            "data_pipeline-10",
+            "release-01",
+            "release-02",
+            "release-03",
+            "release-04",
+            "release-05",
+            "release-06"
+          ],
+          "error": "actions max error 2.0"
+        }
+      ],
+      "answer_failures": []
+    }
+  ],
+  "scope": "English FP16 NVIDIA Vulkan prototype; BF16 and AMD remain under validation."
+}
