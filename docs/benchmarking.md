@@ -168,3 +168,12 @@ not eligible for deployment. This study does not weaken the validation gates in
 `validate.py` or `sweep.py`. Detailed outputs stay in ignored `results/`.
 Exit status zero means the study completed, not that every mode passed; consult
 the per-mode results and `eligible_modes` in its reports.
+# Comparing native GPU backends
+
+`benchmarks/compare_native.py` accepts `--before-backend cuda|vulkan` and
+`--after-backend cuda|vulkan`. The candidate's precision and attention options
+come from its passing validation report. A Vulkan baseline uses plain FP32 unless
+`--before-tensor-core-fp32` is specified. CUDA baselines retain the optimized
+FP32 defaults. Both processes keep their weights resident and alternate timed
+calls on identical request groups; each group must also pass answer agreement.
+Vulkan device identity must match the Python GPU and the validation report.
