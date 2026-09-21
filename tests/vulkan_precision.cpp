@@ -148,13 +148,14 @@ int main() {
             if (actual!=expected) throw std::runtime_error("ordered reduction changed the FP32 addition order");
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
-        for (int keys : {33,54,129}) for (bool masked : {false,true}) {
+        for (int keys : {33,54,129}) for (bool masked : {false,true}) for (int queries : {17,65}) {
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
-            constexpr int width=64,heads=2,queries=17;
+            constexpr int width=64,heads=2;
+            const int mask_rows=((queries+63)/64)*64;
             auto q=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,width,queries,heads);
             auto k=ggml_new_tensor_3d(ctx,GGML_TYPE_F16,width,keys,heads);
             auto v=ggml_new_tensor_3d(ctx,GGML_TYPE_F16,width,keys,heads);
-            auto mask=masked ? ggml_new_tensor_2d(ctx,GGML_TYPE_F16,keys,64) : nullptr;
+            auto mask=masked ? ggml_new_tensor_2d(ctx,GGML_TYPE_F16,keys,mask_rows) : nullptr;
             auto output=ggml_flash_attn_ext(ctx,q,k,v,mask,.125f,0,0);
             ggml_prec_set_acc(output,GGML_PREC_F32);
             if (!ggml_backend_supports_op(backend,output)) { ggml_free(ctx); continue; }
@@ -164,7 +165,7 @@ int main() {
             std::vector<float> zeros(width*queries*heads),actual(width*queries*heads);
             std::vector<ggml_fp16_t> kz(width*keys*heads),values(width*keys*heads);
             std::vector<double> expected(width*heads*queries);
-            std::vector<ggml_fp16_t> mask_values(keys*64,ggml_fp32_to_fp16(-INFINITY));
+            std::vector<ggml_fp16_t> mask_values(keys*mask_rows,ggml_fp32_to_fp16(-INFINITY));
             for (int h=0;h<heads;++h) for (int t=0;t<keys;++t) for (int d=0;d<width;++d) {
                 auto half=ggml_fp32_to_fp16(.125f+float((h*5+t%7+d%5)%17)/1024.f);
                 values[(h*keys+t)*width+d]=half;

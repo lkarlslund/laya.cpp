@@ -224,3 +224,10 @@ models pass the [3,000-comparison acceptance run](measurements/vulkan-projection
 A preliminary 16-question paired sweep measured 1.63×, 1.26×, 1.08× and 1.06×
 speedups over the fused build at batches 1, 2, 4 and 8 respectively; these are
 diagnostic results, not a replacement for the full-corpus performance table.
+
+The NVIDIA 16-bit attention path now keeps key tiles in one online reduction
+instead of independently normalizing automatic key partitions. Masked updates
+preserve separate maximum scaling and ordered 32-key denominator additions.
+Tests include 65 queries over 129 keys and fully masked rows. A 68-token FP16
+diagnostic now matches all 28 encoder outputs exactly and passes the public
+answer tolerance; raw head differences remain under investigation.
