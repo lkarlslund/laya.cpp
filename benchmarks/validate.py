@@ -16,6 +16,7 @@ from identity import file_hash, native_hash
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--executable', default='build-cuda/bin/laya-cli')
+    p.add_argument('--backend', choices=['cuda', 'vulkan', 'cpu'], default='cuda')
     p.add_argument('--source', default='research/laya')
     p.add_argument('--model', default='models/laya')
     p.add_argument('--cases', type=Path, default=Path('benchmarks/cases/acceptance-250.json'))
@@ -31,19 +32,22 @@ def main():
     p.add_argument('--answer-atol', type=float, default=0.0001)
     p.add_argument('--output', type=Path, default=Path('results/validation.json'))
     a = p.parse_args()
+    if a.backend != 'cuda':
+        if not a.fp32 or a.tensor_core_fp32: p.error('This backend requires plain FP32')
+        a.no_flash = True
     if any(x < 1 for x in a.batch_sizes): p.error('batch sizes must be positive')
     if not all(math.isfinite(x) and x >= 0 for x in (a.raw_atol,a.raw_rtol,a.answer_atol)):
         p.error('Tolerances must be finite and nonnegative')
     if a.answer_atol > 0.0001: p.error('Answer tolerance cannot exceed the acceptance contract')
     cases = json.loads(a.cases.read_text())
     oracle = Oracle(a.source, a.model, a.fp32)
-    report = dict(cases_sha256=hashlib.sha256(a.cases.read_bytes()).hexdigest(), precision='fp32' if a.fp32 else 'bf16',
+    report = dict(backend=a.backend, cases_sha256=hashlib.sha256(a.cases.read_bytes()).hexdigest(), precision='fp32' if a.fp32 else 'bf16',
                   native_build_sha256=native_hash(a.executable), weights_sha256=file_hash(Path(a.model)/'model.safetensors'),
                   gpu=torch.cuda.get_device_name(), torch=torch.__version__,
                   fused_attention=not a.no_flash, tensor_core_fp32=a.tensor_core_fp32,
                   acceptance='exact_categories_absolute_numeric_0.0001', raw_atol=a.raw_atol, raw_rtol=a.raw_rtol, answer_atol=a.answer_atol, passed=True, batches=[])
     # Run one native process at a time to avoid unnecessary duplicate device weights.
-    with Native(a.executable, a.model, raw=True, fp32=a.fp32, flash=not a.no_flash, tensor_core=a.tensor_core_fp32) as native:
+    with Native(a.executable, a.model, raw=True, fp32=a.fp32, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
         for batch_size in a.batch_sizes:
             summary = dict(batch_size=batch_size, questions=0, max_logit_error=0., max_action_error=0., failures=[], raw_diagnostics=[])
             for start in range(0, len(cases), batch_size):
@@ -73,7 +77,7 @@ def main():
             print({k: (len(v) if k in ('failures', 'raw_diagnostics') else v) for k, v in summary.items()}, flush=True)
             if summary['failures']: report['passed'] = False
     # Independently compare the actual native public API against baseline formatting.
-    with Native(a.executable, a.model, fp32=a.fp32, flash=not a.no_flash, tensor_core=a.tensor_core_fp32) as native:
+    with Native(a.executable, a.model, fp32=a.fp32, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
         for batch_size, summary in zip(a.batch_sizes, report['batches']):
             summary['answer_failures'] = []
             for start in range(0, len(cases), batch_size):

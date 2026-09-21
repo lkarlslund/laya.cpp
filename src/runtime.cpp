@@ -8,6 +8,9 @@
 #include "ggml-cuda.h"
 const char* laya_cuda_bf16_compatibility_error();
 #endif
+#ifdef LAYA_VULKAN
+#include "ggml-vulkan.h"
+#endif
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -51,6 +54,7 @@ struct runtime::impl {
     std::set<std::string> compensated_weights;
     std::unique_ptr<graph_state> main_graph, action_graph;
     bool bf16, flash, tensor_core;
+    bool vulkan = false;
     int width = 1024, heads = 16, layers = 28, intermediate = 2624, vocabulary = 50368, n_actions;
     float local_rope = 10000.f;
 
@@ -61,7 +65,14 @@ struct runtime::impl {
         if (backend) ggml_backend_free(backend);
     }
 
-    void load(const std::filesystem::path& directory, bool cuda) {
+    void load(const std::filesystem::path& directory, backend_type selected) {
+        const bool cuda = selected == backend_type::cuda;
+        vulkan = selected == backend_type::vulkan;
+        // The pinned Vulkan backend otherwise converts FP32 matrices to FP16
+        // for cooperative matrix kernels, even with FP32 accumulation requested.
+        if (vulkan)
+            for (const char* key : {"GGML_VK_DISABLE_F16", "GGML_VK_DISABLE_COOPMAT", "GGML_VK_DISABLE_COOPMAT2"})
+                if (setenv(key, "1", 1) != 0) throw std::runtime_error("Cannot enforce FP32 Vulkan arithmetic");
         // The CUDA backend enables TF32 in cuBLAS by default. Strict FP32 must
         // disable that permission before CUDA/cuBLAS initialization.
         if (cuda && !bf16 && setenv("NVIDIA_TF32_OVERRIDE", "0", 1) != 0)
@@ -105,7 +116,12 @@ struct runtime::impl {
 #else
         if (cuda) throw std::runtime_error("This build has no CUDA backend");
 #endif
-        if (!cuda) backend = ggml_backend_cpu_init();
+#ifdef LAYA_VULKAN
+        if (vulkan) backend = ggml_backend_vk_init(0);
+#else
+        if (vulkan) throw std::runtime_error("This build has no Vulkan backend");
+#endif
+        if (selected == backend_type::cpu) backend = ggml_backend_cpu_init();
         if (!backend) throw std::runtime_error("Cannot initialize requested backend");
 
         std::ifstream file(directory / "model.safetensors", std::ios::binary | std::ios::ate);
@@ -256,10 +272,28 @@ struct runtime::impl {
         trace_tensor(s, prefix+".attn.Wqkv", qkv);
         tensor* split[3];
         int kind=layer%3==0 ? 0 : 1;
-        auto packed_qkv=pack_qkv(ctx,qkv,head ? nullptr : s.cosine[kind],head ? nullptr : s.sine[kind],s.length,s.batch,bf16);
-        for (int i=0;i<3;++i)
-            split[i]=ggml_view_4d(ctx,packed_qkv,64,s.length,heads,s.batch,
-                packed_qkv->nb[1],packed_qkv->nb[2],packed_qkv->nb[3],i*s.batch*packed_qkv->nb[3]);
+        if (vulkan) {
+            // Express packing and rotary math as portable GPU operations.
+            for (int i = 0; i < 3; ++i) {
+                auto part = ggml_cont(ctx, ggml_view_3d(ctx, qkv, width, s.length, s.batch,
+                    qkv->nb[1], qkv->nb[1]*s.length, i*width*sizeof(float)));
+                part = ggml_reshape_4d(ctx, part, 64, heads, s.length, s.batch);
+                if (!head && i < 2) {
+                    auto first = ggml_view_4d(ctx, part, 32, heads, s.length, s.batch,
+                        part->nb[1], part->nb[2], part->nb[3], 0);
+                    auto second = ggml_view_4d(ctx, part, 32, heads, s.length, s.batch,
+                        part->nb[1], part->nb[2], part->nb[3], 32*sizeof(float));
+                    auto rotated = ggml_concat(ctx, ggml_neg(ctx, ggml_cont(ctx, second)), ggml_cont(ctx, first), 0);
+                    part = ggml_add(ctx, ggml_mul(ctx, part, s.cosine[kind]), ggml_mul(ctx, rotated, s.sine[kind]));
+                }
+                split[i] = ggml_cont(ctx, ggml_permute(ctx, part, 0, 2, 1, 3));
+            }
+        } else {
+            auto packed_qkv=pack_qkv(ctx,qkv,head ? nullptr : s.cosine[kind],head ? nullptr : s.sine[kind],s.length,s.batch,bf16);
+            for (int i=0;i<3;++i)
+                split[i]=ggml_view_4d(ctx,packed_qkv,64,s.length,heads,s.batch,
+                    packed_qkv->nb[1],packed_qkv->nb[2],packed_qkv->nb[3],i*s.batch*packed_qkv->nb[3]);
+        }
         if (bf16) split[0]=ggml_cast(ctx,split[0],GGML_TYPE_F32);
         if (std::getenv("LAYA_TRACE_DIR")) split[0]=ggml_cont(ctx,split[0]);
         trace_tensor(s,prefix+".q",split[0]);
@@ -329,9 +363,14 @@ struct runtime::impl {
             s.cls = input_tensor(GGML_TYPE_I32, {s.batch});
             // Flash attention requires mask query rows padded to a multiple of 64.
             auto mask_rows = flash ? ((s.length + 63) / 64) * 64 : s.length;
-            s.lengths = input_tensor(GGML_TYPE_I32, {s.batch});
-            s.global_mask = attention_mask(ctx,s.lengths,s.length,mask_rows,false,flash);
-            s.local_mask = attention_mask(ctx,s.lengths,s.length,mask_rows,true,flash);
+            if (vulkan) {
+                s.global_mask = input_tensor(GGML_TYPE_F32, {s.length, mask_rows, 1, s.batch});
+                s.local_mask = input_tensor(GGML_TYPE_F32, {s.length, mask_rows, 1, s.batch});
+            } else {
+                s.lengths = input_tensor(GGML_TYPE_I32, {s.batch});
+                s.global_mask = attention_mask(ctx,s.lengths,s.length,mask_rows,false,flash);
+                s.local_mask = attention_mask(ctx,s.lengths,s.length,mask_rows,true,flash);
+            }
             auto h = norm(ctx, ggml_get_rows(ctx, w("encoder.embeddings.tok_embeddings.weight"), s.ids), "encoder.embeddings.norm", false, false);
             trace("embedding", h);
             for (int layer = 0; layer < layers; ++layer) {
@@ -439,7 +478,18 @@ struct runtime::impl {
             std::fill_n(types.begin() + cls[row], input.length, input.types[row]);
         }
         put(s.types, types); put(s.cls, cls);
-        put(s.lengths, input.lengths);
+        if (vulkan) {
+            std::vector<float> global(size_t(s.length)*s.length*s.batch), local(global.size());
+            for (int row = 0; row < s.batch; ++row)
+                for (int query = 0; query < s.length; ++query)
+                    for (int key = 0; key < s.length; ++key) {
+                        const size_t index = (size_t(row)*s.length + query)*s.length + key;
+                        global[index] = key < input.lengths[row] ? 0.f : -INFINITY;
+                        local[index] = ((key < input.lengths[row] && std::abs(query-key) <= 64) ||
+                            (query >= input.lengths[row]+64 && key == 0)) ? 0.f : -INFINITY;
+                    }
+            put(s.global_mask, global); put(s.local_mask, local);
+        } else put(s.lengths, input.lengths);
         auto start = std::chrono::steady_clock::now();
         if (ggml_backend_graph_compute(backend, s.graph) != GGML_STATUS_SUCCESS) throw std::runtime_error("Encoder computation failed");
         raw_result result;
@@ -484,11 +534,15 @@ struct runtime::impl {
         return result;
     }
 };
-runtime::runtime(const std::filesystem::path& path, bool cuda, bool bf16, bool flash, bool tensor_core) : p(std::make_unique<impl>()) {
+runtime::runtime(const std::filesystem::path& path, bool cuda, bool bf16, bool flash, bool tensor_core) : runtime(path, cuda ? backend_type::cuda : backend_type::cpu, bf16, flash, tensor_core) {}
+runtime::runtime(const std::filesystem::path& path, backend_type selected, bool bf16, bool flash, bool tensor_core) : p(std::make_unique<impl>()) {
+    const bool cuda = selected == backend_type::cuda;
+    if (selected == backend_type::vulkan && (bf16 || flash || tensor_core))
+        throw std::invalid_argument("Vulkan currently supports FP32 without CUDA precision/attention options");
     if (bf16 && (!cuda || !flash)) throw std::invalid_argument("BF16 mode requires fused CUDA attention");
     if (tensor_core && (bf16 || !cuda)) throw std::invalid_argument("Compensated Tensor Cores require CUDA and FP32 mode");
     p->bf16 = bf16; p->flash = flash; p->tensor_core = tensor_core;
-    p->load(path, cuda);
+    p->load(path, selected);
 }
 runtime::~runtime() = default;
 raw_result runtime::forward(const batch& input) { return p->run(input); }

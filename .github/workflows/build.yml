@@ -3,12 +3,17 @@ on: [push, pull_request]
 jobs:
   native:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        vulkan: ["OFF", "ON"]
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
       - run: sudo apt-get update && sudo apt-get install -y libicu-dev nlohmann-json3-dev
-      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DLAYA_CUDA=OFF
+      - if: matrix.vulkan == 'ON'
+        run: sudo apt-get install -y libvulkan-dev glslc spirv-headers
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DLAYA_CUDA=OFF -DLAYA_VULKAN=${{ matrix.vulkan }}
       - run: cmake --build build --parallel
       - run: ctest --test-dir build --output-on-failure
       - run: python3 -m py_compile benchmarks/*.py scripts/*.py

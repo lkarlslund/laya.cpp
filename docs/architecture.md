@@ -80,11 +80,17 @@ The runtime holds one encoder graph for the current batch/sequence/option shape
 and one action graph for the current batch size. A shape change, or a change in
 whether BF16 inputs contain padding, rebuilds the corresponding graph; repeated shapes reuse allocations and ggml CUDA Graphs.
 Weights stay resident. Calls to one agent must be serialized by the caller.
-There is no automatic CPU fallback on a CUDA error.
+There is no automatic CPU fallback on a GPU error.
+
+The Vulkan FP32 path uses portable ggml GPU operations for Q/K/V packing and
+rotary multiplication. Attention masks are prepared on the host and uploaded for
+each call, including when a cached shape has different per-row lengths. The
+encoder, decision layers and action projections execute on Vulkan. Cooperative
+matrix and FP16 conversion paths are disabled to retain FP32 inputs and arithmetic.
 
 The HTTP mode uses the pinned cpp-httplib dependency for parsing and connections.
-A bounded worker pool handles HTTP requests; a mutex serializes prediction calls
-on the resident agent. `/v1/systemone` returns the JEV answer envelope and
+A bounded HTTP worker pool admits requests to a shared batching queue. One
+inference worker combines calls and runs the resident agent serially. `/v1/systemone` returns the JEV answer envelope and
 `/predict` exposes native request batches. See [HTTP serving](http.md).
 
 For layer diagnostics, set `LAYA_TRACE_DIR` to an output directory. Intermediate

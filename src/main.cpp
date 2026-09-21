@@ -13,7 +13,8 @@ int main(int argc, char** argv) {
             if (level >= GGML_LOG_LEVEL_WARN) std::cerr << text;
         }, nullptr);
         std::string model = "models/laya", input_file, variant = "english";
-        bool cuda = true, bf16 = false, flash = false, tensor_core = false, raw = false, prepare = false;
+        laya::backend_type backend = laya::backend_type::cuda;
+        bool bf16 = false, flash = false, tensor_core = false, raw = false, prepare = false;
         bool server = false, http_option = false;
         laya::http_options http;
         auto number = [](const std::string& value, int maximum, int minimum = 1) {
@@ -36,7 +37,9 @@ int main(int argc, char** argv) {
             else if (arg == "--max-pending-requests" && i+1 < argc) { http.max_pending_requests = number(argv[++i], 256); http_option = true; }
             else if (arg == "--batch-wait-ms" && i+1 < argc) { http.batch_wait_ms = number(argv[++i], 1000, 0); http_option = true; }
             else if (arg == "--no-batching") { http.batching = false; http_option = true; }
-            else if (arg == "--cpu") cuda = false;
+            else if (arg == "--cpu") backend = laya::backend_type::cpu;
+            else if (arg == "--vulkan") backend = laya::backend_type::vulkan;
+            else if (arg == "--cuda") backend = laya::backend_type::cuda;
             else if (arg == "--fp32") { bf16 = false; flash = false; }
             else if (arg == "--flash-fp32") { bf16 = false; flash = true; }
             else if (arg == "--tensor-core-fp32") { bf16 = false; tensor_core = true; }
@@ -45,7 +48,7 @@ int main(int argc, char** argv) {
             else if (arg == "--raw") raw = true;
             else if (arg == "--prepare") prepare = true;
             else if (arg == "--help") {
-                std::cout << "laya-cli [--model DIR] [--variant english|multilingual|typed-decisions] [--input JSON] [--raw|--prepare] [--fp32] [--cpu]\n"
+                std::cout << "laya-cli [--model DIR] [--variant english|multilingual|typed-decisions] [--input JSON] [--raw|--prepare] [--fp32] [--cpu|--cuda|--vulkan]\n"
                              "--tensor-core-fp32 --flash-fp32 enables the optimized CUDA path.\n"
                              "--bf16 enables matching-precision CUDA inference (requires the toolchain in docs/precision.md).\n--experimental-bf16 is a compatibility alias. --no-flash is supported only in FP32 mode.\n"
                              "Reads JSON lines from stdin when --input is absent. Each line is a request or request array.\n";
@@ -62,7 +65,7 @@ int main(int argc, char** argv) {
             throw std::invalid_argument("--server cannot be combined with --input, --raw or --prepare");
         if (http_option && !server) throw std::invalid_argument("HTTP options require --server");
         if (variant!="english") model=(std::filesystem::path(model)/variant).string();
-        laya::agent agent(model, cuda, bf16, flash, tensor_core);
+        laya::agent agent(model, backend, bf16, flash, tensor_core);
         std::cerr << "Ready: " << agent.backend_name() << '\n';
         if (server) {
             // A direct --model checkpoint path must identify its actual variant too.

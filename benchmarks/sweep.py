@@ -18,6 +18,7 @@ from identity import file_hash, native_hash
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--executable', default='build-cuda/bin/laya-cli')
+    p.add_argument('--backend', choices=['cuda', 'vulkan', 'cpu'], default='cuda')
     p.add_argument('--source', default='research/laya')
     p.add_argument('--model', default='models/laya')
     p.add_argument('--cases', type=Path, default=Path('benchmarks/cases/acceptance-250.json'))
@@ -31,12 +32,15 @@ def main():
     p.add_argument('--output', type=Path, default=Path('results/sweep.json'))
     p.add_argument('--validation', type=Path, default=Path('results/validation-250-fp32.json'))
     a = p.parse_args()
+    if a.backend != 'cuda':
+        if not a.fp32 or a.tensor_core_fp32: p.error('This backend requires plain FP32')
+        a.no_flash = True
     if a.iterations < 1 or a.warmup < 0 or any(x < 1 for x in a.batch_sizes): p.error('Invalid iteration or batch count')
     cases = json.loads(a.cases.read_text())
     validation = json.loads(a.validation.read_text())
     binary_hash = native_hash(a.executable)
     weights_hash = file_hash(Path(a.model)/'model.safetensors')
-    if (not validation['passed'] or validation['cases_sha256'] != hashlib.sha256(a.cases.read_bytes()).hexdigest()
+    if (validation.get('backend', 'cuda') != a.backend or not validation['passed'] or validation['cases_sha256'] != hashlib.sha256(a.cases.read_bytes()).hexdigest()
             or validation['native_build_sha256'] != binary_hash or validation['weights_sha256'] != weights_hash
             or validation['gpu'] != torch.cuda.get_device_name() or validation['torch'] != torch.__version__
             or validation['fused_attention'] != (not a.no_flash) or validation['tensor_core_fp32'] != a.tensor_core_fp32
@@ -44,7 +48,7 @@ def main():
             or not set(a.batch_sizes).issubset({b['batch_size'] for b in validation['batches']})):
         p.error('A passing validation report for this corpus, binary, weights, precision and batch sizes is required')
     oracle = Oracle(a.source, a.model, a.fp32)
-    report = dict(schema_version=2, cases_sha256=hashlib.sha256(a.cases.read_bytes()).hexdigest(),
+    report = dict(schema_version=2, backend=a.backend, cases_sha256=hashlib.sha256(a.cases.read_bytes()).hexdigest(),
                   model_revision=(Path(a.model)/'REVISION').read_text().strip(), gpu=torch.cuda.get_device_name(),
                   torch=torch.__version__, precision='fp32' if a.fp32 else 'bf16', iterations=a.iterations,
                   fused_attention=not a.no_flash, tensor_core_fp32=a.tensor_core_fp32,
@@ -52,7 +56,7 @@ def main():
                   warmup=a.warmup, batch_sizes=a.batch_sizes, rows=[], passed=True)
     for label,path in [('project_revision','.'),('ggml_revision','third_party/ggml'),('baseline_revision',a.source)]:
         report[label] = subprocess.check_output(['git','-C',path,'rev-parse','HEAD'],text=True).strip()
-    with Native(a.executable, a.model, fp32=a.fp32, flash=not a.no_flash, tensor_core=a.tensor_core_fp32) as native:
+    with Native(a.executable, a.model, fp32=a.fp32, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
         for batch_size in a.batch_sizes:
             base_times, native_times, failures = [], [], []
             for start in range(0,len(cases),batch_size):

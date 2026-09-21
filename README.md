@@ -1,7 +1,7 @@
 # laya.cpp
 
-Standalone C++ inference for Laya typed decisions on NVIDIA RTX GPUs, using ggml
-and its CUDA backend. Model loading, Unicode/BPE tokenization, transformer
+Standalone C++ inference for Laya typed decisions using ggml, with optimized
+CUDA execution on NVIDIA RTX GPUs and a Vulkan FP32 backend. Model loading, Unicode/BPE tokenization, transformer
 inference, decision heads, and JSON output all run natively.
 
 All three checkpoints are supported:
@@ -59,7 +59,8 @@ and [benchmarking instructions](docs/benchmarking.md) for identities and reprodu
 
 ## Build
 
-Requires a C++20 compiler, CMake 3.24+, CUDA, ICU, and nlohmann-json. On Debian-like
+Requires a C++20 compiler, CMake 3.24+, ICU, and nlohmann-json, plus CUDA or
+the Vulkan build dependencies for GPU inference. On Debian-like
 systems the host dependencies are `libicu-dev` and `nlohmann-json3-dev`.
 
 ```sh
@@ -73,6 +74,23 @@ ctest --test-dir build-cuda --output-on-failure
 Architecture 120 targets RTX Blackwell. Select the architecture appropriate to
 your GPU and a host compiler supported by your CUDA toolkit. For a CPU build,
 configure with `-DLAYA_CUDA=OFF` and run the CLI with `--cpu`.
+
+For Vulkan FP32 inference without a CUDA toolkit:
+
+```sh
+cmake -S . -B build-vulkan -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DLAYA_CUDA=OFF -DLAYA_VULKAN=ON
+cmake --build build-vulkan --parallel 8
+build-vulkan/bin/laya-cli --vulkan --model models/laya \
+  --input benchmarks/cases/smoke.json
+```
+
+Vulkan needs the Vulkan loader/headers, `glslc` and SPIR-V headers (on Debian-like
+systems: `libvulkan-dev glslc spirv-headers`) and a working Vulkan driver.
+All three checkpoint variants and HTTP batching use the same `--vulkan` flag.
+The initial Vulkan path supports strict FP32; BF16 and the optimized CUDA flags
+remain CUDA-only. See [Vulkan support](docs/vulkan.md) for validation and limits.
+The performance table above measures CUDA, not Vulkan.
 
 ## Run
 

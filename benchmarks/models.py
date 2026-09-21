@@ -12,6 +12,7 @@ def main():
     p.add_argument('--model-root',type=Path,default=Path('models/laya'))
     p.add_argument('--variants',nargs='+',choices=['english','multilingual','typed-decisions'],default=['english','multilingual','typed-decisions'])
     p.add_argument('--executable',default='build-cuda/bin/laya-cli')
+    p.add_argument('--backend',choices=['cuda','vulkan','cpu'],default='cuda')
     p.add_argument('--source',default='research/laya')
     p.add_argument('--cases',default='benchmarks/cases/acceptance-250.json')
     p.add_argument('--batch-sizes',type=int,nargs='+',default=[1,2,4,8])
@@ -21,12 +22,15 @@ def main():
     p.add_argument('--sweep',action='store_true')
     p.add_argument('--output',type=Path,default=Path('results/models'))
     a=p.parse_args()
+    if a.backend != 'cuda':
+        if a.bf16: p.error('Non-CUDA model validation supports FP32 only')
+        a.strict_fp32 = True
     if any(b<1 for b in a.batch_sizes): p.error('Batch sizes must be positive')
     a.output.mkdir(parents=True,exist_ok=True)
-    report=dict(passed=True,complete=False,precision='bf16' if a.bf16 else 'fp32',variants=a.variants,models=[])
+    report=dict(backend=a.backend,passed=True,complete=False,precision='bf16' if a.bf16 else 'fp32',variants=a.variants,models=[])
     for variant in a.variants:
         directory=a.model_root if variant=='english' else a.model_root/variant
-        common=['--model',str(directory),'--executable',a.executable,'--source',a.source,'--cases',a.cases,
+        common=['--backend',a.backend,'--model',str(directory),'--executable',a.executable,'--source',a.source,'--cases',a.cases,
                 '--batch-sizes',*map(str,a.batch_sizes)]
         if a.bf16: common+=['--bf16']
         elif not a.strict_fp32: common+=['--tensor-core-fp32']

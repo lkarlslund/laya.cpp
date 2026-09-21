@@ -20,7 +20,8 @@ python benchmarks/validate.py --tensor-core-fp32 --batch-sizes 1 2 4 8 \
 ```
 
 The validation tool accepts a local baseline package with `--source`, a checkpoint
-with `--model`, and the executable with `--executable`. It tests:
+with `--model`, and the executable with `--executable`. Select `--backend vulkan`
+for Vulkan FP32 (with no CUDA precision flags); the default is CUDA. It tests:
 
 - Exact token IDs, lengths, option markers, masks, types, and batch ordering.
 - Finite raw logits. Raw differences above `1e-3 + 1e-5*abs(expected)` are
@@ -71,7 +72,7 @@ its equivalent in-process work. Model loading is outside the measured loop.
 Reports include all samples, p50/p95 batch latency, aggregate questions/second,
 precision, GPU identity, software/source revisions, and corpus identity. The sweep
 requires a passing validation report for the exact executable, loaded CUDA math
-libraries, weight hashes, precision, corpus, and batch sizes. No speedup is reported for a failed group.
+libraries, selected backend, weight hashes, precision, corpus, and batch sizes. No speedup is reported for a failed group.
 Use an idle GPU for publishable measurements; shared-GPU results are exploratory.
 The FP32 comparison disables baseline autocast and TF32. It does not measure
 the baseline package's default BF16 serving configuration. Always state precision

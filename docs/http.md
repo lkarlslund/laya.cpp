@@ -172,3 +172,13 @@ The [queue validation](measurements/http-queue-validation.json) passes all three
 models in FP32 and BF16: 12,000 HTTP question evaluations across both routes,
 with exact CLI parity. The 6,000 dynamically grouped evaluations also pass the
 same-precision Python acceptance rule. All six server runs shut down cleanly.
+
+For Vulkan serving, build with `-DLAYA_VULKAN=ON` and launch with `--vulkan`:
+
+```sh
+build-vulkan/bin/laya-cli --vulkan --server --host 127.0.0.1 --port 8080
+```
+
+The queue and JEV routes are shared across backends. To validate Vulkan transport
+and dynamic batch routing, pass `--backend vulkan --executable build-vulkan/bin/laya-cli`
+to `benchmarks/http_validate.py`.

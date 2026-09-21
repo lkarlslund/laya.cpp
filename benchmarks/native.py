@@ -5,8 +5,10 @@ from pathlib import Path
 
 
 class Native:
-    def __init__(self, executable, model, *, raw=False, prepare=False, fp32=True, flash=False, tensor_core=False):
+    def __init__(self, executable, model, *, raw=False, prepare=False, fp32=True, flash=False, tensor_core=False, backend="cuda"):
         command = [str(Path(executable).resolve()), '--model', str(Path(model).resolve())]
+        if backend not in ('cuda', 'cpu', 'vulkan'): raise ValueError('Unknown backend')
+        if backend != 'cuda': command += ['--' + backend]
         if raw: command += ['--raw']
         if prepare: command += ['--prepare']
         command += ['--fp32'] if fp32 else ['--experimental-bf16']

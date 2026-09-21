@@ -5,6 +5,7 @@ Implemented:
 - Standalone C++ safetensors loader, byte-level and metaspace BPE tokenizers, and JSON API.
 - English, multilingual, and typed-decisions checkpoint selection with model-specific context and rotary settings.
 - ggml CUDA encoder, typed decision layers, scorer, and action head.
+- Vulkan FP32 inference for all three models, including HTTP batching and backend-specific validation.
 - Strict FP32 execution with persistent weights and reusable compute graphs.
 - Compensated Tensor Core projections, fused Q/K/V rotary packing, and adaptive FP32 attention.
 - Native mixed BF16 projections, normalization, rotary packing, GELU, and Tensor Core attention.
