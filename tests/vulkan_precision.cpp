@@ -5,6 +5,7 @@
 #include "vulkan_ops.hpp"
 #include "vulkan/gelu_tables.hpp"
 #include "vulkan/gelu_rocm_patches.hpp"
+#include "vulkan_rotary.hpp"
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -15,6 +16,16 @@ int main() {
     auto backend = ggml_backend_vk_init(0);
     if (!backend) return 1;
     try {
+        for (bool rocm : {false,true}) {
+            uint64_t fingerprint=14695981039346656037ull;
+            for (int base=0;base<2;++base) for (bool sine : {false,true})
+                for (int position=0;position<1024;++position) for (int dimension=0;dimension<32;++dimension) {
+                    auto bits=std::bit_cast<uint32_t>(laya::vulkan_precision::rotary(rocm,base,position,dimension,sine));
+                    for (int shift : {0,8,16,24}) fingerprint=(fingerprint^((bits>>shift)&255))*1099511628211ull;
+                }
+            if (fingerprint!=(rocm ? laya::vulkan_precision::rotary_rocm_fingerprint : laya::vulkan_precision::rotary_cuda_fingerprint))
+                throw std::runtime_error("Host math changed a GPU rotary value");
+        }
         // Non-tile-aligned shapes, with values whose low bits disappear in FP16.
         // Exercise FP32 and accelerated half products on the same Vulkan device.
         for (auto type : {GGML_TYPE_F32, GGML_TYPE_F16}) {
