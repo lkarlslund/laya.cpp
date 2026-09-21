@@ -51,3 +51,6 @@ and --after-library-path options set separate loader paths for the two child
 processes, so archived executables retain their archived shared libraries.
 The harness hashes the libraries resolved under each environment. The after
 build still requires a passing matching-precision validation report.
+
+The subsequent [QKV packing measurements](vulkan-packed-performance.md) compare
+the baseline build with the fused packing build on the same request groups.
