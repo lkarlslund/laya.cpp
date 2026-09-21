@@ -112,7 +112,7 @@ int main() {
                 throw std::runtime_error("Fused compensated operations changed a rounding boundary");
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
-        for (int keys : {54,129}) for (bool masked : {false,true}) {
+        for (int keys : {33,54,129}) for (bool masked : {false,true}) {
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             constexpr int width=64,heads=2,queries=17;
             auto q=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,width,queries,heads);
@@ -160,6 +160,20 @@ int main() {
             for (int i=0;i<int(actual.size());++i)
                 if (!std::isfinite(actual[i]) || std::abs(actual[i]-expected[i])>(masked ? 0.0001 : 0.000001))
                     { std::cerr << "keys=" << keys << " i=" << i << " actual=" << actual[i] << " expected=" << expected[i] << '\n'; throw std::runtime_error("FP32 attention accumulator lost low-precision value contributions"); }
+            if (!masked) {
+                // A single nonzero value isolates normalization from dot-product
+                // rounding: the correctly rounded output is exactly 1 / keys.
+                std::fill(values.begin(),values.end(),ggml_fp32_to_fp16(0));
+                for (int h=0;h<heads;++h) for (int d=0;d<width;++d)
+                    values[h*keys*width+d]=ggml_fp32_to_fp16(1);
+                ggml_backend_tensor_set(v,values.data(),0,ggml_nbytes(v));
+                if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS)
+                    throw std::runtime_error("attention reciprocal compute failed");
+                ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+                const float reciprocal=1.f/float(keys);
+                for (float value:actual) if (value!=reciprocal)
+                    throw std::runtime_error("attention reciprocal is not correctly rounded");
+            }
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
         for (bool bf16 : {false,true}) for (bool gated : {false,true}) for (bool rocm : {false,true}) {

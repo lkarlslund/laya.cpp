@@ -44,6 +44,10 @@ if(laya_coopmat2_supported)
     "        coopMatStore(P, laya_probabilities, 0, Bc, gl_CooperativeMatrixLayoutRowMajor);\n        barrier();\n        for (uint row=gl_LocalInvocationIndex;row<Br;row+=gl_WorkGroupSize.x) {\n            precise vec4 sums=vec4(0);\n            for (uint key=0;key<Bc;key+=8) {\n                sums.x+=laya_probabilities[row*Bc+key]; sums.x+=laya_probabilities[row*Bc+key+1];\n                sums.y+=laya_probabilities[row*Bc+key+2]; sums.y+=laya_probabilities[row*Bc+key+3];\n                sums.z+=laya_probabilities[row*Bc+key+4]; sums.z+=laya_probabilities[row*Bc+key+5];\n                sums.w+=laya_probabilities[row*Bc+key+6]; sums.w+=laya_probabilities[row*Bc+key+7];\n            }\n            precise float a=sums.x+sums.z; precise float b=sums.y+sums.w;\n            laya_sums[row]=a+b;\n        }\n        barrier();\n        coopMatPerElementNV(rowsum, rowsum, readSum);")
   laya_attention_replace("    for (uint32_t j = start_j; j < end_j; ++j) {"
     "    for (uint32_t step = start_j; step < end_j; ++step) {\n        uint32_t j=MASK_ENABLE ? step : end_j-1-(step-start_j);")
+  # GLSL division may use an approximate reciprocal. A residual correction
+  # preserves the final 16-bit rounding boundary of normalized attention.
+  laya_attention_replace("ACC_TYPE Max(" "ACC_TYPE normalizedReciprocal(const ACC_TYPE value) {\n    precise ACC_TYPE estimate = ACC_TYPE(1.0) / value;\n    return fma(estimate, fma(-value, estimate, ACC_TYPE(1.0)), estimate);\n}\n\nACC_TYPE Max(")
+  laya_attention_replace("(ACC_TYPE(1.0) / Ldiag[k])" "normalizedReciprocal(Ldiag[k])")
   set(attention_source "${CMAKE_CURRENT_BINARY_DIR}/laya_attention.comp")
   if(EXISTS "${attention_source}")
     file(READ "${attention_source}" previous_attention_shader)
