@@ -30,6 +30,22 @@ Rates are questions/second.
 | typed-decisions | 4 | 13.6 | 22.8 | 1.67× |
 | typed-decisions | 8 | 11.8 | 20.7 | 1.76× |
 
+## NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+
+Power capped at **450 W**, driver 610.43.03; PyTorch 2.11.0+cu130.
+Rates are questions/second.
+
+| Model | Batch | Python FP32 | Vulkan compensated FP32 | Speedup |
+|---|---:|---:|---:|---:|
+| english | 1 | 144.3 | 76.4 | 0.53× |
+| english | 2 | 207.0 | 140.0 | 0.68× |
+| english | 4 | 251.3 | 214.9 | 0.85× |
+| english | 8 | 258.1 | 259.8 | 1.01× |
+| multilingual | 1 | 181.4 | 93.1 | 0.51× |
+| multilingual | 2 | 299.3 | 172.6 | 0.58× |
+| multilingual | 4 | 405.3 | 270.2 | 0.67× |
+| multilingual | 8 | 443.0 | 333.1 | 0.75× |
+
 Measurements are added after each model finishes all four batch settings.
 Further model and GPU comparisons are in progress.
 
