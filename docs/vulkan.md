@@ -267,3 +267,9 @@ logical feature width, including aligned matrices. A regression test poisons
 row padding with NaNs: it fails before the fix and passes afterward on NVIDIA,
 and also passes on AMD. This fixes a buffer-layout-dependent FP16 failure in
 which enabling intermediate tracing hid nonfinite outputs.
+
+Normalization refines variance division and stores its FP32 result before
+adding epsilon. This preserves rounding at non-power-of-two hidden widths.
+The multilingual BF16 diagnostic now matches all 22 encoder layers and both
+head outputs exactly on NVIDIA; normalization operator tests pass on both
+GPUs. Full-corpus acceptance remains a separate requirement.

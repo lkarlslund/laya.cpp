@@ -40,7 +40,11 @@ void main() {
         if (tid%32==0 && tid/32<offset) value=combine(value,partial[tid+offset*32]);
         barrier(); partial[tid]=value; barrier();
     }
-    float mean=partial[0].x, inverse=inversesqrt(partial[0].y/float(p.width)+1e-5);
+    // Store the variance before adding epsilon. Refine the division so
+    // non-power-of-two widths do not inherit an approximate reciprocal.
+    precise float variance=partial[0].y/float(p.width);
+    variance=fma(fma(-variance,float(p.width),partial[0].y),1.0/float(p.width),variance);
+    float mean=partial[0].x, inverse=inversesqrt(variance+1e-5);
     for (uint i=tid;i<p.width;i+=threads) {
         float normalized=inverse*(x[row*p.width+i]-mean);
         y[row*p.width+i]=p.has_bias!=0 ? fma(weight[i],normalized,bias[i]) : weight[i]*normalized;
