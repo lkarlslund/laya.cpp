@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "torch": "2.11.0+cu130",
+  "cuda": "13.0",
+  "precision": [
+    "fp16",
+    "bf16"
+  ],
+  "columns": [
+    1,
+    2048
+  ],
+  "profiled_shapes": 12288,
+  "workspace_verified_split_shapes": 2250,
+  "corrected_shape_boundaries": 688,
+  "method": "Synthetic one-hot weights and unit inputs identify the unique partial containing each product; a unique 32-aligned split boundary must explain every impulse. This is independent of model weights and corpus answers.",
+  "plans_sha256": "80bec70e906a91dc128e5d8cc8ace8b8e8ad539f15c74b7fbdeb3c62d06044c1",
+  "profile_sha256": "66cbbff005d6dc0882bddffe32d9cfaac9467cd6c0a58d354a17440d3490247b",
+  "workspace_probe_sha256": "caffcb00844bf4d41292d76775fa87a6157e9d8387ad851c74e8e068a02a9686",
+  "full_model_acceptance": false
+}

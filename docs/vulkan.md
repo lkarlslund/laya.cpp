@@ -235,3 +235,10 @@ answer tolerance; raw head differences remain under investigation.
 The [updated NVIDIA performance table](vulkan-projection-performance.md) includes
 all three models after the projection partition change, with full-corpus paired
 Python measurements at 450 W.
+
+The [16-bit projection plans](measurements/vulkan-low-precision-reduction-plans.json)
+profile 12,288 precision/shape combinations and directly verify all 2,250 split
+layouts with synthetic impulses. This corrected 688 boundaries inferred from
+kernel names. The eight-question NVIDIA FP16 smoke test now passes at batches
+1, 2 and 4; BF16 passes at 1 and 2. Larger-batch discrepancies still prevent
+full-model acceptance of either 16-bit mode.
