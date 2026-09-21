@@ -261,3 +261,9 @@ nonuniform scores across two and three tiles, masked attention, and exact
 reciprocals on both GPUs. In a 184-token FP16 diagnostic this reduces the first
 attention mismatch from 13 values to one; the public answer still exceeds the
 acceptance tolerance. This is a component correction, not full-model acceptance.
+
+Padded eight-feature attention products explicitly clamp key loads to the
+logical feature width, including aligned matrices. A regression test poisons
+row padding with NaNs: it fails before the fix and passes afterward on NVIDIA,
+and also passes on AMD. This fixes a buffer-layout-dependent FP16 failure in
+which enabling intermediate tracing hid nonfinite outputs.

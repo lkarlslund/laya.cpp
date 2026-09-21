@@ -1,3 +1,10 @@
+// The final padded K=16 load crosses the feature boundary even when the
+// matrix is aligned. Clamp it explicitly: zero times a stray NaN is still NaN.
+tensorLayoutNV<2, gl_CooperativeMatrixClampModeConstantNV> safeKeys = createTensorLayoutNV(2, gl_CooperativeMatrixClampModeConstantNV);
+safeKeys = setTensorLayoutBlockSizeNV(safeKeys, 1, bs_k);
+safeKeys = setTensorLayoutDimensionNV(safeKeys, KV, HSK);
+safeKeys = setTensorLayoutStrideNV(safeKeys, k_stride, 1);
+
 // Preserve the FP32 accumulator boundary after each eight-feature product.
 // Pad the hardware K=16 tile with zeros; K=8 is not supported.
 for (uint feature=0;feature<HSK_pad;feature+=8) {
@@ -7,12 +14,12 @@ for (uint feature=0;feature<HSK_pad;feature+=8) {
     coopmat<FLOAT_TYPE,gl_ScopeWorkgroup,Br,16,gl_MatrixUseA> query_low = coopmat<FLOAT_TYPE,gl_ScopeWorkgroup,Br,16,gl_MatrixUseA>(query);
     coopmat<FLOAT_TYPE,gl_ScopeWorkgroup,16,Bc,gl_MatrixUseB> key_low;
 #if defined(BFLOAT16)
-    coopMatLoadTensorNV(key_low,data_k,k_offset,sliceTensorLayoutNV(tensorLayoutK,j*Bc,Bc,feature,16),tensorViewTranspose);
+    coopMatLoadTensorNV(key_low,data_k,k_offset,sliceTensorLayoutNV(safeKeys,j*Bc,Bc,feature,16),tensorViewTranspose);
 #else
     if (bs_k>1u) {
-        coopMatLoadTensorNV(key_low,data_k,k_offset,sliceTensorLayoutNV(tensorLayoutK,j*Bc,Bc,feature,16),tensorViewTranspose FADECODEK);
+        coopMatLoadTensorNV(key_low,data_k,k_offset,sliceTensorLayoutNV(safeKeys,j*Bc,Bc,feature,16),tensorViewTranspose FADECODEK);
     } else {
-        coopMatLoadTensorNV(key_low,data_k,k_offset,sliceTensorLayoutNV(tensorLayoutK,j*Bc,Bc,feature,16),tensorViewTranspose);
+        coopMatLoadTensorNV(key_low,data_k,k_offset,sliceTensorLayoutNV(safeKeys,j*Bc,Bc,feature,16),tensorViewTranspose);
     }
 #endif
     S=coopMatMulAdd(query_low,key_low,S);

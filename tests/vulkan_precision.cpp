@@ -180,12 +180,14 @@ int main() {
             if (actual!=expected) throw std::runtime_error("serial reduction changed a storage or bias boundary");
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
-        for (int keys : {33,54,129,184,257}) for (bool masked : {false,true}) for (int queries : {17,65}) {
+        for (int keys : {33,54,64,129,184,257}) for (bool masked : {false,true}) for (int queries : {17,65}) {
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             constexpr int width=64,heads=2;
             const int mask_rows=((queries+63)/64)*64;
             auto q=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,width,queries,heads);
-            auto k=ggml_new_tensor_3d(ctx,GGML_TYPE_F16,width,keys,heads);
+            const int key_stride=keys==64 ? width+16 : width;
+            auto k_storage=ggml_new_tensor_3d(ctx,GGML_TYPE_F16,key_stride,keys,heads);
+            auto k=ggml_view_3d(ctx,k_storage,width,keys,heads,k_storage->nb[1],k_storage->nb[2],0);
             auto v=ggml_new_tensor_3d(ctx,GGML_TYPE_F16,width,keys,heads);
             auto mask=masked ? ggml_new_tensor_2d(ctx,GGML_TYPE_F16,keys,mask_rows) : nullptr;
             auto output=ggml_flash_attn_ext(ctx,q,k,v,mask,.125f,0,0);
@@ -195,7 +197,7 @@ int main() {
             auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
             if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("attention allocation failed");
             std::vector<float> zeros(width*queries*heads),actual(width*queries*heads);
-            std::vector<ggml_fp16_t> kz(width*keys*heads),values(width*keys*heads);
+            std::vector<ggml_fp16_t> kz(key_stride*keys*heads),values(width*keys*heads);
             std::vector<double> expected(width*heads*queries);
             std::vector<ggml_fp16_t> mask_values(keys*mask_rows,ggml_fp32_to_fp16(-INFINITY));
             for (int h=0;h<heads;++h) for (int t=0;t<keys;++t) for (int d=0;d<width;++d) {
@@ -213,20 +215,24 @@ int main() {
                     if (std::abs(row-key)<23) mask_values[row*keys+key]=ggml_fp32_to_fp16(0);
                 ggml_backend_tensor_set(mask,mask_values.data(),0,ggml_nbytes(mask));
             }
+            // Poison the row padding: an aligned K=16 load used for a K=8
+            // product must not read these lanes, even when Q pads with zeros.
+            for (int row=0;row<keys*heads;++row) for (int d=width;d<key_stride;++d)
+                kz[row*key_stride+d]=ggml_fp32_to_fp16(NAN);
             for (int row=0;row<queries;++row) for (int h=0;h<heads;++h) {
                 std::vector<double> probabilities(keys);
                 double total=0;
                 for (int key=0;key<keys;++key) {
                     if (masked && !std::isfinite(ggml_fp16_to_fp32(mask_values[row*keys+key]))) continue;
                     double score=0;
-                    for (int d=0;d<width;++d) score+=zeros[(h*queries+row)*width+d]*double(ggml_fp16_to_fp32(kz[(h*keys+key)*width+d]));
+                    for (int d=0;d<width;++d) score+=zeros[(h*queries+row)*width+d]*double(ggml_fp16_to_fp32(kz[(h*keys+key)*key_stride+d]));
                     total+=(probabilities[key]=std::exp(score*.125));
                 }
                 if (total) for (int d=0;d<width;++d) for (int key=0;key<keys;++key)
                     expected[(row*heads+h)*width+d]+=probabilities[key]/total*ggml_fp16_to_fp32(values[(h*keys+key)*width+d]);
             }
             ggml_backend_tensor_set(q,zeros.data(),0,ggml_nbytes(q));
-            ggml_backend_tensor_set(k,kz.data(),0,ggml_nbytes(k));
+            ggml_backend_tensor_set(k_storage,kz.data(),0,ggml_nbytes(k_storage));
             ggml_backend_tensor_set(v,values.data(),0,ggml_nbytes(v));
             if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("attention compute failed");
             ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
