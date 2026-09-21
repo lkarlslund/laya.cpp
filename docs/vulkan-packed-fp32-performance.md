@@ -16,6 +16,10 @@ Rates are questions/second.
 
 | GPU | Model | Mode | Batch | Python FP32 | Vulkan | Vulkan/Python |
 |---|---|---|---:|---:|---:|---:|
+| NVIDIA | english | plain | 1 | 141.2 | 62.3 | 0.44× |
+| NVIDIA | english | plain | 2 | 205.2 | 104.7 | 0.51× |
+| NVIDIA | english | plain | 4 | 244.9 | 137.3 | 0.56× |
+| NVIDIA | english | plain | 8 | 236.0 | 166.5 | 0.71× |
 | NVIDIA | english | compensated | 1 | 147.0 | 117.6 | 0.80× |
 | NVIDIA | english | compensated | 2 | 204.9 | 178.1 | 0.87× |
 | NVIDIA | english | compensated | 4 | 247.3 | 240.2 | 0.97× |
