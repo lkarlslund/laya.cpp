@@ -104,6 +104,96 @@
               }
             }
           ]
+        },
+        "multilingual": {
+          "schema_version": 2,
+          "backend": "vulkan",
+          "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+          "model_revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+          "gpu": "Radeon 8060S Graphics",
+          "torch": "2.11.0+rocm7.13.0",
+          "precision": "fp32",
+          "iterations": 5,
+          "python_runtime": "rocm",
+          "python_runtime_version": "7.13.99004",
+          "fused_attention": false,
+          "tensor_core_fp32": true,
+          "native_build_sha256": "604c870a2d2f609af424961dc009331e6cf05ac98aeb8dd731e91d7baa83f464",
+          "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+          "warmup": 3,
+          "batch_sizes": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "passed": true,
+          "ggml_revision": "456172ec733a135778adcd32d00e576a58232e45",
+          "baseline_revision": "d113dca2512fb3eaca313534bc54c7162d87c1d4",
+          "native_device": "AMD Radeon 8060S Graphics (RADV STRIX_HALO)",
+          "harness_project_revision": "69ad1824a292106f2784c20163958953a0958019",
+          "rows": [
+            {
+              "batch_size": 1,
+              "failures": [],
+              "speedup": 1.6632317161661134,
+              "baseline": {
+                "p50_ms": 15.767856035381556,
+                "p95_ms": 115.42845699586906,
+                "questions_per_second": 35.42950760561661
+              },
+              "native": {
+                "p50_ms": 11.82106,
+                "p95_ms": 54.56683565,
+                "questions_per_second": 58.927480737810086
+              }
+            },
+            {
+              "batch_size": 2,
+              "failures": [],
+              "speedup": 1.941160355738955,
+              "baseline": {
+                "p50_ms": 27.798409922979772,
+                "p95_ms": 236.1541829770431,
+                "questions_per_second": 37.95248667885548
+              },
+              "native": {
+                "p50_ms": 14.574769,
+                "p95_ms": 117.38235080000001,
+                "questions_per_second": 73.67186254270504
+              }
+            },
+            {
+              "batch_size": 4,
+              "failures": [],
+              "speedup": 2.1078684609222402,
+              "baseline": {
+                "p50_ms": 50.83140602800995,
+                "p95_ms": 478.33886282751337,
+                "questions_per_second": 36.33986550578225
+              },
+              "native": {
+                "p50_ms": 23.619281,
+                "p95_ms": 231.71921269999999,
+                "questions_per_second": 76.59965637379443
+              }
+            },
+            {
+              "batch_size": 8,
+              "failures": [],
+              "speedup": 2.19396505011105,
+              "baseline": {
+                "p50_ms": 106.35728045599535,
+                "p95_ms": 992.2802043438423,
+                "questions_per_second": 31.370744870556155
+              },
+              "native": {
+                "p50_ms": 41.638919,
+                "p95_ms": 475.7052352,
+                "questions_per_second": 68.8263178419507
+              }
+            }
+          ]
         }
       }
     }
