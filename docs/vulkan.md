@@ -119,7 +119,10 @@ paired performance measurements after validation. A CUDA validation report
 cannot authorize a Vulkan benchmark, even for a binary containing both backends.
 
 Hardware validation is on NVIDIA RTX PRO 6000 Blackwell with driver 610.43.03.
-AMD and Intel devices have not been tested in this environment.
+Plain FP32 also passes all 3,000 public-answer comparisons on AMD Radeon 8060S
+with Mesa 26.2.2, against Python running on that same AMD GPU through ROCm:
+[AMD validation](measurements/vulkan-amd-fp32.json). Intel devices have not been
+tested in this environment.
 
 The [recorded validation](measurements/vulkan-validation.json) passes 3,000
 fixed-corpus and 144 edge-case comparisons across all three checkpoints at batch
