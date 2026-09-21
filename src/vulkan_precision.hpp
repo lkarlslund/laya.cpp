@@ -39,9 +39,7 @@ inline ggml_tensor* linear(ggml_context* ctx, ggml_tensor* x, ggml_tensor* weigh
         product=ggml_mul_mat(ctx,weight,x);
         ggml_prec_set_acc(product,GGML_PREC_F32);
     }
-    if (bias) product=ggml_add(ctx,product,bias);
-    auto result=round(ctx,product,type);
-    return residual ? ggml_add(ctx,residual,result) : result;
+    return finish_projection(ctx,product,bias,residual,type);
 }
 inline ggml_tensor* gelu(ggml_context* ctx, ggml_tensor* x, ggml_type type) {
     return round(ctx,ggml_gelu_erf(ctx,x),type);

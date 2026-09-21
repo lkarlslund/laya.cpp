@@ -33,8 +33,11 @@ rounding, and an optional FP32 residual addition in one dispatch. Bias precedes
 rounding; the residual follows it. Independent bitwise operator tests pass on
 NVIDIA and AMD for all three storage formats, biased and unbiased inputs,
 residuals, rounding midpoints, signed zeros, and subnormals. The exhaustive GPU
-activation tests also check zero signs. Projection-storage runtime integration
-and full-model regression remain pending.
+activation tests also check zero signs. The operator is integrated into 16-bit
+projections; all 6,000 NVIDIA public-answer comparisons pass for the three models
+at batches 1, 2, 4 and 8 in FP16 and BF16
+([record](measurements/vulkan-finish-16bit-validation.json)). Its throughput
+comparison remains pending.
 
 The fused QKV packing operator combines layout conversion, rotary multiplication,
 and storage rounding in one dispatch. Its operator tests pass on NVIDIA and AMD
