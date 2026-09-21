@@ -23,8 +23,8 @@ Rates are questions/second.
 | english | BF16 | 4 | 366.4 | 378.1 | 1.03× |
 | english | BF16 | 8 | 488.6 | 503.7 | 1.03× |
 
-Projection storage improves throughput by 3–3% in the completed runs.
+Projection storage improves throughput by 2.5–3.4% in the completed runs.
 Measurements for the remaining model/precision pairs are pending.
 See [measurement metadata](measurements/vulkan-finish-performance.json) for build,
-weight, corpus and report identities. Matching Python timings for this build and
+weight, corpus and report identities. Matching Python timings for this build remain pending.
 AMD 16-bit timing awaits its correctness gate.
