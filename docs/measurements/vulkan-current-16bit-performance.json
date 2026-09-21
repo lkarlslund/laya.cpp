@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "gpu_power_limit_w": 450,
+  "runtime_integration_commit": "9da60a1",
+  "method": "250 fixed questions; 3 warmups and 5 timed iterations per group; alternating Python/native order; matching precision; model loading and native JSON transport excluded. Other services retained GPU allocations.",
+  "runs": [
+    {
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "precision": "bf16",
+      "python_runtime": "cuda",
+      "python_runtime_version": "13.0",
+      "native_build_sha256": "53b8aae20adf417aa2d49064297c550c03b85fcc6590ccd2db97f560947268e8",
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "warmup": 3,
+      "iterations": 5,
+      "model": "english",
+      "report_sha256": "a439848717e509b58c12f15bede8b2c2f26cac635247f3efa9423fb19ac415c1",
+      "rows": [
+        {
+          "batch_size": 1,
+          "python": {
+            "p50_ms": 6.764807039871812,
+            "p95_ms": 8.48422433482483,
+            "questions_per_second": 145.46762745256763
+          },
+          "vulkan": {
+            "p50_ms": 6.7754565,
+            "p95_ms": 10.49352745,
+            "questions_per_second": 134.81772734669147
+          },
+          "ratio": 0.926788521319984,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 2,
+          "python": {
+            "p50_ms": 7.231941097415984,
+            "p95_ms": 10.66488060168922,
+            "questions_per_second": 263.1157521746343
+          },
+          "vulkan": {
+            "p50_ms": 7.382256,
+            "p95_ms": 13.265296999999999,
+            "questions_per_second": 240.15256404403706
+          },
+          "ratio": 0.9127259088792367,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 4,
+          "python": {
+            "p50_ms": 7.583978003822267,
+            "p95_ms": 16.963256231974814,
+            "questions_per_second": 449.00493397015515
+          },
+          "vulkan": {
+            "p50_ms": 8.43038,
+            "p95_ms": 22.0678014,
+            "questions_per_second": 384.30932232657005
+          },
+          "ratio": 0.8559133614155666,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 8,
+          "python": {
+            "p50_ms": 8.439662458840758,
+            "p95_ms": 27.800935448613018,
+            "questions_per_second": 671.814116696873
+          },
+          "vulkan": {
+            "p50_ms": 10.098453,
+            "p95_ms": 41.25499015,
+            "questions_per_second": 508.1160040088873
+          },
+          "ratio": 0.7563342171301122,
+          "answer_failures": 0
+        }
+      ]
+    }
+  ],
+  "all_models_complete": false
+}
