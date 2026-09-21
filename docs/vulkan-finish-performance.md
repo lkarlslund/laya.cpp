@@ -30,9 +30,16 @@ Rates are questions/second.
 | multilingual | BF16 | 2 | 294.8 | 306.7 | 1.04× |
 | multilingual | BF16 | 4 | 460.0 | 474.7 | 1.03× |
 | multilingual | BF16 | 8 | 590.2 | 610.9 | 1.03× |
+| typed-decisions | FP16 | 1 | 121.7 | 124.9 | 1.03× |
+| typed-decisions | FP16 | 2 | 199.6 | 204.7 | 1.03× |
+| typed-decisions | FP16 | 4 | 295.3 | 302.5 | 1.02× |
+| typed-decisions | FP16 | 8 | 334.5 | 343.7 | 1.03× |
+| typed-decisions | BF16 | 1 | 122.3 | 126.4 | 1.03× |
+| typed-decisions | BF16 | 2 | 198.4 | 204.1 | 1.03× |
+| typed-decisions | BF16 | 4 | 294.8 | 302.4 | 1.03× |
+| typed-decisions | BF16 | 8 | 333.8 | 344.5 | 1.03× |
 
-Projection storage improves throughput by 2.5–4.4% in the completed runs.
-Measurements for the remaining model/precision pairs are pending.
+Projection storage improves throughput by 2.4–4.4% in the completed runs.
 See [measurement metadata](measurements/vulkan-finish-performance.json) for build,
 weight, corpus and report identities. Matching Python timings for this build remain pending.
 AMD 16-bit timing awaits its correctness gate.
