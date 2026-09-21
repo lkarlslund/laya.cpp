@@ -14,5 +14,63 @@
     "tiled_shader_sha256": "fb229fc8aafc2b71b4fc86f78ded0f461ce07f415dc9cea995c2ac78489da05f",
     "backend_sha256": "a8ef4ca8c894f86b87cf9c9a6e47433245186f411421c8722afaf1858f93aedb",
     "runtime_sha256": "fbd4628f677521bbe80395cbd8c39f5680c0799375f8a0c4353925391e929c9d"
-  }
+  },
+  "english_fp16_full_gates": [
+    {
+      "prototype": "pv-order",
+      "report_sha256": "5f3ea3bc0fe163581008a237735c71606d56f242182eaebf5eca457202cd1ebf",
+      "native_build_sha256": "d0e921af6f22bf0248feee634f7b0faf15d8d52df76d38943bee1781c4cd2335",
+      "passed": false,
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "answer_failures": 1
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "answer_failures": 2
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "answer_failures": 30
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "answer_failures": 45
+        }
+      ]
+    },
+    {
+      "prototype": "pv-tiled",
+      "report_sha256": "1c7976c7faece2ee137f9fb4da761f2dafee2c32c9dd75f01f2bec3fb7444220",
+      "native_build_sha256": "983fc25c7daf672f23514f9ba3e519fd18f47f892dc87928d86f8f8b13340bda",
+      "passed": false,
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "answer_failures": 1
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "answer_failures": 2
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "answer_failures": 30
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "answer_failures": 45
+        }
+      ]
+    }
+  ]
 }

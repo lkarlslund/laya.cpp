@@ -76,3 +76,9 @@ rounded to FP16 before comparison where the native trace precedes that boundary.
 See the [diagnostic record](measurements/vulkan-amd-attention-diagnostic.json).
 This is an isolated prototype result; AMD FP16/BF16 still requires full validation
 and integration, and this diagnostic establishes no performance claim.
+
+The scalar diagnostic and tiled attention prototypes produce the same full-corpus
+result: 1, 2, 30 and 45 public-answer failures at batches 1, 2, 4 and 8.
+Consequently neither prototype is accepted for AMD 16-bit deployment. The single
+batch-1 failure first diverges in the scoring projection after matching encoder,
+head and scorer-normalization tensors.
