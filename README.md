@@ -90,9 +90,10 @@ systems: `libvulkan-dev glslc spirv-headers`) and a working Vulkan driver.
 All three checkpoint variants and HTTP batching use the same `--vulkan` flag.
 Vulkan supports plain FP32 and compensated projections with `--tensor-core-fp32`.
 BF16 and `--flash-fp32` remain CUDA-only. See [Vulkan support](docs/vulkan.md) for validation and limits.
-The performance table above measures CUDA. [Vulkan measurements](docs/vulkan-fused-performance.md)
-compare compensated FP32 with Python on RTX PRO 6000 at 450 W and Radeon 8060S,
-and with native CUDA on the RTX card.
+The performance table above measures CUDA. [Current NVIDIA Vulkan measurements](docs/vulkan-projection-performance.md)
+compare compensated FP32 with Python on RTX PRO 6000 at 450 W.
+[Additional paired measurements](docs/vulkan-fused-performance.md) cover Radeon 8060S
+and native CUDA comparisons using the earlier fused projection build.
 
 ## Run
 

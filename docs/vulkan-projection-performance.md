@@ -23,8 +23,10 @@ Rates are questions/second.
 | multilingual | 2 | 307.0 | 191.6 | 0.62× |
 | multilingual | 4 | 412.2 | 288.7 | 0.70× |
 | multilingual | 8 | 449.6 | 340.1 | 0.76× |
-
-Further models are being measured; each is added after all four settings pass.
+| typed-decisions | 1 | 135.3 | 90.6 | 0.67× |
+| typed-decisions | 2 | 182.7 | 135.5 | 0.74× |
+| typed-decisions | 4 | 199.4 | 164.6 | 0.83× |
+| typed-decisions | 8 | 180.2 | 181.7 | 1.01× |
 
 This change applies to NVIDIA projections. The earlier [paired GPU measurements](vulkan-fused-performance.md)
 include the AMD results and separate native CUDA comparisons. These timings

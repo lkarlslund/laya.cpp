@@ -231,3 +231,7 @@ preserve separate maximum scaling and ordered 32-key denominator additions.
 Tests include 65 queries over 129 keys and fully masked rows. A 68-token FP16
 diagnostic now matches all 28 encoder outputs exactly and passes the public
 answer tolerance; raw head differences remain under investigation.
+
+The [updated NVIDIA performance table](vulkan-projection-performance.md) includes
+all three models after the projection partition change, with full-corpus paired
+Python measurements at 450 W.
