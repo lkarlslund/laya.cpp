@@ -76,6 +76,12 @@ activation and multiplication dispatches. Small decision projections run at thei
 actual batch size; the CUDA-specific minimum-column padding is not applied to
 Vulkan.
 
+The development kernels also retain FP32 output accumulation for 16-bit fused
+attention. Operator tests cover unaligned key lengths, uniform attention,
+nonuniform masked attention and empty masked rows on both tested GPUs. This
+operator-level coverage does not establish full-model 16-bit acceptance; the
+supported serving modes above remain the release contract.
+
 Dense FP32 attention uses more memory than fused attention at long sequence
 lengths. Begin with the default eight-question HTTP limit and reduce it on
 smaller GPUs. Cold calls also include Vulkan shader/pipeline creation; benchmark

@@ -70,6 +70,56 @@ int main() {
                     throw std::runtime_error("compensated split overflow or precision loss");
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
+        for (int keys : {54,129}) for (bool masked : {false,true}) {
+            auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+            constexpr int width=64,heads=2,queries=17;
+            auto q=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,width,queries,heads);
+            auto k=ggml_new_tensor_3d(ctx,GGML_TYPE_F16,width,keys,heads);
+            auto v=ggml_new_tensor_3d(ctx,GGML_TYPE_F16,width,keys,heads);
+            auto mask=masked ? ggml_new_tensor_2d(ctx,GGML_TYPE_F16,keys,64) : nullptr;
+            auto output=ggml_flash_attn_ext(ctx,q,k,v,mask,.125f,0,0);
+            ggml_prec_set_acc(output,GGML_PREC_F32);
+            if (!ggml_backend_supports_op(backend,output)) { ggml_free(ctx); continue; }
+            auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output);
+            auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+            if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("attention allocation failed");
+            std::vector<float> zeros(width*queries*heads),actual(width*queries*heads);
+            std::vector<ggml_fp16_t> kz(width*keys*heads),values(width*keys*heads);
+            std::vector<double> expected(width*heads*queries);
+            std::vector<ggml_fp16_t> mask_values(keys*64,ggml_fp32_to_fp16(-INFINITY));
+            for (int h=0;h<heads;++h) for (int t=0;t<keys;++t) for (int d=0;d<width;++d) {
+                auto half=ggml_fp32_to_fp16(.125f+float((h*5+t%7+d%5)%17)/1024.f);
+                values[(h*keys+t)*width+d]=half;
+            }
+            if (masked) {
+                for (size_t i=0;i<zeros.size();++i) zeros[i]=float(int(i%13)-6)/16;
+                for (size_t i=0;i<kz.size();++i) kz[i]=ggml_fp32_to_fp16(float(int(i%11)-5)/8);
+                for (int row=1;row<queries;++row) for (int key=0;key<keys;++key)
+                    if (std::abs(row-key)<23) mask_values[row*keys+key]=ggml_fp32_to_fp16(0);
+                ggml_backend_tensor_set(mask,mask_values.data(),0,ggml_nbytes(mask));
+            }
+            for (int row=0;row<queries;++row) for (int h=0;h<heads;++h) {
+                std::vector<double> probabilities(keys);
+                double total=0;
+                for (int key=0;key<keys;++key) {
+                    if (masked && !std::isfinite(ggml_fp16_to_fp32(mask_values[row*keys+key]))) continue;
+                    double score=0;
+                    for (int d=0;d<width;++d) score+=zeros[(h*queries+row)*width+d]*double(ggml_fp16_to_fp32(kz[(h*keys+key)*width+d]));
+                    total+=(probabilities[key]=std::exp(score*.125));
+                }
+                if (total) for (int d=0;d<width;++d) for (int key=0;key<keys;++key)
+                    expected[(row*heads+h)*width+d]+=probabilities[key]/total*ggml_fp16_to_fp32(values[(h*keys+key)*width+d]);
+            }
+            ggml_backend_tensor_set(q,zeros.data(),0,ggml_nbytes(q));
+            ggml_backend_tensor_set(k,kz.data(),0,ggml_nbytes(k));
+            ggml_backend_tensor_set(v,values.data(),0,ggml_nbytes(v));
+            if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("attention compute failed");
+            ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+            for (int i=0;i<int(actual.size());++i)
+                if (!std::isfinite(actual[i]) || std::abs(actual[i]-expected[i])>(masked ? 0.0001 : 0.000001))
+                    { std::cerr << "keys=" << keys << " i=" << i << " actual=" << actual[i] << " expected=" << expected[i] << '\n'; throw std::runtime_error("FP32 attention accumulator lost low-precision value contributions"); }
+            ggml_gallocr_free(allocator); ggml_free(ctx);
+        }
         for (bool bf16 : {false,true}) for (bool gated : {false,true}) for (bool rocm : {false,true}) {
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             constexpr int width=256,rows=256;
