@@ -33,7 +33,8 @@ def main():
     p.add_argument('--validation', type=Path, default=Path('results/validation-250-fp32.json'))
     a = p.parse_args()
     if a.backend != 'cuda':
-        if not a.fp32 or a.tensor_core_fp32: p.error('This backend requires plain FP32')
+        if not a.fp32: p.error('This backend currently requires FP32')
+        if a.backend == 'cpu' and a.tensor_core_fp32: p.error('CPU requires plain FP32')
         a.no_flash = True
     if a.iterations < 1 or a.warmup < 0 or any(x < 1 for x in a.batch_sizes): p.error('Invalid iteration or batch count')
     cases = json.loads(a.cases.read_text())

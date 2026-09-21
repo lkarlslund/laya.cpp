@@ -68,11 +68,8 @@ struct runtime::impl {
     void load(const std::filesystem::path& directory, backend_type selected) {
         const bool cuda = selected == backend_type::cuda;
         vulkan = selected == backend_type::vulkan;
-        // The pinned Vulkan backend otherwise converts FP32 matrices to FP16
-        // for cooperative matrix kernels, even with FP32 accumulation requested.
-        if (vulkan)
-            for (const char* key : {"GGML_VK_DISABLE_F16", "GGML_VK_DISABLE_COOPMAT", "GGML_VK_DISABLE_COOPMAT2"})
-                if (setenv(key, "1", 1) != 0) throw std::runtime_error("Cannot enforce FP32 Vulkan arithmetic");
+        // The Vulkan precision extension keeps explicit FP32 products separate
+        // from cooperative half-precision products on the same device.
         // The CUDA backend enables TF32 in cuBLAS by default. Strict FP32 must
         // disable that permission before CUDA/cuBLAS initialization.
         if (cuda && !bf16 && setenv("NVIDIA_TF32_OVERRIDE", "0", 1) != 0)
@@ -226,6 +223,20 @@ struct runtime::impl {
     tensor* rounded(ggml_context* ctx, tensor* value) {
         return bf16 ? ggml_cast(ctx, ggml_cast(ctx, value, GGML_TYPE_BF16), GGML_TYPE_F32) : value;
     }
+    tensor* split_half(ggml_context* ctx, tensor* x) {
+        if (!vulkan) return split_f16(ctx, x);
+        auto high = ggml_cast(ctx, x, GGML_TYPE_F16);
+        auto low = ggml_cast(ctx, ggml_scale(ctx,
+            ggml_sub(ctx, x, ggml_cast(ctx, high, GGML_TYPE_F32)), 4096.f), GGML_TYPE_F16);
+        return ggml_concat(ctx, high, low, 1);
+    }
+    tensor* merge_half(ggml_context* ctx, tensor* x) {
+        if (!vulkan) return merge_f16(ctx, x);
+        const int64_t columns = x->ne[1]/2;
+        auto high = ggml_view_2d(ctx, x, x->ne[0], columns, x->nb[1], 0);
+        auto low = ggml_view_2d(ctx, x, x->ne[0], columns, x->nb[1], columns*x->nb[1]);
+        return ggml_add(ctx, high, ggml_scale(ctx, low, 1.f/4096.f));
+    }
     tensor* norm(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool compact = true) {
         if (bf16) return norm_bf16(ctx, x, w(name+".weight"), bias ? w(name+".bias") : nullptr, compact);
         auto value = ggml_mul(ctx, ggml_norm(ctx, x, 1e-5f), w(name + ".weight"));
@@ -243,7 +254,9 @@ struct runtime::impl {
         if (pad_columns) x = ggml_pad(ctx, x, 0, 17-columns, 0, 0);
         tensor* value;
         if (compensated) {
-            value = merge_f16(ctx,ggml_mul_mat(ctx,w(key),split_f16(ctx,x)));
+            auto product = ggml_mul_mat(ctx,w(key),split_half(ctx,x));
+            if (vulkan) ggml_prec_set_acc(product, GGML_PREC_F32);
+            value = merge_half(ctx,product);
         } else {
             value = ggml_mul_mat(ctx, w(key), x);
             if (!bf16) ggml_prec_set_acc(value, GGML_PREC_F32);
@@ -377,7 +390,7 @@ struct runtime::impl {
                 auto prefix = "encoder.layers." + std::to_string(layer);
                 auto attended = attention(s, layer == 0 ? h : norm(ctx, h, prefix + ".attn_norm"), prefix, layer, false, bf16 ? h : nullptr);
                 h = bf16 ? attended : ggml_add(ctx, h, attended);
-                if (tensor_core) {
+                if (tensor_core && !vulkan) {
                     auto normalized=norm(ctx,h,prefix+".mlp_norm");
                     auto products=ggml_mul_mat(ctx,w(prefix+".mlp.Wi.weight"),split_f16(ctx,normalized));
                     auto projected=ggml_mul_mat(ctx,w(prefix+".mlp.Wo.weight"),mlp_split_f16(ctx,products));
@@ -538,10 +551,10 @@ struct runtime::impl {
 runtime::runtime(const std::filesystem::path& path, bool cuda, bool bf16, bool flash, bool tensor_core) : runtime(path, cuda ? backend_type::cuda : backend_type::cpu, bf16, flash, tensor_core) {}
 runtime::runtime(const std::filesystem::path& path, backend_type selected, bool bf16, bool flash, bool tensor_core) : p(std::make_unique<impl>()) {
     const bool cuda = selected == backend_type::cuda;
-    if (selected == backend_type::vulkan && (bf16 || flash || tensor_core))
-        throw std::invalid_argument("Vulkan currently supports FP32 without CUDA precision/attention options");
+    if (selected == backend_type::vulkan && (bf16 || flash))
+        throw std::invalid_argument("Vulkan currently supports FP32 without fused attention");
     if (bf16 && (!cuda || !flash)) throw std::invalid_argument("BF16 mode requires fused CUDA attention");
-    if (tensor_core && (bf16 || !cuda)) throw std::invalid_argument("Compensated Tensor Cores require CUDA and FP32 mode");
+    if (tensor_core && (bf16 || selected == backend_type::cpu)) throw std::invalid_argument("Compensated matrix operations require a GPU and FP32 mode");
     p->bf16 = bf16; p->flash = flash; p->tensor_core = tensor_core;
     p->load(path, selected);
 }

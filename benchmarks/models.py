@@ -18,13 +18,15 @@ def main():
     p.add_argument('--batch-sizes',type=int,nargs='+',default=[1,2,4,8])
     precision=p.add_mutually_exclusive_group()
     precision.add_argument('--strict-fp32',action='store_true')
+    precision.add_argument('--tensor-core-fp32',action='store_true')
     precision.add_argument('--bf16','--experimental-bf16',action='store_true')
     p.add_argument('--sweep',action='store_true')
     p.add_argument('--output',type=Path,default=Path('results/models'))
     a=p.parse_args()
     if a.backend != 'cuda':
         if a.bf16: p.error('Non-CUDA model validation supports FP32 only')
-        a.strict_fp32 = True
+        a.strict_fp32 = not a.tensor_core_fp32
+        if a.backend == 'cpu' and a.tensor_core_fp32: p.error('CPU requires plain FP32')
     if any(b<1 for b in a.batch_sizes): p.error('Batch sizes must be positive')
     a.output.mkdir(parents=True,exist_ok=True)
     report=dict(backend=a.backend,passed=True,complete=False,precision='bf16' if a.bf16 else 'fp32',variants=a.variants,models=[])

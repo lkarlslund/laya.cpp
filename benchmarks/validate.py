@@ -33,7 +33,8 @@ def main():
     p.add_argument('--output', type=Path, default=Path('results/validation.json'))
     a = p.parse_args()
     if a.backend != 'cuda':
-        if not a.fp32 or a.tensor_core_fp32: p.error('This backend requires plain FP32')
+        if not a.fp32: p.error('This backend currently requires FP32')
+        if a.backend == 'cpu' and a.tensor_core_fp32: p.error('CPU requires plain FP32')
         a.no_flash = True
     if any(x < 1 for x in a.batch_sizes): p.error('batch sizes must be positive')
     if not all(math.isfinite(x) and x >= 0 for x in (a.raw_atol,a.raw_rtol,a.answer_atol)):

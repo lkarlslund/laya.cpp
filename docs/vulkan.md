@@ -42,16 +42,22 @@ boolean CUDA/CPU constructors remain supported.
 
 ## Precision and implementation
 
-The initial Vulkan path supports FP32 weights and computation. It rejects
-`--bf16`, `--tensor-core-fp32` and `--flash-fp32` combinations. Those optimized
-paths remain CUDA-specific.
+Vulkan supports plain FP32 and compensated FP32 (`--tensor-core-fp32`). It
+currently rejects `--bf16` and `--flash-fp32` combinations.
 
-Before Vulkan initialization, Laya sets `GGML_VK_DISABLE_F16`,
-`GGML_VK_DISABLE_COOPMAT`, and `GGML_VK_DISABLE_COOPMAT2`. The pinned backend can
-otherwise convert FP32 operands to FP16 even when FP32 accumulation is requested.
-These settings preserve the same-precision correctness contract. Applications
-embedding the library should let Laya initialize Vulkan before other ggml Vulkan
-users, since backend device configuration is shared within a process.
+Compensated FP32 splits each projection input into two FP16 components, computes
+both products with FP32 accumulators, and combines them in FP32. The checkpoints'
+stored FP16 projection weights are represented exactly. This enables cooperative
+matrix hardware without reducing each input to a single FP16 value. Attention,
+normalization and residuals remain FP32. The option name is shared with CUDA;
+Vulkan uses the device's cooperative-matrix implementation, including AMD's.
+
+A build-time extension of the pinned Vulkan backend supplies true FP32 matrix
+kernels alongside cooperative half-precision kernels. It prevents implicit
+FP16 conversion of explicitly FP32 matrix operands. The dependency checkout
+remains unchanged. A matrix-level precision test exercises both paths on the
+same device, including non-aligned dimensions and values with significant bits
+that a single FP16 conversion would lose.
 
 The encoder, attention, decision layers and action projections execute on Vulkan.
 Q/K/V packing and rotary multiplication use portable ggml operations. The host
@@ -74,6 +80,9 @@ warmed calls separately. The README performance table describes CUDA only.
 ```sh
 python benchmarks/models.py --backend vulkan \
   --executable build-vulkan/bin/laya-cli --output results/vulkan
+
+python benchmarks/models.py --backend vulkan --tensor-core-fp32 \
+  --executable build-vulkan/bin/laya-cli --output results/vulkan-compensated
 
 python benchmarks/models.py --backend vulkan \
   --executable build-vulkan/bin/laya-cli --cases tests/edge-requests.json \
