@@ -10,6 +10,7 @@
 #include "vulkan_rotary.hpp"
 #include <cmath>
 #include <cstring>
+#include <array>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -350,6 +351,45 @@ int main() {
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
         if (std::string(ggml_backend_dev_description(ggml_backend_get_device(backend))).find("NVIDIA")!=std::string::npos) {
+            for (ggml_type type : {GGML_TYPE_F16,GGML_TYPE_BF16})
+            for (auto shape : {std::array<int,3>{1024,64,2}, {1024,256,17}, {1024,1024,54}, {2624,1024,744}}) {
+                const auto [k,m,n]=shape;
+                auto ctx=ggml_init({16*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+                auto w=ggml_new_tensor_2d(ctx,type,k,m);
+                auto x=ggml_new_tensor_2d(ctx,type,k,n);
+                auto widened=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,k,n);
+                auto reference=ggml_mul_mat(ctx,w,widened);
+                auto compact=ggml_mul_mat(ctx,w,x);
+                ggml_prec_set_acc(reference,GGML_PREC_F32);ggml_prec_set_acc(compact,GGML_PREC_F32);
+                ggml_set_name(compact,"laya.low-projection");
+                ggml_set_output(reference);ggml_set_output(compact);
+                auto graph=ggml_new_graph(ctx);ggml_build_forward_expand(graph,reference);ggml_build_forward_expand(graph,compact);
+                auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+                if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("Stored projection input allocation failed");
+                uint32_t state=871;
+                auto sample=[&]() {
+                    state=1664525u*state+1013904223u;
+                    uint32_t bits=(state&0x807fffffu)|((119u+((state>>23)%15u))<<23);
+                    float value;std::memcpy(&value,&bits,sizeof(value));
+                    return type==GGML_TYPE_F16 ? ggml_fp32_to_fp16(value) : ggml_fp32_to_bf16(value).bits;
+                };
+                std::vector<uint16_t> weights(k*m),inputs(k*n);
+                std::vector<float> floats(k*n),expected(m*n),actual(m*n);
+                for (auto& value:weights) value=sample();
+                for (int i=0;i<k*n;++i) {
+                    inputs[i]=i%101==0 ? uint16_t(0x8000) : sample();
+                    floats[i]=type==GGML_TYPE_F16 ? ggml_fp16_to_fp32(inputs[i]) : ggml_bf16_to_fp32(ggml_bf16_t{inputs[i]});
+                }
+                ggml_backend_tensor_set(w,weights.data(),0,ggml_nbytes(w));
+                ggml_backend_tensor_set(x,inputs.data(),0,ggml_nbytes(x));
+                ggml_backend_tensor_set(widened,floats.data(),0,ggml_nbytes(widened));
+                if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("Stored projection input compute failed");
+                ggml_backend_tensor_get(reference,expected.data(),0,ggml_nbytes(reference));
+                ggml_backend_tensor_get(compact,actual.data(),0,ggml_nbytes(compact));
+                if (std::memcmp(expected.data(),actual.data(),expected.size()*sizeof(float)))
+                    throw std::runtime_error("Stored projection input changed accumulation: "+std::string(ggml_type_name(type))+" K="+std::to_string(k)+" M="+std::to_string(m)+" N="+std::to_string(n));
+                ggml_gallocr_free(allocator);ggml_free(ctx);
+            }
             using laya::vulkan_precision::attention_partitions;
             if (attention_partitions(512,512,16,1,188)!=2 ||
                 attention_partitions(512,512,16,2,188)!=1 ||

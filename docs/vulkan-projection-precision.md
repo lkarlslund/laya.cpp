@@ -40,6 +40,13 @@ at batches 1, 2, 4 and 8 in FP16 and BF16
 [Projection-storage timing results](vulkan-finish-performance.md) compare this
 build with the preceding packing build.
 
+Explicitly marked NVIDIA low-precision matrix products can retain FP16/BF16
+inputs while preserving FP32 accumulation and the requested unsplit reduction.
+Bitwise tests compare these products with the rounded-FP32-input path at small
+and large batch dimensions, including signed zeros and cancellation. Scalar
+projections retain their existing policy. Runtime integration of this conversion
+optimization remains pending.
+
 The fused QKV packing operator combines layout conversion, rotary multiplication,
 and storage rounding in one dispatch. Its operator tests pass on NVIDIA and AMD
 for FP32, FP16 and BF16, with batched inputs, rotary positions enabled and
