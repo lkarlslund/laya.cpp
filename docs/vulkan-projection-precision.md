@@ -20,6 +20,14 @@ python benchmarks/generate_projection_plans.py path/to/profile.jsonl
 
 Each profile row contains `precision`, `k`, `m`, `n`, `bias`, `chunk`, `scheme`, and `round_before_bias`. The generator requires identical, complete FP16/BF16 geometry coverage and rejects unknown reduction schemes.
 
+ROCm GELU patches preserve signed zeros as well as nonzero values. Their generator
+compares all 65,536 input bit patterns in each 16-bit format, ignoring only NaN
+payload differences. Numerical equality alone missed 13,942 zero-sign differences;
+an isolated AMD matrix test showed that those signs can affect rounded projection
+outputs. Regenerate and check the tables with `benchmarks/generate_gelu_tables.py`
+and `--check` in the matching ROCm environment. This operator check does not establish
+full-model AMD 16-bit acceptance.
+
 The fused QKV packing operator combines layout conversion, rotary multiplication,
 and storage rounding in one dispatch. Its operator tests pass on NVIDIA and AMD
 for FP32, FP16 and BF16, with batched inputs, rotary positions enabled and

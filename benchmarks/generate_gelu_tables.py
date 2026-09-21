@@ -35,7 +35,10 @@ def main():
             original=[int(x,16) for x in re.findall(r'0x[0-9a-f]+',payload)]
             base_values=torch.tensor(original,dtype=torch.int32).to(torch.int16).view(dtype).float().tolist()
             new_values=torch.tensor(values,dtype=torch.int16).view(dtype).float().tolist()
-            changes=[(i,v) for i,(a,b,v) in enumerate(zip(base_values,new_values,values)) if a!=b and not (math.isnan(a) and math.isnan(b))]
+            # Signed zeros are part of the low-precision input contract too:
+            # matrix instructions can produce different rounded sums for them.
+            changes=[(i,v) for i,(a,b,v,old) in enumerate(zip(base_values,new_values,values,original))
+                     if (v & 65535)!=old and not (math.isnan(a) and math.isnan(b))]
             out.append(f'inline constexpr gelu_patch gelu_{name}_rocm[]={{')
             out += [f'{{{i},{hex(v & 65535)}}},' for i,v in changes]
             out.append('};')
@@ -47,7 +50,7 @@ def main():
     text='\n'.join(out)+'\n'
     if args.check:
         if args.output.read_text()!=text: raise SystemExit('GELU numerical table differs')
-        print('All 131,072 GELU values match numerically' if rocm else 'All 131,072 GELU values match')
+        print('All 131,072 GELU values match (NaN payloads ignored)' if rocm else 'All 131,072 GELU values match')
     else: args.output.write_text(text)
 
 if __name__=='__main__': main()
