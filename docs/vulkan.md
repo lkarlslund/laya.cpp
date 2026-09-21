@@ -214,3 +214,11 @@ tests pass on both tested GPUs, including fully masked rows. A diagnostic NVIDIA
 trace matches all 28 encoder outputs and the first head attention output exactly
 in FP16 and BF16. This is component-level progress: later head outputs still
 differ, so neither 16-bit mode has passed the full-model acceptance gate.
+
+NVIDIA compensated FP32 projections now use additional K partitions when a
+small token batch would leave most compute units idle. The change retains FP32
+partial accumulation and does not alter the AMD projection policy. All three
+models pass the [3,000-comparison acceptance run](measurements/vulkan-projection-split-fp32.json).
+A preliminary 16-question paired sweep measured 1.63×, 1.26×, 1.08× and 1.06×
+speedups over the fused build at batches 1, 2, 4 and 8 respectively; these are
+diagnostic results, not a replacement for the full-corpus performance table.

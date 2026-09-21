@@ -28,8 +28,9 @@ int main() {
         }
         // Non-tile-aligned shapes, with values whose low bits disappear in FP16.
         // Exercise FP32 and accelerated half products on the same Vulkan device.
-        for (auto type : {GGML_TYPE_F32, GGML_TYPE_F16}) {
-            constexpr int k=65, m=37, n=33;
+        for (auto type : {GGML_TYPE_F32, GGML_TYPE_F16}) for (int k : {65,1024,2624}) {
+            if (type==GGML_TYPE_F32 && k!=65) continue;
+            constexpr int m=37, n=33;
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             auto a=ggml_new_tensor_2d(ctx,type,k,m), b=ggml_new_tensor_2d(ctx,type,k,n);
             ggml_set_input(a); ggml_set_input(b);
@@ -39,8 +40,8 @@ int main() {
             auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
             if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("allocation failed");
             std::vector<float> av(k*m),bv(k*n),actual(m*n);
-            for (int i=0;i<k*m;++i) av[i]=1.f+float(i%7+1)/8192.f;
-            for (int i=0;i<k*n;++i) bv[i]=(i%2 ? -.5f : .5f)+float(i%5)/4096.f;
+            for (int i=0;i<k*m;++i) av[i]=1.f+float(i%7+1)/(k==65 ? 8192.f : 512.f);
+            for (int i=0;i<k*n;++i) bv[i]=(i%2 ? -.5f : .5f)+float(i%5)/(k==65 ? 4096.f : 256.f);
             auto upload=[&](ggml_tensor* t,std::vector<float>& values) {
                 if (type==GGML_TYPE_F32) ggml_backend_tensor_set(t,values.data(),0,ggml_nbytes(t));
                 else {

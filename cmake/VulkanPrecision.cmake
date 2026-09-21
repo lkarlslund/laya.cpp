@@ -38,6 +38,7 @@ laya_vk_replace(
 laya_vk_replace(
   "    const bool y_non_contig = (ctx->device->coopmat2 && src1->type == GGML_TYPE_F32) ||"
   "    const bool y_non_contig = (ctx->device->coopmat2 && src1->type == GGML_TYPE_F32 && !strict_f32) ||")
+include(${CMAKE_CURRENT_LIST_DIR}/VulkanProjectionSplit.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/VulkanOperators.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/VulkanAccumulation.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/VulkanAttention.cmake)
