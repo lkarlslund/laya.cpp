@@ -24,5 +24,6 @@ The fused QKV packing operator combines layout conversion, rotary multiplication
 and storage rounding in one dispatch. Its operator tests pass on NVIDIA and AMD
 for FP32, FP16 and BF16, with batched inputs, rotary positions enabled and
 disabled, subnormal inputs, and large values. Rotary products round separately
-before addition. Full-model regression and performance testing of its runtime
-integration are pending.
+before addition. All 6,000 NVIDIA FP16/BF16 public-answer comparisons also pass with the
+fused operator integrated ([record](measurements/vulkan-packed-16bit-validation.json)).
+FP32 regression and performance testing remain pending.
