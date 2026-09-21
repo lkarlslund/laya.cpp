@@ -183,3 +183,10 @@ also passes all 3,000 public-answer comparisons on NVIDIA, with exact categories
 and numeric error at most 0.0001. This gate concerns public answers; raw tensor
 differences remain separate diagnostics. The matrix-level FP32/FP16 test passes
 on both RTX PRO 6000 Blackwell and Radeon 8060S.
+
+The [current compensated FP32 acceptance](measurements/vulkan-compensated-fp32.json)
+passes all 3,000 comparisons on each tested GPU, including AMD against Python
+ROCm on the same device. It uses a clean snapshot of the recorded source commit.
+The residual component uses a scale of 1024 to avoid FP16 overflow at large
+activations; regression tests include values near half-precision rounding
+boundaries above 32,000.
