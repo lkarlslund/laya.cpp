@@ -4,7 +4,7 @@ Low-precision projection results depend on where intermediate sums are rounded. 
 
 Plans distinguish unsplit products, parallel partitions with either FP32 or low-precision partials, and serial partitions that round the running sum after every partition. Biased projections also record whether the product is stored in low precision before adding bias. These are geometry-based rules; no question-specific corrections are used.
 
-This coverage fixes a traced typed-decisions BF16 batch of two long requests: all captured intermediates, including all 28 encoder outputs and both head outputs, match exactly. Vulkan operator tests pass. Full-model acceptance at every batch size remains pending; the table alone does not establish supported FP16/BF16 inference. AMD does not use this NVIDIA-specific policy.
+This coverage fixes a traced typed-decisions BF16 batch of two long requests: all captured intermediates, including all 28 encoder outputs and both head outputs, match exactly. Vulkan operator tests pass. The multilingual FP16 prototype also passes all 250 fixed questions at batches 1, 2, 4, and 8 with exact categories and numeric absolute tolerance 0.0001; see [the validation record](measurements/vulkan-multilingual-fp16-validation.json). Acceptance for the other model/precision combinations remains pending; these results do not establish general FP16/BF16 support. AMD does not use this NVIDIA-specific policy.
 
 The profiles describe the measured device and library version. Untested geometries fall back to an unsplit product, without a matching-precision guarantee. Reprofile when targeting another device or math-library version.
 

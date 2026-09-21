@@ -1,0 +1,143 @@
+{
+  "backend": "vulkan",
+  "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+  "precision": "fp16",
+  "native_build_sha256": "75a6ea022142a5b3e60ad1ce79ab18ad1bed60c14503878589d6bdc178f2471a",
+  "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "torch": "2.11.0+cu130",
+  "python_runtime": "cuda",
+  "python_runtime_version": "13.0",
+  "acceptance": "exact_categories_absolute_numeric_0.0001",
+  "passed": true,
+  "batches": [
+    {
+      "batch_size": 1,
+      "questions": 250,
+      "max_logit_error": 0.0,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 2,
+      "questions": 250,
+      "max_logit_error": 0.0,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 4,
+      "questions": 250,
+      "max_logit_error": 0.00390625,
+      "max_action_error": 1.0,
+      "failures": [],
+      "raw_diagnostics": [
+        {
+          "start": 48,
+          "ids": [
+            "return-09",
+            "return-10",
+            "appointment-01",
+            "appointment-02"
+          ],
+          "error": "actions max error 1.0"
+        },
+        {
+          "start": 76,
+          "ids": [
+            "hiring-07",
+            "hiring-08",
+            "hiring-09",
+            "hiring-10"
+          ],
+          "error": "actions max error 1.0"
+        },
+        {
+          "start": 148,
+          "ids": [
+            "fraud-09",
+            "fraud-10",
+            "moderation-01",
+            "moderation-02"
+          ],
+          "error": "actions max error 1.0"
+        },
+        {
+          "start": 156,
+          "ids": [
+            "moderation-07",
+            "moderation-08",
+            "moderation-09",
+            "moderation-10"
+          ],
+          "error": "logits max error 0.00390625"
+        },
+        {
+          "start": 188,
+          "ids": [
+            "facilities-09",
+            "facilities-10",
+            "manufacturing-01",
+            "manufacturing-02"
+          ],
+          "error": "logits max error 0.00390625; actions max error 1.0"
+        },
+        {
+          "start": 196,
+          "ids": [
+            "manufacturing-07",
+            "manufacturing-08",
+            "manufacturing-09",
+            "manufacturing-10"
+          ],
+          "error": "logits max error 0.001953125"
+        },
+        {
+          "start": 208,
+          "ids": [
+            "data_pipeline-09",
+            "data_pipeline-10",
+            "release-01",
+            "release-02"
+          ],
+          "error": "logits max error 0.001953125"
+        },
+        {
+          "start": 216,
+          "ids": [
+            "release-07",
+            "release-08",
+            "release-09",
+            "release-10"
+          ],
+          "error": "actions max error 1.0"
+        },
+        {
+          "start": 228,
+          "ids": [
+            "accessibility-09",
+            "accessibility-10",
+            "multilingual-01",
+            "multilingual-02"
+          ],
+          "error": "actions max error 1.0"
+        }
+      ],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 8,
+      "questions": 250,
+      "max_logit_error": 0.00048828125,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    }
+  ],
+  "scope": "Multilingual FP16 NVIDIA Vulkan prototype; other models and AMD remain under validation."
+}
