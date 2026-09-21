@@ -36,8 +36,9 @@ residuals, rounding midpoints, signed zeros, and subnormals. The exhaustive GPU
 activation tests also check zero signs. The operator is integrated into 16-bit
 projections; all 6,000 NVIDIA public-answer comparisons pass for the three models
 at batches 1, 2, 4 and 8 in FP16 and BF16
-([record](measurements/vulkan-finish-16bit-validation.json)). Its throughput
-comparison remains pending.
+([record](measurements/vulkan-finish-16bit-validation.json)).
+[Projection-storage timing results](vulkan-finish-performance.md) compare this
+build with the preceding packing build.
 
 The fused QKV packing operator combines layout conversion, rotary multiplication,
 and storage rounding in one dispatch. Its operator tests pass on NVIDIA and AMD
