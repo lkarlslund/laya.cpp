@@ -95,6 +95,9 @@ warmed calls separately. The README performance table describes CUDA only.
 
 ## Measured FP32 throughput
 
+[New measurements of the fused split/merge build](vulkan-fused-performance.md)
+include Python on AMD. The NVIDIA tables below retain the earlier recorded build.
+
 On an RTX PRO 6000 Blackwell capped at **450 W**, compensated Vulkan FP32
 produced the following warmed questions/second against Python FP32. Each row
 covers the fixed 250-question corpus, with three warmups and five timed runs per

@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "engine_source_revision": "0661ad3ef94ab18460c81035e69245deda7e50f8",
+  "precision": "fp32",
+  "mode": "compensated_fused_split_merge",
+  "corpus": "benchmarks/cases/acceptance-250.json",
+  "questions": 250,
+  "warmup": 3,
+  "iterations": 5,
+  "acceptance": "exact_categories_absolute_numeric_0.0001",
+  "exclusive_gpu": false,
+  "other_builds_or_gpu_tests_during_timing": false,
+  "devices": {
+    "amd": {
+      "gpu": "AMD Radeon 8060S Graphics",
+      "driver": "Mesa 26.2.2-arch3.2",
+      "models": {
+        "english": {
+          "schema_version": 2,
+          "backend": "vulkan",
+          "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+          "model_revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+          "gpu": "Radeon 8060S Graphics",
+          "torch": "2.11.0+rocm7.13.0",
+          "precision": "fp32",
+          "iterations": 5,
+          "python_runtime": "rocm",
+          "python_runtime_version": "7.13.99004",
+          "fused_attention": false,
+          "tensor_core_fp32": true,
+          "native_build_sha256": "604c870a2d2f609af424961dc009331e6cf05ac98aeb8dd731e91d7baa83f464",
+          "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+          "warmup": 3,
+          "batch_sizes": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "passed": true,
+          "ggml_revision": "456172ec733a135778adcd32d00e576a58232e45",
+          "baseline_revision": "d113dca2512fb3eaca313534bc54c7162d87c1d4",
+          "native_device": "AMD Radeon 8060S Graphics (RADV STRIX_HALO)",
+          "harness_project_revision": "69ad1824a292106f2784c20163958953a0958019",
+          "rows": [
+            {
+              "batch_size": 1,
+              "failures": [],
+              "speedup": 1.1555992680872693,
+              "baseline": {
+                "p50_ms": 38.97394594969228,
+                "p95_ms": 195.77843440929428,
+                "questions_per_second": 16.82740736369399
+              },
+              "native": {
+                "p50_ms": 39.6481985,
+                "p95_ms": 135.75753375000002,
+                "questions_per_second": 19.4457396332911
+              }
+            },
+            {
+              "batch_size": 2,
+              "failures": [],
+              "speedup": 1.4219815102518643,
+              "baseline": {
+                "p50_ms": 66.91373302601278,
+                "p95_ms": 428.2983390148729,
+                "questions_per_second": 18.00031377065218
+              },
+              "native": {
+                "p50_ms": 52.361315,
+                "p95_ms": 250.91376499999998,
+                "questions_per_second": 25.596113360599414
+              }
+            },
+            {
+              "batch_size": 4,
+              "failures": [],
+              "speedup": 1.5649415516375835,
+              "baseline": {
+                "p50_ms": 133.78250505775213,
+                "p95_ms": 832.5145725626498,
+                "questions_per_second": 17.276232377650675
+              },
+              "native": {
+                "p50_ms": 96.568545,
+                "p95_ms": 454.9189759,
+                "questions_per_second": 27.036293903532105
+              }
+            },
+            {
+              "batch_size": 8,
+              "failures": [],
+              "speedup": 1.7609970073223624,
+              "baseline": {
+                "p50_ms": 280.244579014834,
+                "p95_ms": 1621.8393499730155,
+                "questions_per_second": 15.532114289226067
+              },
+              "native": {
+                "p50_ms": 187.09562499999998,
+                "p95_ms": 801.17644765,
+                "questions_per_second": 27.352006780716003
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "complete": false
+}
