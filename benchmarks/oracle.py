@@ -12,8 +12,10 @@ class Oracle:
         self.build_sequence, self.collate, self.types = build_sequence, collate_items, QTYPES
         self.agent = laya.load(str(Path(model).resolve()), device='cuda')
         if self.agent.device.type != 'cuda':
-            raise RuntimeError('Baseline did not load on CUDA')
+            raise RuntimeError('Baseline did not load on the CUDA/ROCm GPU')
         self.fp32 = fp32
+        if not fp32 and self.agent.dtype != torch.bfloat16:
+            raise RuntimeError('BF16 baseline selected a different autocast dtype')
         if fp32:
             torch.backends.cuda.matmul.allow_tf32 = False
             torch.backends.cudnn.allow_tf32 = False

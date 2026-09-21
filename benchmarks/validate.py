@@ -10,7 +10,7 @@ import torch
 from native import Native
 from oracle import Oracle
 from compare import compare_values
-from identity import file_hash, native_hash
+from identity import file_hash, native_hash, matching_device
 
 
 def main():
@@ -44,10 +44,13 @@ def main():
     report = dict(backend=a.backend, cases_sha256=hashlib.sha256(a.cases.read_bytes()).hexdigest(), precision='fp32' if a.fp32 else 'bf16',
                   native_build_sha256=native_hash(a.executable), weights_sha256=file_hash(Path(a.model)/'model.safetensors'),
                   gpu=torch.cuda.get_device_name(), torch=torch.__version__,
+                  python_runtime='rocm' if torch.version.hip else 'cuda',
+                  python_runtime_version=torch.version.hip or torch.version.cuda,
                   fused_attention=not a.no_flash, tensor_core_fp32=a.tensor_core_fp32,
                   acceptance='exact_categories_absolute_numeric_0.0001', raw_atol=a.raw_atol, raw_rtol=a.raw_rtol, answer_atol=a.answer_atol, passed=True, batches=[])
     # Run one native process at a time to avoid unnecessary duplicate device weights.
     with Native(a.executable, a.model, raw=True, fp32=a.fp32, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
+        report['native_device'] = matching_device(native.call(cases[:1]), a.backend, report['gpu'])
         for batch_size in a.batch_sizes:
             summary = dict(batch_size=batch_size, questions=0, max_logit_error=0., max_action_error=0., failures=[], raw_diagnostics=[])
             for start in range(0, len(cases), batch_size):

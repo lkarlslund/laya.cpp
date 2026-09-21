@@ -11,6 +11,15 @@ spec.loader.exec_module(identity)
 
 
 class NativeIdentityTests(unittest.TestCase):
+    def test_vulkan_matches_rocm_marketing_name(self):
+        name = 'AMD Radeon 8060S Graphics (RADV STRIX_HALO)'
+        self.assertEqual(identity.matching_device({'device': name}, 'vulkan', 'Radeon 8060S Graphics'), name)
+
+    def test_vulkan_rejects_wrong_or_unidentified_gpu(self):
+        for response in ({}, {'device': 'NVIDIA RTX PRO 6000 Blackwell Workstation Edition'}):
+            with self.assertRaises(ValueError):
+                identity.matching_device(response, 'vulkan', 'Radeon 8060S Graphics')
+
     def test_loaded_math_library_changes_invalidate_acceptance(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)

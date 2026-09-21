@@ -30,6 +30,11 @@ explicit: `--cuda` (the CLI default), `--vulkan`, or `--cpu`. A Vulkan-only buil
 still requires `--vulkan` at launch. An unavailable backend produces an error;
 there is no automatic CPU fallback.
 
+The CLI startup message and each JSON-lines response identify the physical GPU
+(`device`) separately from the backend (`Vulkan0`). Validation records both the
+native GPU and the Python GPU; timing requires the same native device as its
+validation report. This matters on systems with both integrated and discrete GPUs.
+
 The first visible Vulkan device is used. The pinned ggml backend accepts
 `GGML_VK_VISIBLE_DEVICES` to select visible device indices. In the C++ API, use
 `laya::backend_type::vulkan` in the `agent` or `runtime` constructor. The existing
@@ -84,6 +89,15 @@ also checks tokenization, finite raw tensors and deterministic graph replays.
 Raw tensor differences are reported separately from the public-answer gate.
 The Python comparison harness requires its existing PyTorch/CUDA environment;
 this is not a requirement of the Vulkan inference executable.
+
+For an AMD comparison, run the same scripts with a separate ROCm-enabled PyTorch
+environment and select the AMD Vulkan device with `GGML_VK_VISIBLE_DEVICES`.
+Always check the CLI's reported device name: loader layers can make ggml's indices
+differ from `vulkaninfo --summary`. The harness rejects a Vulkan GPU name that
+does not match the Python GPU. PyTorch on ROCm uses the `torch.cuda` API too; reports
+identify its runtime as `rocm` and record the runtime version. A CUDA Python run
+on NVIDIA is not an AMD Python baseline. BF16 validation rejects a baseline that
+silently selects another autocast dtype.
 
 `benchmarks/models.py --sweep` and `benchmarks/sweep.py --backend vulkan` support
 paired performance measurements after validation. A CUDA validation report

@@ -549,4 +549,5 @@ runtime::~runtime() = default;
 raw_result runtime::forward(const batch& input) { return p->run(input); }
 const json& runtime::config() const { return p->config; }
 std::string runtime::backend_name() const { return ggml_backend_name(p->backend); }
+std::string runtime::device_name() const { return ggml_backend_dev_description(ggml_backend_get_device(p->backend)); }
 }

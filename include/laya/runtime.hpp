@@ -35,6 +35,7 @@ public:
     raw_result forward(const batch& input);
     const json& config() const;
     std::string backend_name() const;
+    std::string device_name() const;
 private:
     struct impl;
     std::unique_ptr<impl> p;
@@ -46,6 +47,7 @@ public:
     json predict(const json& requests, bool raw = false);
     json prepare_json(const json& requests) const;
     std::string backend_name() const;
+    std::string device_name() const;
 private:
     runtime model;
     tokenizer tok;

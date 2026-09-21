@@ -35,6 +35,7 @@ agent::agent(const std::filesystem::path& directory, backend_type backend, bool 
     std::ifstream f(directory / "tokenizer/tokenizer_config.json"); settings = json::parse(f);
 }
 std::string agent::backend_name() const { return model.backend_name(); }
+std::string agent::device_name() const { return model.device_name(); }
 batch agent::prepare(const json& requests, json& metadata) const {
     if (!requests.is_array() || requests.empty()) throw std::invalid_argument("requests must be a nonempty array");
     auto token_text = [&](const std::string& key) {

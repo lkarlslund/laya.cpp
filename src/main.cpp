@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
         if (http_option && !server) throw std::invalid_argument("HTTP options require --server");
         if (variant!="english") model=(std::filesystem::path(model)/variant).string();
         laya::agent agent(model, backend, bf16, flash, tensor_core);
-        std::cerr << "Ready: " << agent.backend_name() << '\n';
+        std::cerr << "Ready: " << agent.backend_name() << " (" << agent.device_name() << ")\n";
         if (server) {
             // A direct --model checkpoint path must identify its actual variant too.
             std::ifstream metadata_file(std::filesystem::path(model)/"rl_agent_config.json");
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
             auto start = std::chrono::steady_clock::now();
             auto result = prepare ? agent.prepare_json(requests) : agent.predict(requests, raw);
             auto elapsed = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now()-start).count();
-            return laya::json{{"results", result}, {"elapsed_ms", elapsed}, {"backend", agent.backend_name()}};
+            return laya::json{{"results", result}, {"elapsed_ms", elapsed}, {"backend", agent.backend_name()}, {"device", agent.device_name()}};
         };
         if (!input_file.empty()) {
             std::ifstream file(input_file);

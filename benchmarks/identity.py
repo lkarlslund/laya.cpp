@@ -5,6 +5,15 @@ import subprocess
 from pathlib import Path
 
 
+def matching_device(response, backend, python_device):
+    """Fail closed when a Vulkan run accidentally selects a different GPU."""
+    device = response.get('device')
+    normalize = lambda name: re.sub(r'[^a-z0-9]', '', name.casefold())
+    if backend == 'vulkan' and (not device or normalize(python_device) not in normalize(device)):
+        raise ValueError(f'Vulkan GPU {device!r} does not match Python GPU {python_device!r}')
+    return device
+
+
 def file_hash(path):
     with open(path, 'rb') as source:
         return hashlib.file_digest(source, 'sha256').hexdigest()
