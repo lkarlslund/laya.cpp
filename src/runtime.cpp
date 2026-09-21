@@ -318,21 +318,11 @@ struct runtime::impl {
         tensor* split[3];
         int kind=layer%3==0 ? 0 : 1;
         if (vulkan) {
-            // Express packing and rotary math as portable GPU operations.
-            for (int i = 0; i < 3; ++i) {
-                auto part = ggml_cont(ctx, ggml_view_3d(ctx, qkv, width, s.length, s.batch,
-                    qkv->nb[1], qkv->nb[1]*s.length, i*width*sizeof(float)));
-                part = ggml_reshape_4d(ctx, part, 64, heads, s.length, s.batch);
-                if (!head && i < 2) {
-                    auto first = ggml_view_4d(ctx, part, 32, heads, s.length, s.batch,
-                        part->nb[1], part->nb[2], part->nb[3], 0);
-                    auto second = ggml_view_4d(ctx, part, 32, heads, s.length, s.batch,
-                        part->nb[1], part->nb[2], part->nb[3], 32*sizeof(float));
-                    auto rotated = ggml_concat(ctx, ggml_neg(ctx, ggml_cont(ctx, second)), ggml_cont(ctx, first), 0);
-                    part = ggml_add(ctx, ggml_mul(ctx, part, s.cosine[kind]), ggml_mul(ctx, rotated, s.sine[kind]));
-                }
-                split[i] = rounded(ctx,ggml_cont(ctx, ggml_permute(ctx, part, 0, 2, 1, 3)));
-            }
+            auto packed_qkv=vulkan_precision::pack_qkv(ctx,qkv,head ? nullptr : s.cosine[kind],
+                head ? nullptr : s.sine[kind],s.length,s.batch,low_precision ? low_type : GGML_TYPE_F32);
+            for (int i=0;i<3;++i)
+                split[i]=ggml_view_4d(ctx,packed_qkv,64,s.length,heads,s.batch,
+                    packed_qkv->nb[1],packed_qkv->nb[2],packed_qkv->nb[3],i*s.batch*packed_qkv->nb[3]);
         } else {
             auto packed_qkv=pack_qkv(ctx,qkv,head ? nullptr : s.cosine[kind],head ? nullptr : s.sine[kind],s.length,s.batch,low_precision);
             for (int i=0;i<3;++i)

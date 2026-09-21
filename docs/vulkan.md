@@ -73,7 +73,7 @@ regression check includes the multilingual numeric answer that exceeded the
 0.0001 tolerance with the original accumulation path.
 
 The encoder, attention, decision layers and action projections execute on Vulkan.
-Q/K/V packing and rotary multiplication use portable ggml operations. The host
+Q/K/V packing and rotary multiplication share one Vulkan shader dispatch. The host
 prepares and uploads attention masks for each call; tokenizer preprocessing and
 action statistics use the existing host implementation. All graph operations are
 checked for backend support before execution.

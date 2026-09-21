@@ -26,4 +26,6 @@ for FP32, FP16 and BF16, with batched inputs, rotary positions enabled and
 disabled, subnormal inputs, and large values. Rotary products round separately
 before addition. All 6,000 NVIDIA FP16/BF16 public-answer comparisons also pass with the
 fused operator integrated ([record](measurements/vulkan-packed-16bit-validation.json)).
-FP32 regression and performance testing remain pending.
+The NVIDIA plain and compensated FP32 modes also pass all 6,000 comparisons
+([record](measurements/vulkan-packed-fp32-nvidia-validation.json)). AMD FP32
+regression and before/after performance testing remain pending.
