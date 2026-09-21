@@ -3,6 +3,13 @@
 laya_vk_replace(
   "    const uint32_t split_k = ggml_vk_guess_split_k(ctx, ne01, ne11, ne10, disable_split_k, pipeline);"
   [=[    uint32_t split_k = ggml_vk_guess_split_k(ctx, ne01, ne11, ne10, disable_split_k, pipeline);
+    // Low-precision projections supply explicitly rounded F32 activations.
+    // Their partition plan is expressed in the graph; another automatic split
+    // would change the accumulation order, including deliberately unsplit GEMMs.
+    if (ctx->device->vendor_id == VK_VENDOR_ID_NVIDIA &&
+        (src0->type == GGML_TYPE_F16 || src0->type == GGML_TYPE_BF16) &&
+        src1->type == GGML_TYPE_F32 && (ggml_prec)dst->op_params[0] == GGML_PREC_F32)
+        split_k = 1;
     if (!disable_split_k && ctx->device->vendor_id == VK_VENDOR_ID_NVIDIA &&
         src0->type == GGML_TYPE_F16 && src1->type == GGML_TYPE_F16 &&
         ne12 * ne13 == 1 && ne10 >= 1024 && ctx->device->shader_core_count) {

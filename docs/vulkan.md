@@ -242,3 +242,9 @@ layouts with synthetic impulses. This corrected 688 boundaries inferred from
 kernel names. The eight-question NVIDIA FP16 smoke test now passes at batches
 1, 2 and 4; BF16 passes at 1 and 2. Larger-batch discrepancies still prevent
 full-model acceptance of either 16-bit mode.
+
+Automatic NVIDIA matrix partitioning is also disabled for low-precision
+projections whose explicit graph plan controls accumulation. This preserves
+deliberately unsplit operations while retaining the optimized FP32 policy.
+The eight-question batch-8 FP16 trace now matches all 28 encoder outputs exactly;
+head projection differences remain, so the full-model gate is still open.
