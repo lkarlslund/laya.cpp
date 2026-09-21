@@ -27,6 +27,10 @@ Rates are questions/second.
 | multilingual | BF16 | 2 | 316.0 | 312.8 | 0.99× |
 | multilingual | BF16 | 4 | 539.9 | 478.5 | 0.89× |
 | multilingual | BF16 | 8 | 829.5 | 607.7 | 0.73× |
+| multilingual | FP16 | 1 | 175.7 | 178.9 | 1.02× |
+| multilingual | FP16 | 2 | 317.2 | 314.1 | 0.99× |
+| multilingual | FP16 | 4 | 543.6 | 479.1 | 0.88× |
+| multilingual | FP16 | 8 | 827.1 | 615.8 | 0.74× |
 
 Measurements for the remaining model/precision pairs are pending.
 
