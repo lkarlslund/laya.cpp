@@ -19,6 +19,10 @@ Rates are questions/second.
 | english | 2 | 209.3 | 166.5 | 0.80× |
 | english | 4 | 253.2 | 226.6 | 0.89× |
 | english | 8 | 260.1 | 267.9 | 1.03× |
+| multilingual | 1 | 187.2 | 107.0 | 0.57× |
+| multilingual | 2 | 307.0 | 191.6 | 0.62× |
+| multilingual | 4 | 412.2 | 288.7 | 0.70× |
+| multilingual | 8 | 449.6 | 340.1 | 0.76× |
 
 Further models are being measured; each is added after all four settings pass.
 
