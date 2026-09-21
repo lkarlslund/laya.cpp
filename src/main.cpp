@@ -50,9 +50,9 @@ int main(int argc, char** argv) {
             else if (arg == "--raw") raw = true;
             else if (arg == "--prepare") prepare = true;
             else if (arg == "--help") {
-                std::cout << "laya-cli [--model DIR] [--variant english|multilingual|typed-decisions] [--input JSON] [--raw|--prepare] [--fp32] [--cpu|--cuda|--vulkan]\n"
+                std::cout << "laya-cli [--model DIR] [--variant english|multilingual|typed-decisions] [--input JSON] [--raw|--prepare] [--fp32|--fp16|--bf16] [--cpu|--cuda|--vulkan]\n"
                              "--tensor-core-fp32 --flash-fp32 enables the optimized CUDA path.\n"
-                             "--bf16 enables matching-precision CUDA inference (requires the toolchain in docs/precision.md).\n--experimental-bf16 is a compatibility alias. --no-flash is supported only in FP32 mode.\n"
+                             "--bf16 enables mixed BF16 on CUDA or Vulkan; --fp16 currently requires Vulkan.\n--experimental-bf16 is a compatibility alias. See docs/precision.md and docs/vulkan.md for validated hardware and toolchains.\n"
                              "Reads JSON lines from stdin when --input is absent. Each line is a request or request array.\n";
                 std::cout << "--server listens on HTTP: POST /v1/systemone (JEV schema), POST /predict (batch), GET /health, GET /v1/models.\n"
                              "--host ADDRESS (127.0.0.1), --port PORT (8080), --max-questions N (8).\n"
