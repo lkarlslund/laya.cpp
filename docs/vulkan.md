@@ -228,5 +228,5 @@ build-vulkan/bin/laya-cli --vulkan --fp16 --model models/laya --variant multilin
 These modes execute entirely in native C++ and Vulkan shaders. GPU/library-specific
 rounding plans are validated only for the measured profile; this result does not
 establish parity on other NVIDIA devices. AMD FP16/BF16 correctness is still being
-implemented. Its validated mode remains FP32. Performance measurements for the
-16-bit Vulkan modes are pending.
+implemented. Its validated mode remains FP32. [Initial 16-bit performance measurements](vulkan-16bit-performance.md) compare
+the validated native build with matching-precision Python.
