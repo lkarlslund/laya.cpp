@@ -45,6 +45,19 @@ Rates are questions/second.
 | multilingual | 2 | 299.3 | 172.6 | 0.58× |
 | multilingual | 4 | 405.3 | 270.2 | 0.67× |
 | multilingual | 8 | 443.0 | 333.1 | 0.75× |
+| typed-decisions | 1 | 132.2 | 66.9 | 0.51× |
+| typed-decisions | 2 | 181.3 | 117.5 | 0.65× |
+| typed-decisions | 4 | 197.6 | 158.9 | 0.80× |
+| typed-decisions | 8 | 179.3 | 177.3 | 0.99× |
+
+The native CUDA/Vulkan pair was timed separately from the Python/Vulkan pair.
+
+| Model | Batch | CUDA optimized FP32 | Vulkan compensated FP32 |
+|---|---:|---:|---:|
+| english | 1 | 338.7 | 76.3 |
+| english | 2 | 441.0 | 139.8 |
+| english | 4 | 477.3 | 212.2 |
+| english | 8 | 413.3 | 253.5 |
 
 Measurements are added after each model finishes all four batch settings.
 Further model and GPU comparisons are in progress.
