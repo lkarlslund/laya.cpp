@@ -264,7 +264,13 @@ struct runtime::impl {
         return bias ? ggml_add(ctx, value, w(name + ".bias")) : value;
     }
     tensor* linear(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool packed = false, bool compact = false, tensor* residual = nullptr) {
-        x = low_precision && x->type!=low_type ? ggml_cast(ctx, x, low_type) : x;
+        if (low_precision && x->type!=low_type) {
+            // Preserve the rounded F32 layout used by the Vulkan matrix path
+            // without materializing an intermediate 16-bit tensor.
+            x=vulkan && x->type==GGML_TYPE_F32 && ggml_is_contiguous(x)
+                ? vulkan_precision::finish_projection(ctx,x,nullptr,nullptr,low_type)
+                : ggml_cast(ctx,x,low_type);
+        }
         const auto key = name + (packed ? "_weight" : ".weight");
         if (low_precision) {
             auto b = bias ? w(name+(packed ? "_bias" : ".bias")) : nullptr;
