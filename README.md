@@ -1,7 +1,7 @@
 # laya.cpp
 
 Standalone C++ inference for Laya typed decisions using ggml, with optimized
-CUDA execution on NVIDIA RTX GPUs and a Vulkan FP32 backend. Model loading, Unicode/BPE tokenization, transformer
+CUDA execution on NVIDIA RTX GPUs and a Vulkan backend. Model loading, Unicode/BPE tokenization, transformer
 inference, decision heads, and JSON output all run natively.
 
 All three checkpoints are supported:
@@ -75,7 +75,7 @@ Architecture 120 targets RTX Blackwell. Select the architecture appropriate to
 your GPU and a host compiler supported by your CUDA toolkit. For a CPU build,
 configure with `-DLAYA_CUDA=OFF` and run the CLI with `--cpu`.
 
-For Vulkan FP32 inference without a CUDA toolkit:
+For Vulkan inference without a CUDA toolkit:
 
 ```sh
 cmake -S . -B build-vulkan -G Ninja -DCMAKE_BUILD_TYPE=Release \
@@ -89,11 +89,16 @@ Vulkan needs the Vulkan loader/headers, `glslc` and SPIR-V headers (on Debian-li
 systems: `libvulkan-dev glslc spirv-headers`) and a working Vulkan driver.
 All three checkpoint variants and HTTP batching use the same `--vulkan` flag.
 Vulkan supports plain FP32 and compensated projections with `--tensor-core-fp32`.
-BF16 and `--flash-fp32` remain CUDA-only. See [Vulkan support](docs/vulkan.md) for validation and limits.
+Mixed `--fp16` and `--bf16` are validated for all three models on RTX PRO 6000
+Blackwell. AMD 16-bit support is still under development. `--flash-fp32` remains
+CUDA-only. See [Vulkan support](docs/vulkan.md) for validation and limits.
 The performance table above measures CUDA. [Current NVIDIA Vulkan measurements](docs/vulkan-projection-performance.md)
 compare compensated FP32 with Python on RTX PRO 6000 at 450 W.
 [Additional paired measurements](docs/vulkan-fused-performance.md) cover Radeon 8060S
 and native CUDA comparisons using the earlier fused projection build.
+[16-bit measurements](docs/vulkan-16bit-performance.md) compare Vulkan with
+matching-precision Python; the subsequent [QKV packing optimization](docs/vulkan-packed-performance.md)
+improves native throughput by 12–16% across all three models.
 
 ## Run
 
