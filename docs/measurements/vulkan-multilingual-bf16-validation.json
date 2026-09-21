@@ -1,0 +1,63 @@
+{
+  "backend": "vulkan",
+  "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+  "precision": "bf16",
+  "native_build_sha256": "0ab1d86c25b82dfddfb52b4b085555cc46c7a98bbabd9370fc68598ea1031cc1",
+  "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "torch": "2.11.0+cu130",
+  "python_runtime": "cuda",
+  "python_runtime_version": "13.0",
+  "acceptance": "exact_categories_absolute_numeric_0.0001",
+  "passed": true,
+  "batches": [
+    {
+      "batch_size": 1,
+      "questions": 250,
+      "max_logit_error": 0.0,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 2,
+      "questions": 250,
+      "max_logit_error": 0.0001220703125,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 4,
+      "questions": 250,
+      "max_logit_error": 0.0001220703125,
+      "max_action_error": 8.0,
+      "failures": [],
+      "raw_diagnostics": [
+        {
+          "start": 176,
+          "ids": [
+            "travel-07",
+            "travel-08",
+            "travel-09",
+            "travel-10"
+          ],
+          "error": "actions max error 8.0"
+        }
+      ],
+      "answer_failures": []
+    },
+    {
+      "batch_size": 8,
+      "questions": 250,
+      "max_logit_error": 9.5367431640625e-07,
+      "max_action_error": 0.0,
+      "failures": [],
+      "raw_diagnostics": [],
+      "answer_failures": []
+    }
+  ],
+  "scope": "Multilingual BF16 NVIDIA Vulkan prototype after serial bias-first correction; English BF16 and AMD remain under validation."
+}
