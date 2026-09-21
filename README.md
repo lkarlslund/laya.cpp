@@ -101,7 +101,8 @@ FP16 and BF16 Vulkan with matching-precision Python for all three models.
 Vulkan reaches 63–102% of Python throughput across the measured batches.
 [QKV packing](docs/vulkan-packed-performance.md) and
 [fused projection storage](docs/vulkan-finish-performance.md) document the
-individual optimization gains.
+individual optimization gains. [Native CUDA versus Vulkan BF16](docs/vulkan-current-cuda-performance.md)
+compares both native backends on the same GPU.
 
 ## Run
 

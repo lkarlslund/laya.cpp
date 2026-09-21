@@ -21,8 +21,10 @@ Rates are questions/second.
 | multilingual | 2 | 811.9 | 317.0 | 0.39× |
 | multilingual | 4 | 1166.1 | 482.0 | 0.41× |
 | multilingual | 8 | 1264.2 | 615.3 | 0.49× |
-
-Measurements for the remaining models are pending.
+| typed-decisions | 1 | 306.4 | 129.3 | 0.42× |
+| typed-decisions | 2 | 505.5 | 209.0 | 0.41× |
+| typed-decisions | 4 | 621.9 | 307.7 | 0.49× |
+| typed-decisions | 8 | 600.9 | 345.1 | 0.57× |
 
 See [measurement metadata](measurements/vulkan-current-cuda-performance.json) for
 build, weight, corpus and report identities.
