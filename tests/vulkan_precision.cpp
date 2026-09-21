@@ -148,6 +148,38 @@ int main() {
             if (actual!=expected) throw std::runtime_error("ordered reduction changed the FP32 addition order");
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
+        for (bool bf16 : {false,true}) for (bool after_storage : {false,true}) for (bool biased : {false,true}) {
+            constexpr int width=257,rows=3,parts=3,count=width*rows;
+            auto ctx=ggml_init({16*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+            auto x=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,width,rows,parts);
+            auto bias=ggml_new_tensor_1d(ctx,GGML_TYPE_F32,width);
+            auto output=laya::vulkan_precision::serial_partials(ctx,x,biased ? bias : nullptr,bf16,after_storage);
+            if (!ggml_backend_supports_op(backend,output)) throw std::runtime_error("serial reduction unsupported");
+            auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output);
+            auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+            if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("serial reduction allocation failed");
+            auto rounded=[&](float v) { return bf16 ? ggml_bf16_to_fp32(ggml_fp32_to_bf16(v)) : ggml_fp16_to_fp32(ggml_fp32_to_fp16(v)); };
+            std::vector<float> input(count*parts),biases(width),expected(count),actual(count);
+            for (int d=0;d<width;++d) biases[d]=std::ldexp(1.f,bf16 ? -9 : -12);
+            for (int i=0;i<count;++i) {
+                const float sign=i%2 ? -1.f : 1.f;
+                input[i]=sign;
+                input[count+i]=sign*std::ldexp(1.f,bf16 ? -8 : -11);
+                input[2*count+i]=-.5f*sign;
+                for (int part=0;part<parts;++part) {
+                    float value=expected[i]+input[part*count+i];
+                    if (biased && !after_storage && part+1==parts) value+=biases[i%width];
+                    expected[i]=rounded(value);
+                }
+                if (biased && after_storage) expected[i]=rounded(expected[i]+biases[i%width]);
+            }
+            ggml_backend_tensor_set(x,input.data(),0,ggml_nbytes(x));
+            if (biased) ggml_backend_tensor_set(bias,biases.data(),0,ggml_nbytes(bias));
+            if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("serial reduction compute failed");
+            ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+            if (actual!=expected) throw std::runtime_error("serial reduction changed a storage or bias boundary");
+            ggml_gallocr_free(allocator); ggml_free(ctx);
+        }
         for (int keys : {33,54,129}) for (bool masked : {false,true}) for (int queries : {17,65}) {
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             constexpr int width=64,heads=2;

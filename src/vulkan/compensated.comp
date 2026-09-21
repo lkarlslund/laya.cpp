@@ -6,8 +6,17 @@ layout(binding=1) writeonly buffer Output { uint y[]; };
 #else
 layout(binding=1) writeonly buffer Output { float y[]; };
 #endif
+#if defined(SERIAL)
+layout(binding=2) readonly buffer Bias { float bias[]; };
+#endif
 layout(push_constant) uniform Params { uint count; uint parts; uint unused1; uint unused2; } p;
 #include "rounding.glsl"
+float roundLow(float value) {
+    if ((p.unused2&1u)==0u) return unpackHalf2x16(halfBits(value)).x;
+    uint bits=floatBitsToUint(value);
+    if ((bits&0x7fffffffu)>=0x7f800000u) return value;
+    return uintBitsToFloat((bits+0x7fffu+((bits>>16)&1u))&0xffff0000u);
+}
 void main() {
     uint i=gl_GlobalInvocationID.x;
 #if defined(SPLIT)
@@ -18,6 +27,17 @@ void main() {
     precise float bl=(b-unpackHalf2x16(bh).x)*1024.0;
     y[i]=ah|(bh<<16);
     y[p.count/2+i]=halfBits(al)|(halfBits(bl)<<16);
+#elif defined(SERIAL)
+    if (i>=p.count) return;
+    precise float sum=0;
+    bool hasBias=(p.unused2&2u)!=0u, afterStorage=(p.unused2&4u)!=0u;
+    for (uint part=0;part<p.parts;++part) {
+        precise float current=sum+x[part*p.count+i];
+        if (hasBias && !afterStorage && part+1==p.parts) current+=bias[i%p.unused1];
+        sum=roundLow(current);
+    }
+    if (hasBias && afterStorage) sum=roundLow(sum+bias[i%p.unused1]);
+    y[i]=sum;
 #elif defined(REDUCE)
     if (i>=p.count) return;
     precise float sum=0;

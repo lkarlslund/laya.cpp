@@ -8,6 +8,14 @@ static bool laya_vk_supports(const ggml_tensor* op) {
             op->ne[2]==1 && op->ne[3]==1 && x->ne[0]==op->ne[0] && ggml_nelements(op)<=UINT32_MAX &&
             (split ? op->ne[1]==2*x->ne[1] : x->ne[1]==2*op->ne[1]);
     }
+    if (std::strcmp(op->name,"laya.serial-vulkan")==0) {
+        auto x=op->src[0],b=op->src[1];
+        return x && b && x->type==GGML_TYPE_F32 && b->type==GGML_TYPE_F32 && op->type==GGML_TYPE_F32 &&
+            ggml_is_contiguous(x) && ggml_is_contiguous(b) && ggml_is_contiguous(op) && x->ne[3]==1 &&
+            op->ne[2]==1 && op->ne[3]==1 && x->ne[0]==op->ne[0] && x->ne[1]==op->ne[1] &&
+            (op->op_params[0]&~7)==0 && (!(op->op_params[0]&2) || ggml_nelements(b)==x->ne[0]) &&
+            ggml_nelements(x)<=UINT32_MAX;
+    }
     if (std::strcmp(op->name,"laya.reduce-vulkan")==0) {
         auto x=op->src[0];
         return x && x->type==GGML_TYPE_F32 && op->type==GGML_TYPE_F32 &&
@@ -41,6 +49,15 @@ static bool laya_vk_custom(ggml_backend_vk_context* ctx,vk_context& subctx,ggml_
         const std::array<uint32_t,4> params={count,0,0,0};
         ggml_vk_dispatch_pipeline(ctx,subctx,pipeline,{ggml_vk_tensor_subbuffer(ctx,op->src[0]),ggml_vk_tensor_subbuffer(ctx,op)},
             params,{split ? count/2 : count,1,1});
+        return true;
+    }
+    if (std::strcmp(op->name,"laya.serial-vulkan")==0) {
+        auto pipeline=ctx->device->pipeline_laya_serial;
+        ggml_pipeline_request_descriptor_sets(ctx,pipeline,1);
+        uint32_t count=uint32_t(ggml_nelements(op));
+        const std::array<uint32_t,4> params={count,uint32_t(op->src[0]->ne[2]),uint32_t(op->ne[0]),uint32_t(op->op_params[0])};
+        ggml_vk_dispatch_pipeline(ctx,subctx,pipeline,{ggml_vk_tensor_subbuffer(ctx,op->src[0]),ggml_vk_tensor_subbuffer(ctx,op),ggml_vk_tensor_subbuffer(ctx,op->src[1])},
+            params,{count,1,1});
         return true;
     }
     if (std::strcmp(op->name,"laya.reduce-vulkan")==0) {

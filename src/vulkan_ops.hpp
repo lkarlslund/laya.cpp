@@ -29,6 +29,16 @@ inline ggml_tensor* reduce_partials(ggml_context* ctx, ggml_tensor* x, ggml_type
     // epilogue. Keeping this boundary matters at half-precision midpoints.
     return stored_type==GGML_TYPE_F32 ? output : ggml_cast(ctx,ggml_cast(ctx,output,stored_type),GGML_TYPE_F32);
 }
+// Serial matrix partitions store a low-precision running result between steps.
+inline ggml_tensor* serial_partials(ggml_context* ctx, ggml_tensor* x, ggml_tensor* bias,
+                                   bool bf16, bool bias_after_storage=false) {
+    ggml_tensor* inputs[]={x,bias ? bias : x};
+    auto output=ggml_custom_4d(ctx,GGML_TYPE_F32,x->ne[0],x->ne[1],1,1,inputs,2,
+        [](ggml_tensor*,int,int,void*) { throw std::runtime_error("Vulkan serial reduction requires a Vulkan GPU"); },1,nullptr);
+    output->op_params[0]=(bf16 ? 1 : 0)|(bias ? 2 : 0)|(bias_after_storage ? 4 : 0);
+    ggml_set_name(output,"laya.serial-vulkan");
+    return output;
+}
 inline ggml_tensor* activation(ggml_context* ctx,ggml_tensor* x,ggml_tensor* table,bool gated,bool bf16) {
     ggml_tensor* inputs[]={x,table};
     auto output=ggml_custom_4d(ctx,GGML_TYPE_F32,x->ne[0]/(gated ? 2 : 1),x->ne[1],x->ne[2],x->ne[3],inputs,2,

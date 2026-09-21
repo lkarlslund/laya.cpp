@@ -248,3 +248,8 @@ projections whose explicit graph plan controls accumulation. This preserves
 deliberately unsplit operations while retaining the optimized FP32 policy.
 The eight-question batch-8 FP16 trace now matches all 28 encoder outputs exactly;
 head projection differences remain, so the full-model gate is still open.
+
+A native serial reduction operator now stores FP16 or BF16 running sums between
+matrix partitions. Its tests distinguish serial storage from a single FP32 sum
+and cover both bias epilogue positions, with and without bias, on both tested
+GPUs. Full-model 16-bit validation is still required.
