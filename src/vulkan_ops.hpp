@@ -31,11 +31,11 @@ inline ggml_tensor* reduce_partials(ggml_context* ctx, ggml_tensor* x, ggml_type
 }
 // Serial matrix partitions store a low-precision running result between steps.
 inline ggml_tensor* serial_partials(ggml_context* ctx, ggml_tensor* x, ggml_tensor* bias,
-                                   bool bf16, bool bias_after_storage=false) {
+                                   bool bf16, bool bias_after_storage=false, bool bias_first=false) {
     ggml_tensor* inputs[]={x,bias ? bias : x};
     auto output=ggml_custom_4d(ctx,GGML_TYPE_F32,x->ne[0],x->ne[1],1,1,inputs,2,
         [](ggml_tensor*,int,int,void*) { throw std::runtime_error("Vulkan serial reduction requires a Vulkan GPU"); },1,nullptr);
-    output->op_params[0]=(bf16 ? 1 : 0)|(bias ? 2 : 0)|(bias_after_storage ? 4 : 0);
+    output->op_params[0]=(bf16 ? 1 : 0)|(bias ? 2 : 0)|(bias_after_storage ? 4 : 0)|(bias_first ? 8 : 0);
     ggml_set_name(output,"laya.serial-vulkan");
     return output;
 }

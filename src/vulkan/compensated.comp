@@ -30,10 +30,10 @@ void main() {
 #elif defined(SERIAL)
     if (i>=p.count) return;
     precise float sum=0;
-    bool hasBias=(p.unused2&2u)!=0u, afterStorage=(p.unused2&4u)!=0u;
+    bool hasBias=(p.unused2&2u)!=0u, afterStorage=(p.unused2&4u)!=0u, biasFirst=(p.unused2&8u)!=0u;
     for (uint part=0;part<p.parts;++part) {
         precise float current=sum+x[part*p.count+i];
-        if (hasBias && !afterStorage && part+1==p.parts) current+=bias[i%p.unused1];
+        if (hasBias && !afterStorage && (biasFirst ? part==0 : part+1==p.parts)) current+=bias[i%p.unused1];
         sum=roundLow(current);
     }
     if (hasBias && afterStorage) sum=roundLow(sum+bias[i%p.unused1]);

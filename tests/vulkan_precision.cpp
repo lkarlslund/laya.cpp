@@ -150,12 +150,13 @@ int main() {
             if (actual!=expected) throw std::runtime_error("ordered reduction changed the FP32 addition order");
             ggml_gallocr_free(allocator); ggml_free(ctx);
         }
-        for (bool bf16 : {false,true}) for (bool after_storage : {false,true}) for (bool biased : {false,true}) {
+        for (bool bf16 : {false,true}) for (bool after_storage : {false,true}) for (bool first_bias : {false,true}) for (bool biased : {false,true}) {
+            if (after_storage && first_bias) continue;
             constexpr int width=257,rows=3,parts=3,count=width*rows;
             auto ctx=ggml_init({16*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
             auto x=ggml_new_tensor_3d(ctx,GGML_TYPE_F32,width,rows,parts);
             auto bias=ggml_new_tensor_1d(ctx,GGML_TYPE_F32,width);
-            auto output=laya::vulkan_precision::serial_partials(ctx,x,biased ? bias : nullptr,bf16,after_storage);
+            auto output=laya::vulkan_precision::serial_partials(ctx,x,biased ? bias : nullptr,bf16,after_storage,first_bias);
             if (!ggml_backend_supports_op(backend,output)) throw std::runtime_error("serial reduction unsupported");
             auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output);
             auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
@@ -170,7 +171,7 @@ int main() {
                 input[2*count+i]=-.5f*sign;
                 for (int part=0;part<parts;++part) {
                     float value=expected[i]+input[part*count+i];
-                    if (biased && !after_storage && part+1==parts) value+=biases[i%width];
+                    if (biased && !after_storage && (first_bias ? part==0 : part+1==parts)) value+=biases[i%width];
                     expected[i]=rounded(value);
                 }
                 if (biased && after_storage) expected[i]=rounded(expected[i]+biases[i%width]);

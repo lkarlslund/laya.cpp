@@ -13,7 +13,7 @@ static bool laya_vk_supports(const ggml_tensor* op) {
         return x && b && x->type==GGML_TYPE_F32 && b->type==GGML_TYPE_F32 && op->type==GGML_TYPE_F32 &&
             ggml_is_contiguous(x) && ggml_is_contiguous(b) && ggml_is_contiguous(op) && x->ne[3]==1 &&
             op->ne[2]==1 && op->ne[3]==1 && x->ne[0]==op->ne[0] && x->ne[1]==op->ne[1] &&
-            (op->op_params[0]&~7)==0 && (!(op->op_params[0]&2) || ggml_nelements(b)==x->ne[0]) &&
+            (op->op_params[0]&~15)==0 && (op->op_params[0]&12)!=12 && (!(op->op_params[0]&2) || ggml_nelements(b)==x->ne[0]) &&
             ggml_nelements(x)<=UINT32_MAX;
     }
     if (std::strcmp(op->name,"laya.reduce-vulkan")==0) {
