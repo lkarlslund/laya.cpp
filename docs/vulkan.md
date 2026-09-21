@@ -207,3 +207,10 @@ The [fused split/merge build](measurements/vulkan-fused-fp32.json) also passes a
 models, checking CLI replay and Python answers. Operator tests additionally
 isolate attention reciprocal rounding and ordered reduction of split projection
 products; these checks do not change the full-model requirements for 16-bit modes.
+
+Masked 16-bit attention now preserves eight-element accumulation boundaries with
+zero-padded hardware matrix tiles and a 32-key softmax reduction order. Operator
+tests pass on both tested GPUs, including fully masked rows. A diagnostic NVIDIA
+trace matches all 28 encoder outputs and the first head attention output exactly
+in FP16 and BF16. This is component-level progress: later head outputs still
+differ, so neither 16-bit mode has passed the full-model acceptance gate.
