@@ -24,6 +24,10 @@ Rates are questions/second.
 | NVIDIA | english | compensated | 2 | 204.9 | 178.1 | 0.87× |
 | NVIDIA | english | compensated | 4 | 247.3 | 240.2 | 0.97× |
 | NVIDIA | english | compensated | 8 | 246.6 | 280.1 | 1.14× |
+| NVIDIA | multilingual | plain | 1 | 183.4 | 109.6 | 0.60× |
+| NVIDIA | multilingual | plain | 2 | 294.0 | 164.5 | 0.56× |
+| NVIDIA | multilingual | plain | 4 | 395.4 | 254.7 | 0.64× |
+| NVIDIA | multilingual | plain | 8 | 419.5 | 284.1 | 0.68× |
 | NVIDIA | multilingual | compensated | 1 | 188.9 | 114.3 | 0.60× |
 | NVIDIA | multilingual | compensated | 2 | 304.4 | 204.3 | 0.67× |
 | NVIDIA | multilingual | compensated | 4 | 405.3 | 305.9 | 0.75× |
