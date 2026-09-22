@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "scope": "AMD BF16 parallel subgroup conversion scan; full matching-precision model acceptance.",
+  "all_models_passed": false,
+  "runs": [
+    {
+      "backend": "vulkan",
+      "precision": "bf16",
+      "native_build_sha256": "1e6277ea1a0ad6f10764da031452b5117d660564698943847a66659afd9d24bc",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+      "gpu": "Radeon 8060S Graphics",
+      "torch": "2.11.0+rocm7.13.0",
+      "answer_atol": 0.0001,
+      "model": "english",
+      "report_sha256": "5f5d5f9c21a17ec974981b56085b32f522e11e787c09c10df9b044ea2c43a76e",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        }
+      ]
+    }
+  ]
+}
