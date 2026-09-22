@@ -18,6 +18,10 @@ Rates are questions/second. Only completed, passing runs appear below.
 | multilingual | FP16 | 2 | 318.6 | 316.0 | 0.99× |
 | multilingual | FP16 | 4 | 543.0 | 487.3 | 0.90× |
 | multilingual | FP16 | 8 | 841.0 | 623.8 | 0.74× |
+| typed-decisions | FP16 | 1 | 145.3 | 133.3 | 0.92× |
+| typed-decisions | FP16 | 2 | 250.3 | 215.6 | 0.86× |
+| typed-decisions | FP16 | 4 | 404.4 | 314.4 | 0.78× |
+| typed-decisions | FP16 | 8 | 549.2 | 351.1 | 0.64× |
 
 See [measurement identities](measurements/vulkan-final-nvidia-python-performance.json)
 and [production acceptance](measurements/vulkan-pad16-16bit-validation.json).
