@@ -115,7 +115,7 @@ matching-precision correctness comparisons passing.
 its 6,000 matching-precision correctness comparisons also pass.
 [QKV packing](docs/vulkan-packed-performance.md) and
 [fused projection storage](docs/vulkan-finish-performance.md) document the
-individual optimization gains. [Native CUDA versus Vulkan BF16](docs/vulkan-current-cuda-performance.md)
+individual optimization gains. [Native CUDA versus Vulkan BF16](docs/vulkan-final-cuda-performance.md)
 compares both native backends on the same GPU.
 
 ## Run
