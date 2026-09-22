@@ -288,5 +288,38 @@
     },
     "replay_sha256": "7682323282335c96b2098c8b29acafa4d84c48be440f2b45e1f30aa040604b97",
     "scope": "CPU replay of the final scoring projection only; native scalar shader remains unverified."
+  },
+  "sequential_scalar_gpu_diagnostic": {
+    "precision": "fp16",
+    "case_ids": [
+      "accessibility-05",
+      "accessibility-06"
+    ],
+    "common_trace_differences": 0,
+    "comparison_sha256": "d6678343aa22310968b215e549fbc8e55b62c8873ef23dca1f31fe229527817f",
+    "change": "Bypass both vector-dispatch shortcuts for eligible scalar projections and accumulate in ascending K order with FP32 FMA.",
+    "scope": "Isolated experimental GPU result; all-model validation pending."
+  },
+  "bf16_batched_head_gpu_diagnostic": {
+    "change": "Preserve the head projection batch dimension for BF16 as well as FP16.",
+    "groups": [
+      {
+        "group": "expense",
+        "batch_size": 4,
+        "exact_public_answers": 4,
+        "common_trace_differences": 0,
+        "comparison_sha256": "d6678343aa22310968b215e549fbc8e55b62c8873ef23dca1f31fe229527817f",
+        "response_sha256": "348de9910e8ebd084f9ed73f046025e0982053e6c444b0da9cbf0d47503c0317"
+      },
+      {
+        "group": "quoted",
+        "batch_size": 4,
+        "exact_public_answers": 4,
+        "common_trace_differences": 0,
+        "comparison_sha256": "d6678343aa22310968b215e549fbc8e55b62c8873ef23dca1f31fe229527817f",
+        "response_sha256": "d18576fe592d8b7e746ee0ac35c4161dbfad8b48ed68c0743f0404a5674dee73"
+      }
+    ],
+    "scope": "Two isolated experimental groups; all-model acceptance pending."
   }
 }

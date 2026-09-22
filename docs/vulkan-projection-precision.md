@@ -162,3 +162,11 @@ The extended-policy English BF16 corpus gate finishes with 0, 0, 3 and 2 answer
 failures at batches 1, 2, 4 and 8, down from 0, 0, 30 and 52. This is progress
 but still fails the required numeric tolerance. The remaining failures affect
 expense, travel and quoted-content questions; their detailed traces are pending.
+
+
+The FP16 scalar GPU diagnostic now matches every common trace tensor for the
+failing accessibility pair. Both vector-dispatch shortcuts must be bypassed for
+the sequential scalar kernel to run. Extending the batched-head layout to BF16
+also makes the expense and quoted-content groups match every common trace tensor
+and all eight public answers. These isolated fixes are experimental; the full
+three-model, two-precision gate is the next acceptance step.
