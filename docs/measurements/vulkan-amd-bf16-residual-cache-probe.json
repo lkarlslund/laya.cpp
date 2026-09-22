@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "accepted": false,
+  "reason": "No meaningful batch-1 improvement and a roughly 10% regression on the long batch-8 group; retain the validated subgroup scan without the residual cache.",
+  "scope": "Four paired English request-group probes, not full-corpus performance.",
+  "warmup": 3,
+  "iterations": 10,
+  "candidate_patch_sha256": "c355afdd5c7e5c5dd04904e5e411ee9cae91e156040376b75628e1e2575f80d8",
+  "rows": [
+    {
+      "batch": 1,
+      "group": "first",
+      "before_ms": 39.1078755,
+      "after_ms": 38.999951499999995,
+      "speedup": 1.0007519791220247
+    },
+    {
+      "batch": 1,
+      "group": "long",
+      "before_ms": 169.22137850000001,
+      "after_ms": 168.5296595,
+      "speedup": 1.001589000891593
+    },
+    {
+      "batch": 8,
+      "group": "first",
+      "before_ms": 183.882007,
+      "after_ms": 173.78930450000001,
+      "speedup": 1.0508654648019995
+    },
+    {
+      "batch": 8,
+      "group": "long",
+      "before_ms": 840.6603614999999,
+      "after_ms": 936.7063760000001,
+      "speedup": 0.8979708078390201
+    }
+  ]
+}

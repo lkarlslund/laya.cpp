@@ -125,3 +125,12 @@ build ([probe record](measurements/vulkan-amd-bf16-parallel-scan-probe.json)).
 These probes are not full-corpus performance results. The subsequent
 [full model acceptance](measurements/vulkan-amd-bf16-parallel-scan-validation.json)
 passes all 3,000 comparisons with zero raw-output differences.
+
+A bounded shared-memory residual cache was also tested and rejected. It left
+batch-1 probe throughput unchanged, improved one batch-8 group by about 5%, and
+regressed the long batch-8 group by about 10%
+([probe record](measurements/vulkan-amd-bf16-residual-cache-probe.json)).
+The validated subgroup scan retains its full residual correction. Additional
+GPU regression cases cover signed multi-term residuals across subgroup boundaries;
+the tiny residual outputs match exactly, while ordinary cooperative outputs use
+a 0.000001 numerical check.

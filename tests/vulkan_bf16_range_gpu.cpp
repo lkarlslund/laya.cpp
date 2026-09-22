@@ -36,6 +36,26 @@ int main() {
  if(laya_vk_bf16_status_failed(backend))return 7;
  ggml_backend_tensor_get(y,output.data(),0,ggml_nbytes(y));
  for(float value:output)if(value!=1.f)return 8;
+ // Exercise multi-term residuals across subgroup boundaries, including nine terms.
+ const int positions[]={0,31,32,63,64,127,128,511,767};
+ for(int count : {8,9}) {
+  std::fill(weights.begin(),weights.end(),ggml_fp32_to_bf16(0.f));
+  std::fill(input.begin(),input.end(),1.f);
+  float expected=0.f,ordinary=0.f;
+  for(int i=0;i<count;++i) {
+   float coefficient=i%2 ? 1.5f : -1.f;
+   input[positions[i]]=std::ldexp(1.f,-100-i);
+   expected=std::fma(coefficient,input[positions[i]],expected);ordinary+=coefficient;
+   for(int row=0;row<64;++row)weights[row*768+positions[i]]=ggml_fp32_to_bf16(coefficient);
+  }
+  ggml_backend_tensor_set(a,weights.data(),0,ggml_nbytes(a));
+  ggml_backend_tensor_set(b,input.data(),0,ggml_nbytes(b));
+  laya_vk_bf16_status_reset(backend);
+  if(ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS)return 11;
+  if(laya_vk_bf16_status_failed(backend))return 12;
+  ggml_backend_tensor_get(y,output.data(),0,ggml_nbytes(y));
+  for(int i=0;i<64*8;++i)if(i<64 ? output[i]!=expected : std::abs(output[i]-ordinary)>1e-6f) { std::cerr<<"residual count="<<count<<" output="<<i<<" actual="<<std::hexfloat<<output[i]<<" expected="<<(i<64 ? expected : ordinary)<<"\n";return 13; }
+ }
  std::cout<<"BF16 residuals preserve tiny values; nonfinite status survives output changes and resets between requests\n";
  ggml_gallocr_free(alloc);ggml_free(ctx);ggml_backend_free(backend);
 }
