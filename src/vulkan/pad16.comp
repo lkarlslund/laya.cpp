@@ -1,0 +1,13 @@
+#version 450
+#extension GL_EXT_shader_16bit_storage : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
+layout(local_size_x=256,local_size_y=1,local_size_z=1) in;
+layout(binding=0) readonly buffer Input { uint16_t x[]; };
+layout(binding=1) writeonly buffer Output { uint16_t y[]; };
+layout(push_constant) uniform Params { uint width; uint padded_width; uint count; uint padding; } p;
+void main() {
+    uint i=gl_GlobalInvocationID.x;
+    if (i>=p.count) return;
+    uint column=i%p.padded_width;
+    y[i]=column<p.width ? x[(i/p.padded_width)*p.width+column] : uint16_t(0);
+}

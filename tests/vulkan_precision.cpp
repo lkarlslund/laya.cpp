@@ -20,6 +20,38 @@ int main() {
     auto backend = ggml_backend_vk_init(0);
     if (!backend) return 1;
     try {
+        for (ggml_type type : {GGML_TYPE_F16,GGML_TYPE_BF16})
+        for (auto shape : {std::array<int,3>{3,5,3}, {33,7,2}, {2624,64,3},
+                           {2624,192,2}, {2624,256,2}, {1028,124,2}}) {
+            const auto [width,padding,rows]=shape;
+            auto ctx=ggml_init({16*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
+            auto x=ggml_new_tensor_2d(ctx,type,width,rows);
+            ggml_set_input(x);
+            if (laya::vulkan_precision::pad16(ctx,x,0)!=x) throw std::runtime_error("zero padding must preserve its input");
+            auto output=laya::vulkan_precision::pad16(ctx,x,padding);
+            auto reference=ggml_cast(ctx,ggml_pad(ctx,ggml_cast(ctx,x,GGML_TYPE_F32),padding,0,0,0),type);
+            if (!ggml_backend_supports_op(backend,output)) throw std::runtime_error("16-bit padding not supported");
+            ggml_set_output(output); ggml_set_output(reference);
+            auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output); ggml_build_forward_expand(graph,reference);
+            auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
+            if (!ggml_gallocr_alloc_graph(allocator,graph)) throw std::runtime_error("padding allocation failed");
+            std::vector<uint16_t> input(width*rows),expected((width+padding)*rows,0),actual(expected.size()),legacy(expected.size());
+            for (size_t i=0;i<input.size();++i) {
+                uint16_t bits=uint16_t(uint32_t(i)*747796405u+2891336453u);
+                const uint16_t exponent=type==GGML_TYPE_F16 ? 0x7c00 : 0x7f80;
+                if ((bits&exponent)==exponent) bits&=type==GGML_TYPE_F16 ? 0xfbff : 0xff7f;
+                input[i]=bits;
+            }
+            input[0]=0; input[1]=0x8000; input[2]=1; input[3]=0x8001;
+            for (int row=0;row<rows;++row)
+                std::memcpy(expected.data()+row*(width+padding),input.data()+row*width,width*sizeof(uint16_t));
+            ggml_backend_tensor_set(x,input.data(),0,ggml_nbytes(x));
+            if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("padding compute failed");
+            ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+            ggml_backend_tensor_get(reference,legacy.data(),0,ggml_nbytes(reference));
+            if (actual!=expected || actual!=legacy) throw std::runtime_error("16-bit padding changed storage bits");
+            ggml_gallocr_free(allocator); ggml_free(ctx);
+        }
         for (ggml_type type : {GGML_TYPE_F32,GGML_TYPE_F16,GGML_TYPE_BF16})
         for (bool biased : {false,true}) for (bool residual : {false,true}) {
             constexpr int width=257,rows=3,count=width*rows;

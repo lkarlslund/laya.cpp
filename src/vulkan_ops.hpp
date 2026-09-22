@@ -1,7 +1,22 @@
 #pragma once
 #include "ggml.h"
+#include <limits>
 #include <stdexcept>
 namespace laya::vulkan_precision {
+// Copy storage bits directly; padding adds positive zero without float casts.
+inline ggml_tensor* pad16(ggml_context* ctx, ggml_tensor* x, int64_t padding) {
+    if ((x->type!=GGML_TYPE_F16 && x->type!=GGML_TYPE_BF16) || !ggml_is_contiguous(x) ||
+        x->ne[0]<=0 || ggml_nrows(x)<=0 || padding<0 || padding>std::numeric_limits<int64_t>::max()-x->ne[0])
+        throw std::invalid_argument("Invalid Vulkan 16-bit padding input");
+    if (x->ne[0]+padding>std::numeric_limits<uint32_t>::max()/ggml_nrows(x))
+        throw std::invalid_argument("Vulkan 16-bit padding exceeds the shader index range");
+    if (!padding) return x;
+    ggml_tensor* inputs[]={x};
+    auto output=ggml_custom_4d(ctx,x->type,x->ne[0]+padding,x->ne[1],x->ne[2],x->ne[3],inputs,1,
+        [](ggml_tensor*,int,int,void*) { throw std::runtime_error("Vulkan 16-bit padding requires a Vulkan GPU"); },1,nullptr);
+    ggml_set_name(output,"laya.pad16-vulkan");
+    return output;
+}
 // Bias precedes storage rounding; the FP32 residual is added afterwards.
 inline ggml_tensor* finish_projection(ggml_context* ctx, ggml_tensor* x, ggml_tensor* bias,
                                       ggml_tensor* residual, ggml_type stored_type) {

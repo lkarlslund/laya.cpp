@@ -1,5 +1,12 @@
 // Included inside the generated ggml Vulkan translation unit.
 static bool laya_vk_supports(const ggml_tensor* op) {
+    if (std::strcmp(op->name,"laya.pad16-vulkan")==0) {
+        auto x=op->src[0];
+        return x && (x->type==GGML_TYPE_F16 || x->type==GGML_TYPE_BF16) && op->type==x->type &&
+            ggml_is_contiguous(x) && ggml_is_contiguous(op) && x->ne[0]>0 && op->ne[0]>=x->ne[0] &&
+            op->ne[1]==x->ne[1] && op->ne[2]==x->ne[2] && op->ne[3]==x->ne[3] &&
+            ggml_nelements(op)>0 && ggml_nelements(op)<=UINT32_MAX;
+    }
     if (std::strcmp(op->name,"laya.finish-projection-vulkan")==0) {
         auto x=op->src[0],b=op->src[1],r=op->src[2];
         const uint32_t flags=uint32_t(op->op_params[0]);
@@ -65,6 +72,14 @@ static bool laya_vk_supports(const ggml_tensor* op) {
 }
 static bool laya_vk_custom(ggml_backend_vk_context* ctx,vk_context& subctx,ggml_tensor* op) {
     GGML_ASSERT(laya_vk_supports(op));
+    if (std::strcmp(op->name,"laya.pad16-vulkan")==0) {
+        auto pipeline=ctx->device->pipeline_laya_pad16;
+        ggml_pipeline_request_descriptor_sets(ctx,pipeline,1);
+        const std::array<uint32_t,4> params={uint32_t(op->src[0]->ne[0]),uint32_t(op->ne[0]),uint32_t(ggml_nelements(op)),0};
+        ggml_vk_dispatch_pipeline(ctx,subctx,pipeline,{ggml_vk_tensor_subbuffer(ctx,op->src[0]),ggml_vk_tensor_subbuffer(ctx,op)},
+            params,{uint32_t(ggml_nelements(op)),1,1});
+        return true;
+    }
     if (std::strcmp(op->name,"laya.finish-projection-vulkan")==0) {
         auto pipeline=ctx->device->pipeline_laya_finish_projection;
         ggml_pipeline_request_descriptor_sets(ctx,pipeline,1);
