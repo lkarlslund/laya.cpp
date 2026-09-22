@@ -48,6 +48,52 @@
           "max_action_error": 0.0
         }
       ]
+    },
+    {
+      "backend": "vulkan",
+      "precision": "fp16",
+      "native_build_sha256": "9a9de0ac2c0441b548790cbe809679e3bdb4dfbd9fe31942181dc41d44c8e44c",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+      "gpu": "Radeon 8060S Graphics",
+      "torch": "2.11.0+rocm7.13.0",
+      "answer_atol": 0.0001,
+      "model": "english",
+      "report_sha256": "e08537cbaf8c69f98205d7cb5fb6c0d9c85a4d856e3bf8cb31d57b133beb26e5",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 4.0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        }
+      ]
     }
   ]
 }
