@@ -639,6 +639,84 @@
       "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
       "warmup": 3,
       "iterations": 5,
+      "tensor_core_fp32": false,
+      "model": "multilingual",
+      "mode": "plain",
+      "report_sha256": "ab55cc6126d0635c3a830e1797780753ca1a752ab98c4cc85ad3b679ac78622d",
+      "rows": [
+        {
+          "batch_size": 1,
+          "python": {
+            "p50_ms": 15.768243989441544,
+            "p95_ms": 114.55933087854646,
+            "questions_per_second": 35.477442594090405
+          },
+          "vulkan": {
+            "p50_ms": 25.1447105,
+            "p95_ms": 70.61808309999999,
+            "questions_per_second": 33.60027746848933
+          },
+          "ratio": 0.9470884881112102,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 2,
+          "python": {
+            "p50_ms": 27.80781697947532,
+            "p95_ms": 240.0293515762314,
+            "questions_per_second": 37.554565149232126
+          },
+          "vulkan": {
+            "p50_ms": 25.360034,
+            "p95_ms": 137.06819299999998,
+            "questions_per_second": 51.19293516657129
+          },
+          "ratio": 1.3631614415755797,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 4,
+          "python": {
+            "p50_ms": 49.10646099597216,
+            "p95_ms": 488.0742982728407,
+            "questions_per_second": 36.183919609998355
+          },
+          "vulkan": {
+            "p50_ms": 36.082153,
+            "p95_ms": 260.2105679,
+            "questions_per_second": 58.98822068760823
+          },
+          "ratio": 1.6302330240449843,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 8,
+          "python": {
+            "p50_ms": 105.60342849930748,
+            "p95_ms": 1002.8251031995751,
+            "questions_per_second": 31.318675938241746
+          },
+          "vulkan": {
+            "p50_ms": 66.66585549999999,
+            "p95_ms": 527.0118536499999,
+            "questions_per_second": 57.1513021798103
+          },
+          "ratio": 1.8248313655567272,
+          "answer_failures": 0
+        }
+      ]
+    },
+    {
+      "gpu": "Radeon 8060S Graphics",
+      "torch": "2.11.0+rocm7.13.0",
+      "precision": "fp32",
+      "python_runtime": "rocm",
+      "python_runtime_version": "7.13.99004",
+      "native_build_sha256": "affe042856feac8bd73731acaf18d136255c6bc3fd7750c5c09cc7aa7bb07b17",
+      "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "warmup": 3,
+      "iterations": 5,
       "tensor_core_fp32": true,
       "model": "multilingual",
       "mode": "compensated",
