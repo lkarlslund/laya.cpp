@@ -43,7 +43,8 @@ boolean CUDA/CPU constructors remain supported.
 ## Precision and implementation
 
 Vulkan supports plain FP32 and compensated FP32 (`--tensor-core-fp32`), plus
-mixed FP16 and BF16 on the validated NVIDIA profile described below.
+mixed FP16 and BF16 on the validated NVIDIA profile described below. AMD FP16
+is also validated on Radeon 8060S; AMD BF16 production acceptance is in progress.
 `--flash-fp32` remains unsupported.
 
 Compensated FP32 splits each projection input into two FP16 components, computes
@@ -85,8 +86,9 @@ Vulkan.
 
 The 16-bit fused attention kernels retain FP32 output accumulation. Operator
 tests cover unaligned key lengths, uniform attention, nonuniform masked
-attention and empty masked rows on both tested GPUs. Full-model acceptance
-for 16-bit inference currently covers the measured NVIDIA profile.
+attention and empty masked rows on both tested GPUs. The NVIDIA 16-bit profile uses fused attention. The validated AMD FP16 path
+uses separate QK, softmax and probability/value kernels with measured rounding
+orders.
 
 Dense FP32 attention uses more memory than fused attention at long sequence
 lengths. Begin with the default eight-question HTTP limit and reduce it on
@@ -156,7 +158,7 @@ python benchmarks/http_validate.py --backend vulkan --tensor-core-fp32 \
 ```
 
 The acceptance contract is exact categories and absolute numeric output error
-at most 0.0001 against Python FP32 using identical request groups. Validation
+at most 0.0001 against Python at the selected precision using identical request groups. Validation
 also checks tokenization, finite raw tensors and deterministic graph replays.
 Raw tensor differences are reported separately from the public-answer gate.
 The Python comparison harness requires its existing PyTorch/CUDA environment;
@@ -227,6 +229,19 @@ build-vulkan/bin/laya-cli --vulkan --fp16 --model models/laya --variant multilin
 
 These modes execute entirely in native C++ and Vulkan shaders. GPU/library-specific
 rounding plans are validated only for the measured profile; this result does not
-establish parity on other NVIDIA devices. AMD FP16/BF16 correctness is still being
-implemented. Its validated mode remains FP32. [Current 16-bit performance measurements](vulkan-current-16bit-performance.md) compare
+establish parity on other NVIDIA devices. [Current NVIDIA 16-bit performance measurements](vulkan-current-16bit-performance.md) compare
 the validated native build with matching-precision Python.
+
+## FP16 and BF16 on AMD
+
+Production FP16 passes all 3,000 fixed-corpus comparisons on Radeon 8060S:
+all three models, 250 questions each, at batches 1, 2, 4 and 8. Categories and
+numeric outputs match Python ROCm, with zero raw-output differences in this run.
+See [the production validation record](measurements/vulkan-amd-fp16-runtime-validation.json).
+Use the same `--vulkan --fp16` flags after selecting the AMD device.
+
+The AMD path uses separate tagged projection, attention and softmax pipelines.
+Its reduction and rounding rules are measured for the recorded GPU and ROCm
+version. Full BF16 production acceptance and paired AMD 16-bit Python timings
+are in progress. The [precision notes](vulkan-projection-precision.md) explain
+the BF16 conversion-residual correction and current validation scope.

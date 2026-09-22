@@ -90,7 +90,9 @@ systems: `libvulkan-dev glslc spirv-headers`) and a working Vulkan driver.
 All three checkpoint variants and HTTP batching use the same `--vulkan` flag.
 Vulkan supports plain FP32 and compensated projections with `--tensor-core-fp32`.
 Mixed `--fp16` and `--bf16` are validated for all three models on RTX PRO 6000
-Blackwell. AMD 16-bit support is still under development. `--flash-fp32` remains
+Blackwell. FP16 also passes all three models on Radeon 8060S against same-GPU
+Python ROCm ([validation](docs/measurements/vulkan-amd-fp16-runtime-validation.json)).
+AMD BF16 production validation is in progress. `--flash-fp32` remains
 CUDA-only. See [Vulkan support](docs/vulkan.md) for validation and limits.
 The performance table above measures CUDA. [Paired Vulkan FP32 measurements](docs/vulkan-packed-fp32-performance.md)
 compare plain and compensated FP32 with same-GPU Python for all three models
