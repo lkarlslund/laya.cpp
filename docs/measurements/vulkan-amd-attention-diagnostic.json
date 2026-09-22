@@ -210,5 +210,56 @@
         "python_profile_sha256": "c649caee9188df5a36e83dfc2d2e9cae66e95918dd2cefd4a5920d99a9027478"
       }
     }
+  },
+  "extended_projection_policy_diagnostic": {
+    "measured_projection_rows": 163840,
+    "maximum_projection_columns": 4096,
+    "policy_intervals": 110,
+    "scope": "Experimental AMD backend; public-answer equality on one four-request group is not full-model acceptance.",
+    "precisions": {
+      "bf16": {
+        "exact_public_answers": 4,
+        "first_remaining_trace_difference": {
+          "name": "encoder.layers.1.attn.Wo.input",
+          "numerical_differences": 766976,
+          "bit_differences": 766976,
+          "max_error": 1.1953125
+        },
+        "response_sha256": "b62477c6e4b23f89ba05247e154f014e92c971b7ced96c5341dc1312da1fda80",
+        "trace_comparison_sha256": "367e33c30da12fdcefafea108e5f137346d5fc5de4d0824ac6c7d221fd2346cb"
+      },
+      "fp16": {
+        "exact_public_answers": 4,
+        "first_remaining_trace_difference": {
+          "name": "encoder.layers.1.attn.Wo.input",
+          "numerical_differences": 766976,
+          "bit_differences": 766976,
+          "max_error": 1.19140625
+        },
+        "response_sha256": "1e8247c1502629049a943fe75bbfa03c345e324cba5112e0a1295c9215acaa7d",
+        "trace_comparison_sha256": "0561e091faa04a7bc4687145b588a707b9f0f5f40db3bfcc302c6ffa191f889c"
+      }
+    }
+  },
+  "accessibility_batched_scalar_diagnostic": {
+    "case_ids": [
+      "accessibility-05",
+      "accessibility-06"
+    ],
+    "precision": "fp16",
+    "first_and_only_common_trace_difference": {
+      "name": "scorer.3",
+      "numerical_differences": 1,
+      "bit_differences": 1,
+      "max_error": 0.0009765625
+    },
+    "python_kernel": "Scalar FMA MT128x32x16, MIAV0, GSU1, SU32/SUS256",
+    "cpu_replay": {
+      "ascending_f32_fma_stored_fp16_differences": 0,
+      "descending_f32_fma_stored_fp16_differences": 0,
+      "values": 10
+    },
+    "replay_sha256": "7682323282335c96b2098c8b29acafa4d84c48be440f2b45e1f30aa040604b97",
+    "scope": "CPU replay of the final scoring projection only; native scalar shader remains unverified."
   }
 }

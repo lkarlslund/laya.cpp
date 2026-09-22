@@ -140,3 +140,15 @@ measured 1,024-column policy range. Python selects staggered traversal for this
 shape; the prototype falls back to ascending traversal. Extending the measured
 policy is the next diagnostic step. This does not yet prove that traversal is
 the only remaining cause of the larger-batch failures.
+
+
+Profiling now covers all projection sizes from 1 through 4,096 columns in both
+precisions (163,840 measured cases). Applying the extended traversal policy makes
+all four public answers in the failing batch-4 group exactly equal to Python in
+both BF16 and FP16. The first remaining internal trace difference moves to the
+second encoder layer's attention output; full-corpus acceptance is still pending.
+
+The remaining FP16 batch-2 `accessibility-05` failure is isolated to one value in
+the final scalar scoring projection. All other common trace tensors match. A CPU
+replay with sequential FP32 accumulation matches all ten stored FP16 scores in
+that request pair. A corresponding GPU implementation still requires validation.
