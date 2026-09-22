@@ -1,5 +1,7 @@
 name: build
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   native:
     runs-on: ubuntu-latest
@@ -18,3 +20,20 @@ jobs:
       - run: ctest --test-dir build --output-on-failure
       - run: python3 -m py_compile benchmarks/*.py scripts/*.py
       - run: python3 -m unittest discover -s tests -p 'test_*.py'
+
+  coreml:
+    name: macOS Core ML
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Verify Apple Silicon runner
+        run: |
+          test "$(uname -m)" = arm64
+          xcodebuild -version
+      - name: Install host dependencies
+        run: brew install cmake ninja icu4c nlohmann-json
+      - name: Build and test Core ML backend
+        run: scripts/build_coreml.sh --test
