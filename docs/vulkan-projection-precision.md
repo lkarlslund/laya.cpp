@@ -8,7 +8,7 @@ The bias-first correction also makes every captured intermediate of a failing mu
 
 The combined native runtime passes all 6,000 fixed-corpus comparisons on RTX PRO 6000 Blackwell: English, multilingual and typed-decisions, each in FP16 and BF16, at batches 1, 2, 4 and 8. Categories match exactly and numeric public outputs differ by at most 0.0001. The [combined validation record](measurements/vulkan-nvidia-16bit-validation.json) identifies the tested binaries, weights, corpus and Python environment. Raw tensors remain diagnostic and can differ even when public answers pass.
 
-Batched BF16 scalar heads use 64-element FP32 partial dot products to limit cancellation error before final rounding. FP16 retains its original reduction order. The combined regression checks both policies together. AMD low-precision validation remains incomplete; it does not use this NVIDIA projection policy.
+Batched BF16 scalar heads use 64-element FP32 partial dot products to limit cancellation error before final rounding. FP16 retains its original reduction order. The combined regression checks both policies together. AMD uses a separate projection policy described below.
 
 The profiles describe the measured device and library version. Untested geometries fall back to an unsplit product, without a matching-precision guarantee. Reprofile when targeting another device or math-library version.
 
@@ -65,205 +65,49 @@ compensated FP32 pass all 6,000 comparisons against Python on the same GPU
 [Warmed before/after measurements](vulkan-packed-performance.md) show a 12–16%
 throughput gain from packing across all three models in FP16 and BF16 on NVIDIA.
 
-An AMD FP16 attention diagnostic isolated a long-input discrepancy to the final
-probability/value matrix product. For the 184-token `delivery-01` case, attention
-scores and probabilities already matched ROCm bit-for-bit. Its matrix kernel
-rotates the reduction by 64 elements for the second group of 32 output features,
-wrapping at 184 rather than at a padded tile boundary. Reproducing that order with
-32-by-32 output tiles and eight-element reduction tiles makes all 238 captured
-tensors match at their corresponding storage boundaries. Attention inputs are
-rounded to FP16 before comparison where the native trace precedes that boundary.
-See the [diagnostic record](measurements/vulkan-amd-attention-diagnostic.json).
-This is an isolated prototype result; AMD FP16/BF16 still requires full validation
-and integration, and this diagnostic establishes no performance claim.
+AMD FP16 production inference passes all 3,000 fixed-corpus comparisons across
+English, multilingual and typed-decisions at batches 1, 2, 4 and 8, with zero
+raw-output differences from matching-precision Python on the Radeon 8060S
+([validation record](measurements/vulkan-amd-fp16-runtime-validation.json)).
+The policy is measured for gfx1151 with the recorded ROCm version; it is not a
+correctness guarantee for other AMD devices or library versions.
 
-The scalar diagnostic and tiled attention prototypes produce the same full-corpus
-result: 1, 2, 30 and 45 public-answer failures at batches 1, 2, 4 and 8.
-Consequently neither prototype is accepted for AMD 16-bit deployment. The single
-batch-1 failure first diverges in the scoring projection after matching encoder,
-head and scorer-normalization tensors.
+AMD matching operations use explicitly tagged projection, attention and softmax
+pipelines. Ordinary FP32 operations retain their existing pipelines. The
+projection traversal policy covers 327,680 shape/precision cases through 8,192
+columns. Head projections preserve Python's batched layout, scalar scoring uses
+sequential FP32 accumulation, and small multi-column projections bypass vector
+shortcuts. Attention uses its measured reduction order, and normalization
+preserves explicit FMA ordering. Softmax uses corrected division for both cached
+columns and the tail through 1,024 tokens.
 
-A subsequent scorer diagnostic uses the matrix pipeline instead of the small
-vector path for low-precision products with multiple input columns and at least
-64 output rows. This resolves the batch-1 `accessibility-05` discrepancy: all
-captured tensors, including the four scorer stages, match at their storage
-boundaries. Its full-corpus result is 0, 1, 30 and 45 public-answer failures at
-batches 1, 2, 4 and 8, respectively; the prototype is still not accepted.
+The operator records cover [projection policy](measurements/vulkan-amd-projection-policy-validation.json),
+[FP16 projections](measurements/vulkan-amd-scoped-projection-validation.json),
+[attention](measurements/vulkan-amd-scoped-attention-validation.json),
+[normalization](measurements/vulkan-amd-integrated-norm-validation.json) and
+[softmax](measurements/vulkan-amd-scoped-softmax-validation.json).
+These checks include unchanged ordinary-pipeline outputs where applicable.
 
-An AMD BF16 hardware diagnostic now reproduces all 165,888 stored values of the
-first English encoder QKV projection for `billing-01`. GPU and CPU BF16 input
-and weight casts agree. With exact power-of-two input scaling by 16 or 256,
-FP16 WMMA instructions produce bit-identical FP32 accumulators to BF16 WMMA;
-removing the scale preserves the stored BF16 result. An unscaled FP16 conversion
-loses five input values and changes 846 raw accumulators, despite matching the
-stored output in this particular projection.
+AMD BF16 projection uses scaled FP16 cooperative products with FP32 accumulation.
+All 864,492,800 BF16-rounded projection weights in the three checkpoints are
+exactly FP16-representable. Runtime integration checks this restriction when
+loading weights. Finite activation columns with a wider dynamic range require
+an FP32 residual dot product to restore values lost during scaled FP16 conversion.
+Integer round-to-nearest-even encoding identifies the residual without relying
+on a compiler-preserved floating-point narrowing round trip. Exactly representable
+columns retain the cooperative result unchanged. Nonfinite inputs set an
+independent per-backend status that must be checked before consuming graph output.
 
-This suggests a possible Vulkan implementation using exact scaled operands,
-but fixed scaling does not preserve all other captured layer inputs. Every one
-of the 6,156 captured input vectors has an exact individual scale in the tested
-range; this is evidence from one request, not a general guarantee. Range handling,
-full-model correctness and performance remain unverified.
-See the [BF16 arithmetic diagnostic](measurements/vulkan-amd-bf16-wmma-diagnostic.json).
+The BF16 GPU range test preserves a selected `2^-100` activation exactly in a
+column whose other values are one, checks that failure status survives output
+overwrites, and checks reset before a valid request. The seven projection
+geometries also pass their numerical checks. All three models pass an eight-case
+BF16 preflight at batches 1 and 8 with zero raw-output differences. Full production
+BF16 acceptance is in progress; these operator and preflight results establish
+no BF16 performance claim.
 
-An isolated Vulkan prototype now also matches all 165,888 stored QKV values in
-that first projection. It decodes BF16 buffers into scaled FP16 cooperative-matrix
-operands and removes the scale from the FP32 result. This establishes the path
-without requiring Vulkan BF16 cooperative-matrix support. The fixed-scale
-prototype is not enabled in the runtime and is not a general inference solution.
-
-The Vulkan prototype also reproduces that first QKV with a scale chosen and
-verified independently for each input vector. Nonrepresentable conversions are
-rejected through nonfinite diagnostic outputs. The full-model answer still fails
-the acceptance tolerance, so this remains an isolated arithmetic result.
-
-Combining exact per-vector BF16 operand scaling with the AMD attention and
-projection-order fixes matches all 238 common trace tensors and the final answer
-for `billing-01`. A separate replay of all 112 bias-free encoder projections from
-that request also matches every stored BF16 value, using the captured Python
-input independently for each projection. Missing trace points are not counted.
-The subsequent English BF16 full-corpus gate passes batches 1 and 2, but has
-30 and 52 public-answer failures at batches 4 and 8. It is not accepted for
-deployment; AMD 16-bit performance measurements remain pending.
-
-The remaining FP16 batch-2 diagnostic first diverges in the first head QKV
-projection, despite matching normalized inputs and bias-addition semantics.
-Python selects a batched matrix kernel with a different reduction traversal
-(SU32/SUS256). Forcing the final scalar projection onto a matrix path does not
-resolve the discrepancy. Preserving the batched layout now matches every common
-trace tensor and the answer for that request pair. The full English FP16 gate
-still reports 0, 1, 28 and 46 answer failures at batches 1, 2, 4 and 8, so the
-layout prototype is not accepted.
-
-A batch-4 trace in both precisions first diverges at the encoder QKV projection.
-Its 512-token sequences produce 2,048 projection columns, beyond the prototype's
-measured 1,024-column policy range. Python selects staggered traversal for this
-shape; the prototype falls back to ascending traversal. Extending the measured
-policy is the next diagnostic step. This does not yet prove that traversal is
-the only remaining cause of the larger-batch failures.
-
-
-Profiling now covers all projection sizes from 1 through 4,096 columns in both
-precisions (163,840 measured cases). Applying the extended traversal policy makes
-all four public answers in the failing batch-4 group exactly equal to Python in
-both BF16 and FP16. The first remaining internal trace difference moves to the
-second encoder layer's attention output; full-corpus acceptance is still pending.
-
-The remaining FP16 batch-2 `accessibility-05` failure is isolated to one value in
-the final scalar scoring projection. All other common trace tensors match. A CPU
-replay with sequential FP32 accumulation matches all ten stored FP16 scores in
-that request pair. A corresponding GPU implementation still requires validation.
-
-The first remaining batch-4 attention difference is confined to padded query
-positions: 137–511 and 138–511 in sequences with 73 and 74 valid tokens. No valid
-query position differs in that tensor. Later tensors are not covered by this
-observation; the full public-answer gate remains the acceptance criterion.
-
-The extended-policy English BF16 corpus gate finishes with 0, 0, 3 and 2 answer
-failures at batches 1, 2, 4 and 8, down from 0, 0, 30 and 52. This is progress
-but still fails the required numeric tolerance. The remaining failures affect
-expense, travel and quoted-content questions; their detailed traces are pending.
-
-
-The FP16 scalar GPU diagnostic now matches every common trace tensor for the
-failing accessibility pair. Both vector-dispatch shortcuts must be bypassed for
-the sequential scalar kernel to run. Extending the batched-head layout to BF16
-also makes the expense and quoted-content groups match every common trace tensor
-and all eight public answers. These isolated fixes are experimental; the full
-three-model, two-precision gate is the next acceptance step.
-
-The experimental combined implementation passes the full English FP16 corpus at
-all four batch sizes. English BF16 has one remaining batch-8 scoring failure;
-extending sequential scalar accumulation to BF16 resolves that isolated group,
-including every common trace tensor and all eight answers. Its full corpus must
-be rerun on the new revision.
-
-Multilingual BF16 still fails broadly: 223, 225, 227 and 227 public-answer failures
-at batches 1, 2, 4 and 8. A separate trace is needed; English acceptance does not
-establish multilingual support. Multilingual and typed decisions also allow
-1,024-token sequences, requiring projection-policy coverage through 8,192 columns
-at batch 8. The profiling extension is pending.
-
-
-The multilingual diagnostic now matches every common trace tensor and the final
-answer. The normalization fix uses the AMD weighted-mean FMA ordering and
-preserves all eleven explicit FMA instructions through SPIR-V `NoContraction`.
-Changing the mean ordering alone was insufficient. Projection profiling also now
-covers all 327,680 shape/precision cases through 8,192 columns. The combined
-experimental build is undergoing a fresh full three-model, two-precision gate.
-
-
-The AMD normalization fix is now integrated into the native Vulkan backend. Its
-separate shader preserves explicit FMA instructions through the C++ SPIR-V helper;
-the NVIDIA shader remains byte-for-byte identical. Operator tests pass on both
-GPUs, and all 46,080 outputs in the multilingual normalization replay match Python
-exactly. This integrates normalization only; the remaining experimental AMD
-projection and attention changes still need production integration and validation.
-
-
-The remaining multilingual BF16 batch-1 failures all exceed 512 tokens. Softmax
-used corrected division for cached columns but reciprocal multiplication for the
-uncached tail. Applying corrected division to the tail makes all 194 comparable
-tensors and the public answer exact for the 706-token expense diagnostic. The
-full three-model, two-precision corpus gate is pending on this experimental fix.
-
-
-Dedicated AMD low-precision softmax pipelines are now available in the native
-backend, selected by an explicit attention-node tag. Tests cover 32, 128, 512,
-513, 706 and 1,024 columns with no mask, FP32 masks and FP16 masks. All 26,235
-outputs match same-device Python exactly; ordinary FP32 outputs remain bitwise
-unchanged. Mathematical operator tests also pass on NVIDIA. Runtime activation
-awaits integration of the remaining AMD projection and attention kernels.
-
-
-The AMD attention matrix kernel now has a separate native pipeline key. Tagged
-QK/PV products select its measured accumulation order; ordinary FP32 products
-retain their existing pipelines. The generated shader is byte-identical to the
-experimental kernel. Four matrix geometries, including 706- and 1,024-element
-reductions, reproduce every experimental output bit while leaving every ordinary
-FP32 output bit unchanged. Mathematical checks pass on AMD and NVIDIA. Projection
-integration and full runtime validation remain outstanding.
-
-
-The dedicated native AMD FP16 projection pipeline now uses the measured traversal
-policy and sequential scalar accumulation. Only tagged low-precision projections
-select it or bypass the automatic vector and split-K paths. Seven geometries cover
-scalar scoring, small output heads, QKV and MLP projections, including unaligned
-input widths. Every tested tagged output matches the experimental backend bitwise,
-and untagged outputs remain bitwise unchanged. Mathematical checks pass on both
-GPUs. BF16 projection integration and full runtime activation remain pending.
-
-
-All six experimental AMD model/precision combinations now pass the full corpus:
-6,000 public-answer comparisons, with zero raw-tensor differences. The production
-FP16 runtime integration is undergoing its separate full gate.
-
-The dedicated native BF16 projection kernel also matches the experimental kernel
-in seven matrix geometries, including tiny activation columns requiring scaling.
-Ordinary BF16 results remain bitwise unchanged. An integer range predicate passes
-589,824 bit-pattern/scaling checks; a GPU test confirms that an unrepresentable
-column signals NaN while other columns remain exact. The earlier floating-point
-round-trip check failed that diagnostic and has been replaced. All 864,492,800
-BF16-rounded projection weights across the three checkpoints are exactly
-FP16-representable. Runtime weight checks and explicit rejection of activation
-range failures are still required before BF16 activation.
-
-
-BF16 conversion failures now also set an independent integer status per Vulkan
-backend. A GPU test confirms the status survives clearing the floating-point
-outputs and resets between requests. This avoids depending on NaN propagation
-through later arithmetic. The guarded BF16 runtime preflight exposed a valid
-model case with an unrepresentable activation column; BF16 activation therefore
-requires a correction path for the conversion residual, not just rejection.
-
-AMD BF16 projection range correction retains the cooperative matrix result for
-exactly representable columns. For finite columns with a wider dynamic range,
-a separate FP32 residual dot product adds back the BF16 values lost during scaled
-FP16 conversion. Integer round-to-nearest-even encoding identifies that residual
-without relying on a compiler-preserved floating-point narrowing round trip.
-Nonfinite input sets the independent per-backend failure flag.
-
-The GPU range test preserves a selected `2^-100` activation exactly in a column
-whose other values are one, verifies failure status survives output overwrites,
-and verifies reset before a valid request. The seven projection geometries also
-pass their numerical checks. These operator checks do not replace full model
-acceptance or establish performance for the correction path.
+An earlier experimental build passed all 6,000 AMD FP16/BF16 comparisons
+([record](measurements/vulkan-amd-long-softmax-16bit-validation.json)). Its
+floating-point conversion guard failed a separate range diagnostic, so that
+record alone does not validate the corrected production BF16 path. Production
+acceptance and performance are measured separately.
