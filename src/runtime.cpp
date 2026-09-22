@@ -15,6 +15,7 @@ const char* laya_cuda_bf16_compatibility_error();
 #endif
 #ifdef LAYA_VULKAN
 #include "ggml-vulkan.h"
+#include "vulkan_status.hpp"
 #endif
 #include <algorithm>
 #include <chrono>
@@ -30,6 +31,8 @@ const char* laya_cuda_bf16_compatibility_error();
 namespace laya {
 namespace {
 using tensor = ggml_tensor;
+using uint = uint32_t;
+#include "vulkan/bf16_range.glsl"
 json read_json(const std::filesystem::path& path) {
     std::ifstream f(path);
     if (!f) throw std::runtime_error("Cannot open " + path.string());
@@ -217,6 +220,8 @@ struct runtime::impl {
             if (tensor->type == GGML_TYPE_BF16) {
                 std::vector<ggml_bf16_t> converted(count);
                 ggml_fp32_to_bf16_row_ref(values.data(), converted.data(), count);
+                if (vulkan_amd && std::any_of(converted.begin(), converted.end(), [](auto value) { return !layaBf16ScaledFitsHalf(value.bits, 0); }))
+                    throw std::runtime_error("AMD Vulkan BF16 projection weights exceed exact conversion range: " + name);
                 ggml_backend_tensor_set(tensor, converted.data(), 0, ggml_nbytes(tensor));
 
             } else if (tensor->type == GGML_TYPE_F16) {
@@ -246,7 +251,17 @@ struct runtime::impl {
 
     tensor* w(const std::string& name) { return weights.at(name); }
     bool amd_matching() const {
-        return vulkan_amd && low_precision && low_type==GGML_TYPE_F16;
+        return vulkan_amd && low_precision;
+    }
+
+    void check_amd_bf16_outputs(const std::vector<float>& values) const {
+        if (!vulkan_amd || !low_precision || low_type != GGML_TYPE_BF16) return;
+#ifdef LAYA_VULKAN
+        if (laya_vk_bf16_status_failed(backend))
+            throw std::runtime_error("Nonfinite AMD Vulkan BF16 projection input");
+#endif
+        if (std::any_of(values.begin(), values.end(), [](float value) { return !std::isfinite(value); }))
+            throw std::runtime_error("Nonfinite AMD Vulkan BF16 output");
     }
 
     tensor* rounded(ggml_context* ctx, tensor* value) {
@@ -578,6 +593,9 @@ struct runtime::impl {
             }
         } else put(s.lengths, input.lengths);
         auto start = std::chrono::steady_clock::now();
+#ifdef LAYA_VULKAN
+        if (vulkan_amd && low_precision && low_type == GGML_TYPE_BF16) laya_vk_bf16_status_reset(backend);
+#endif
         if (ggml_backend_graph_compute(backend, s.graph) != GGML_STATUS_SUCCESS) throw std::runtime_error("Encoder computation failed");
         raw_result result;
         result.action_count = n_actions;
@@ -585,6 +603,8 @@ struct runtime::impl {
         std::vector<float> pooled(width * input.size), features((width+4) * input.size);
         ggml_backend_tensor_get(s.logits, result.logits.data(), 0, ggml_nbytes(s.logits));
         ggml_backend_tensor_get(s.pooled, pooled.data(), 0, ggml_nbytes(s.pooled));
+        check_amd_bf16_outputs(result.logits);
+        check_amd_bf16_outputs(pooled);
         if (const char* directory = std::getenv("LAYA_TRACE_DIR")) {
             std::filesystem::create_directories(directory);
             for (auto& [name, t] : s.traces) {
@@ -617,6 +637,7 @@ struct runtime::impl {
         if (ggml_backend_graph_compute(backend, action_graph->graph) != GGML_STATUS_SUCCESS) throw std::runtime_error("Action computation failed");
         result.actions.resize(input.size*n_actions);
         ggml_backend_tensor_get(action_graph->action_output, result.actions.data(), 0, ggml_nbytes(action_graph->action_output));
+        check_amd_bf16_outputs(result.actions);
         result.compute_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now()-start).count();
         return result;
     }
