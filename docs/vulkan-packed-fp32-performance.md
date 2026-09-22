@@ -32,6 +32,10 @@ Rates are questions/second.
 | NVIDIA | multilingual | compensated | 2 | 304.4 | 204.3 | 0.67× |
 | NVIDIA | multilingual | compensated | 4 | 405.3 | 305.9 | 0.75× |
 | NVIDIA | multilingual | compensated | 8 | 432.1 | 358.2 | 0.83× |
+| NVIDIA | typed-decisions | compensated | 1 | 133.8 | 98.1 | 0.73× |
+| NVIDIA | typed-decisions | compensated | 2 | 177.5 | 144.0 | 0.81× |
+| NVIDIA | typed-decisions | compensated | 4 | 191.7 | 172.8 | 0.90× |
+| NVIDIA | typed-decisions | compensated | 8 | 169.9 | 187.8 | 1.11× |
 
 Measurements for remaining GPU/model/mode combinations are pending.
 
