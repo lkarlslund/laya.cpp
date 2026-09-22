@@ -245,6 +245,10 @@ struct runtime::impl {
     }
 
     tensor* w(const std::string& name) { return weights.at(name); }
+    bool amd_matching() const {
+        return vulkan_amd && low_precision && low_type==GGML_TYPE_F16;
+    }
+
     tensor* rounded(ggml_context* ctx, tensor* value) {
         return low_precision ? ggml_cast(ctx, ggml_cast(ctx, value, low_type), GGML_TYPE_F32) : value;
     }
@@ -285,7 +289,7 @@ struct runtime::impl {
             // Bound cancellation error in batched scalar heads by accumulating
             // short FP32 dot products before the final low-precision rounding.
             if (vulkan_nvidia && low_type==GGML_TYPE_BF16 && w(key)->ne[1]==1 && x->ne[1]>1 && !plan.chunk) plan.chunk=64;
-            return vulkan ? vulkan_precision::linear(ctx,x,w(key),b,residual,low_type,plan) : linear_bf16(ctx,x,w(key),b,compact,residual);
+            return vulkan ? vulkan_precision::linear(ctx,x,w(key),b,residual,low_type,plan,false,amd_matching()) : linear_bf16(ctx,x,w(key),b,compact,residual);
         }
         const bool compensated = tensor_core && compensated_weights.contains(key);
         const int64_t columns = x->ne[1];
@@ -323,7 +327,13 @@ struct runtime::impl {
         // Batched head inputs have a transposed sequence/batch layout in the
         // mixed-precision contract: round the product before adding this bias.
         const bool separate_bias=low_precision && head && s.batch>1;
-        auto qkv = linear(ctx, x, prefix + (head ? ".self_attn.in_proj" : ".attn.Wqkv"), head && !separate_bias, head, low_precision && !head);
+        tensor* qkv;
+        if (amd_matching() && head && s.batch>1) {
+            // Preserve the batched projection's sequence/batch layout.
+            auto bx=ggml_cont(ctx,ggml_permute(ctx,ggml_reshape_3d(ctx,x,width,s.length,s.batch),0,2,1,3));
+            auto by=linear(ctx,bx,prefix+".self_attn.in_proj",false,true);
+            qkv=ggml_reshape_2d(ctx,ggml_cont(ctx,ggml_permute(ctx,by,0,2,1,3)),3*width,s.length*s.batch);
+        } else qkv=linear(ctx,x,prefix+(head ? ".self_attn.in_proj" : ".attn.Wqkv"),head && !separate_bias,head,low_precision && !head);
         if(separate_bias) qkv=rounded(ctx,ggml_add(ctx,qkv,w(prefix+".self_attn.in_proj_bias")));
         trace_tensor(s, prefix+".attn.Wqkv", qkv);
         tensor* split[3];
@@ -347,7 +357,7 @@ struct runtime::impl {
         trace_tensor(s,prefix+".k",split[1]);
         auto mask = head || layer % 3 == 0 ? s.global_mask : s.local_mask;
         tensor* value;
-        if (flash && (low_precision || s.length <= 128)) {
+        if (flash && !amd_matching() && (low_precision || s.length <= 128)) {
             if (vulkan && low_precision && !head && !s.padding && (layer%3==0 || s.length<64)) mask=nullptr;
             auto k = split[1];
             auto v = split[2];
@@ -361,11 +371,19 @@ struct runtime::impl {
             ggml_prec_set_acc(value, GGML_PREC_F32);
             value = ggml_reshape_2d(ctx, ggml_is_contiguous(value) ? value : ggml_cont(ctx, value), width, s.length * s.batch);
         } else {
-            auto scores = ggml_mul_mat(ctx, split[1], split[0]);
+            auto q=split[0],k=split[1];
+            if (amd_matching()) {
+                q=ggml_scale(ctx,q,std::sqrt(1.0f/8.0f));
+                k=ggml_scale(ctx,k,std::sqrt(1.0f/8.0f));
+            }
+            auto scores=ggml_mul_mat(ctx,k,q);
+            if (amd_matching()) ggml_set_name(scores,"laya.amd-low-qk");
             ggml_prec_set_acc(scores, GGML_PREC_F32);
-            auto probabilities = ggml_soft_max_ext(ctx, scores, mask, 1.0f / 8.0f, 0);
+            auto probabilities=ggml_soft_max_ext(ctx,scores,mask,amd_matching() ? 1.0f : 1.0f/8.0f,0);
+            if (amd_matching()) ggml_set_name(probabilities,"laya.amd-low-softmax");
             auto v = ggml_cont(ctx, ggml_transpose(ctx, split[2]));
             value = ggml_mul_mat(ctx, v, probabilities);
+            if (amd_matching()) ggml_set_name(value,"laya.amd-low-pv");
             if (vulkan && low_precision && !mask) ggml_set_name(value,"laya.sdpa-flash");
             ggml_prec_set_acc(value, GGML_PREC_F32);
             value = ggml_reshape_2d(ctx, ggml_cont(ctx, ggml_permute(ctx, value, 0, 2, 1, 3)), width, s.length * s.batch);

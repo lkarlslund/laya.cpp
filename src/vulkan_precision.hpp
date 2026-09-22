@@ -13,7 +13,7 @@ inline ggml_tensor* round(ggml_context* ctx, ggml_tensor* x, ggml_type type) {
 }
 inline ggml_tensor* linear(ggml_context* ctx, ggml_tensor* x, ggml_tensor* weight,
                           ggml_tensor* bias, ggml_tensor* residual, ggml_type type,
-                          projection_plan plan={}, bool native_low_input=false) {
+                          projection_plan plan={}, bool native_low_input=false, bool amd_matching=false) {
     // Keep eligible NVIDIA inputs in storage precision instead of widening
     // here and converting back inside the backend. Other reduction paths retain
     // their validated F32-input kernels and partition layout.
@@ -42,6 +42,7 @@ inline ggml_tensor* linear(ggml_context* ctx, ggml_tensor* x, ggml_tensor* weigh
         product=ggml_mul_mat(ctx,weight,x);
         ggml_prec_set_acc(product,GGML_PREC_F32);
         if (keep_low) ggml_set_name(product,"laya.low-projection");
+        if (amd_matching) ggml_set_name(product,"laya.amd-low-projection");
     }
     return finish_projection(ctx,product,bias,residual,type);
 }
