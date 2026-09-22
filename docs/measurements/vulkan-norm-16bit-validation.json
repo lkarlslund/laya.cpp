@@ -1,0 +1,326 @@
+{
+  "schema_version": 1,
+  "total_comparisons": 6000,
+  "passed": true,
+  "scope": "Fused normalization storage rounding: matching-precision public answers for all three models on NVIDIA.",
+  "runs": [
+    {
+      "backend": "vulkan",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "precision": "bf16",
+      "native_build_sha256": "2c6b4cec9d5002693e76b730023d74a81989749fdcfbc8fc58647da25a39a9e6",
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "python_runtime": "cuda",
+      "python_runtime_version": "13.0",
+      "acceptance": "exact_categories_absolute_numeric_0.0001",
+      "passed": true,
+      "native_device": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "model": "english",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 2.980232238769531e-07,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        }
+      ]
+    },
+    {
+      "backend": "vulkan",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "precision": "fp16",
+      "native_build_sha256": "2c6b4cec9d5002693e76b730023d74a81989749fdcfbc8fc58647da25a39a9e6",
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "python_runtime": "cuda",
+      "python_runtime_version": "13.0",
+      "acceptance": "exact_categories_absolute_numeric_0.0001",
+      "passed": true,
+      "native_device": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "model": "english",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 2.384185791015625e-07,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 4.0,
+          "raw_diagnostic_groups": 1
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 2.384185791015625e-07,
+          "max_action_error": 2.0,
+          "raw_diagnostic_groups": 2
+        }
+      ]
+    },
+    {
+      "backend": "vulkan",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "precision": "bf16",
+      "native_build_sha256": "2c6b4cec9d5002693e76b730023d74a81989749fdcfbc8fc58647da25a39a9e6",
+      "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "python_runtime": "cuda",
+      "python_runtime_version": "13.0",
+      "acceptance": "exact_categories_absolute_numeric_0.0001",
+      "passed": true,
+      "native_device": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "model": "multilingual",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0001220703125,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0001220703125,
+          "max_action_error": 8.0,
+          "raw_diagnostic_groups": 1
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 4.76837158203125e-07,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        }
+      ]
+    },
+    {
+      "backend": "vulkan",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "precision": "fp16",
+      "native_build_sha256": "2c6b4cec9d5002693e76b730023d74a81989749fdcfbc8fc58647da25a39a9e6",
+      "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "python_runtime": "cuda",
+      "python_runtime_version": "13.0",
+      "acceptance": "exact_categories_absolute_numeric_0.0001",
+      "passed": true,
+      "native_device": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "model": "multilingual",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.00048828125,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.00048828125,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        }
+      ]
+    },
+    {
+      "backend": "vulkan",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "precision": "bf16",
+      "native_build_sha256": "2c6b4cec9d5002693e76b730023d74a81989749fdcfbc8fc58647da25a39a9e6",
+      "weights_sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "python_runtime": "cuda",
+      "python_runtime_version": "13.0",
+      "acceptance": "exact_categories_absolute_numeric_0.0001",
+      "passed": true,
+      "native_device": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "model": "typed-decisions",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        }
+      ]
+    },
+    {
+      "backend": "vulkan",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "precision": "fp16",
+      "native_build_sha256": "2c6b4cec9d5002693e76b730023d74a81989749fdcfbc8fc58647da25a39a9e6",
+      "weights_sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "python_runtime": "cuda",
+      "python_runtime_version": "13.0",
+      "acceptance": "exact_categories_absolute_numeric_0.0001",
+      "passed": true,
+      "native_device": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "model": "typed-decisions",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 1.1920928955078125e-07,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 9.5367431640625e-07,
+          "max_action_error": 4.0,
+          "raw_diagnostic_groups": 1
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0,
+          "raw_diagnostic_groups": 0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "input_failures": 0,
+          "answer_failures": 0,
+          "max_logit_error": 1.9073486328125e-06,
+          "max_action_error": 2.0,
+          "raw_diagnostic_groups": 1
+        }
+      ]
+    }
+  ]
+}

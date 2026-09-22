@@ -258,13 +258,18 @@ struct runtime::impl {
     }
 
     tensor* norm(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool compact = true) {
-        if (low_precision && vulkan) return vulkan_precision::norm(ctx,x,w(name+".weight"),bias ? w(name+".bias") : nullptr);
+        if (low_precision && vulkan) return vulkan_precision::norm(ctx,x,w(name+".weight"),bias ? w(name+".bias") : nullptr,compact ? low_type : GGML_TYPE_F32);
         if (low_precision && !vulkan) return norm_bf16(ctx, x, w(name+".weight"), bias ? w(name+".bias") : nullptr, compact);
         auto value = ggml_mul(ctx, ggml_norm(ctx, x, 1e-5f), w(name + ".weight"));
         return bias ? ggml_add(ctx, value, w(name + ".bias")) : value;
     }
     tensor* linear(ggml_context* ctx, tensor* x, const std::string& name, bool bias = false, bool packed = false, bool compact = false, tensor* residual = nullptr) {
-        if (low_precision && x->type!=low_type) {
+        // Compact normalization already applies this projection's storage
+        // rounding while retaining the F32 matrix-input layout.
+        const bool rounded_norm=low_precision && vulkan && x->op==GGML_OP_CUSTOM &&
+            x->type==GGML_TYPE_F32 && std::strcmp(x->name,"laya.norm-vulkan")==0 &&
+            x->op_params[0]==(low_type==GGML_TYPE_F16 ? 1 : 2);
+        if (low_precision && x->type!=low_type && !rounded_norm) {
             // Preserve the rounded F32 layout used by the Vulkan matrix path
             // without materializing an intermediate 16-bit tensor.
             x=vulkan && x->type==GGML_TYPE_F32 && ggml_is_contiguous(x)
