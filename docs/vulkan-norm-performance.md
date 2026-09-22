@@ -14,12 +14,16 @@ Rates are questions/second.
 
 | Model | Precision | Batch | Before | Fused normalization rounding | Speedup |
 |---|---|---:|---:|---:|---:|
+| english | FP16 | 1 | 135.4 | 137.1 | 1.01× |
+| english | FP16 | 2 | 241.9 | 243.2 | 1.01× |
+| english | FP16 | 4 | 382.7 | 386.6 | 1.01× |
+| english | FP16 | 8 | 507.4 | 513.5 | 1.01× |
 | english | BF16 | 1 | 133.7 | 134.7 | 1.01× |
 | english | BF16 | 2 | 235.8 | 237.8 | 1.01× |
 | english | BF16 | 4 | 385.5 | 390.3 | 1.01× |
 | english | BF16 | 8 | 512.7 | 520.7 | 1.02× |
 
-Measured throughput change is 0.8–1.6% in the completed runs.
+Measured throughput change is 0.5–1.6% in the completed runs.
 Measurements for the remaining model/precision pairs are pending.
 See [measurement metadata](measurements/vulkan-norm-performance.json) for build,
 weight, corpus and report identities. Matching Python timings for this build remain pending.
