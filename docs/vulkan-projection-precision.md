@@ -122,5 +122,6 @@ without changing matrix accumulation order. Seven projection geometries remain
 bitwise identical, and residual/failure-status checks pass. Four paired English
 request-group probes show 1.29–1.67× throughput improvement over the serial-scan
 build ([probe record](measurements/vulkan-amd-bf16-parallel-scan-probe.json)).
-These probes are not full-corpus performance results; full model acceptance of
-this optimization is running separately.
+These probes are not full-corpus performance results. The subsequent
+[full model acceptance](measurements/vulkan-amd-bf16-parallel-scan-validation.json)
+passes all 3,000 comparisons with zero raw-output differences.
