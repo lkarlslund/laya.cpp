@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "gpu_power_limit_w": 450,
+  "method": "250 fixed questions; 3 warmups and 5 timed iterations per group; alternating native CUDA/Vulkan order; matching BF16; model loading and JSON transport excluded; separate shared-library paths; no concurrent GPU experiments or builds.",
+  "runs": [
+    {
+      "before_backend": "cuda",
+      "after_backend": "vulkan",
+      "before_sha256": "ee0eb83f789918ad686f4c312087ad8d4e01a0de26202b2a3fcf845e1a1463ca",
+      "after_sha256": "cc43f8d2a72741296d10f787e2a6cc6de6d42ff38eff5c3a3a105c68904d5059",
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "warmup": 3,
+      "iterations": 5,
+      "precision": "bf16",
+      "model": "english",
+      "report_sha256": "8e676fa3602fa1d197069bdb0b96615add34f91de57637047262c85c0c154b51",
+      "rows": [
+        {
+          "batch_size": 1,
+          "cuda": {
+            "p50_ms": 2.2245375000000003,
+            "p95_ms": 6.2504885,
+            "questions_per_second": 364.64056370019284
+          },
+          "vulkan": {
+            "p50_ms": 6.5511555,
+            "p95_ms": 10.22984875,
+            "questions_per_second": 139.1976746323333
+          },
+          "vulkan_over_cuda": 0.38173941269677697,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 2,
+          "cuda": {
+            "p50_ms": 2.567608,
+            "p95_ms": 9.2535762,
+            "questions_per_second": 580.7050005203977
+          },
+          "vulkan": {
+            "p50_ms": 6.981635,
+            "p95_ms": 13.1307668,
+            "questions_per_second": 248.64837419245487
+          },
+          "vulkan_over_cuda": 0.42818362846820524,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 4,
+          "cuda": {
+            "p50_ms": 3.4502,
+            "p95_ms": 16.6400322,
+            "questions_per_second": 762.2958900308485
+          },
+          "vulkan": {
+            "p50_ms": 7.885348,
+            "p95_ms": 21.7363376,
+            "questions_per_second": 400.28947243824
+          },
+          "vulkan_over_cuda": 0.5251103641947239,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 8,
+          "cuda": {
+            "p50_ms": 5.6463435,
+            "p95_ms": 28.097171099999997,
+            "questions_per_second": 815.1467187926518
+          },
+          "vulkan": {
+            "p50_ms": 9.7562745,
+            "p95_ms": 41.145036250000004,
+            "questions_per_second": 517.7395234282905
+          },
+          "vulkan_over_cuda": 0.6351488774869097,
+          "answer_failures": 0
+        }
+      ]
+    }
+  ],
+  "all_models_complete": false
+}
