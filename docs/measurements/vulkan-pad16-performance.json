@@ -311,6 +311,83 @@
           "answer_failures": 0
         }
       ]
+    },
+    {
+      "before_backend": "vulkan",
+      "after_backend": "vulkan",
+      "before_sha256": "2c6b4cec9d5002693e76b730023d74a81989749fdcfbc8fc58647da25a39a9e6",
+      "after_sha256": "cc43f8d2a72741296d10f787e2a6cc6de6d42ff38eff5c3a3a105c68904d5059",
+      "weights_sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "warmup": 3,
+      "iterations": 5,
+      "precision": "bf16",
+      "model": "typed-decisions",
+      "report_sha256": "1d07ecfda1841f925e5fd37836d5bafcb201b954715f9783566e6068ec158b89",
+      "rows": [
+        {
+          "batch_size": 1,
+          "before": {
+            "p50_ms": 6.605696999999999,
+            "p95_ms": 13.02756635,
+            "questions_per_second": 132.0498765094169
+          },
+          "after": {
+            "p50_ms": 6.2622515,
+            "p95_ms": 13.089321599999998,
+            "questions_per_second": 136.2263957351397
+          },
+          "speedup": 1.0316283463197706,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 2,
+          "before": {
+            "p50_ms": 7.224554,
+            "p95_ms": 24.070881,
+            "questions_per_second": 211.88425756932614
+          },
+          "after": {
+            "p50_ms": 6.917192,
+            "p95_ms": 23.7622464,
+            "questions_per_second": 216.6001266168097
+          },
+          "speedup": 1.0222568165355115,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 4,
+          "before": {
+            "p50_ms": 8.243565,
+            "p95_ms": 41.4665937,
+            "questions_per_second": 312.57593258656755
+          },
+          "after": {
+            "p50_ms": 8.03002,
+            "p95_ms": 41.1289164,
+            "questions_per_second": 318.03397482660336
+          },
+          "speedup": 1.0174614923000325,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 8,
+          "before": {
+            "p50_ms": 9.799301,
+            "p95_ms": 84.74354535,
+            "questions_per_second": 355.1564556200941
+          },
+          "after": {
+            "p50_ms": 9.761549500000001,
+            "p95_ms": 84.56367549999999,
+            "questions_per_second": 357.493693588884
+          },
+          "speedup": 1.0065808686053845,
+          "answer_failures": 0
+        }
+      ]
     }
   ],
   "all_models_complete": false

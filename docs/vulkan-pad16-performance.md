@@ -30,6 +30,10 @@ Rates are questions/second.
 | multilingual | BF16 | 2 | 318.2 | 319.3 | 1.00× |
 | multilingual | BF16 | 4 | 490.1 | 489.8 | 1.00× |
 | multilingual | BF16 | 8 | 624.6 | 624.8 | 1.00× |
+| typed-decisions | BF16 | 1 | 132.0 | 136.2 | 1.03× |
+| typed-decisions | BF16 | 2 | 211.9 | 216.6 | 1.02× |
+| typed-decisions | BF16 | 4 | 312.6 | 318.0 | 1.02× |
+| typed-decisions | BF16 | 8 | 355.2 | 357.5 | 1.01× |
 
 Measured throughput change is -0.3–4.6% in the completed runs.
 Measurements for the remaining model/precision pairs are pending.
