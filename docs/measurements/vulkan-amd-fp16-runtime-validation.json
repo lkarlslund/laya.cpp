@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "scope": "Production runtime AMD FP16 integration with dedicated tagged projection, attention and softmax pipelines and current packing/fusion optimizations.",
-  "all_models_passed": false,
+  "all_models_passed": true,
   "runs": [
     {
       "backend": "vulkan",
@@ -68,6 +68,52 @@
           "input_failures": 0,
           "max_logit_error": 0.0,
           "max_action_error": 1.0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        }
+      ]
+    },
+    {
+      "backend": "vulkan",
+      "precision": "fp16",
+      "native_build_sha256": "2394855bae651293ef2658f6f648aabc6f88fcc4bd4ef2015b225238966031e4",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "weights_sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e",
+      "gpu": "Radeon 8060S Graphics",
+      "torch": "2.11.0+rocm7.13.0",
+      "answer_atol": 0.0001,
+      "model": "typed-decisions",
+      "report_sha256": "12d523e9da48f587d5cd0b7c6339dc813b7848dad3a2680998ef120db878e563",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 4.0
         },
         {
           "batch_size": 2,
