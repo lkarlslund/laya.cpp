@@ -56,12 +56,14 @@ Rates are questions/second.
 | AMD | multilingual | compensated | 2 | 38.2 | 80.6 | 2.11× |
 | AMD | multilingual | compensated | 4 | 36.8 | 84.6 | 2.30× |
 | AMD | multilingual | compensated | 8 | 31.4 | 76.9 | 2.45× |
+| AMD | typed-decisions | plain | 1 | 13.5 | 9.3 | 0.69× |
+| AMD | typed-decisions | plain | 2 | 14.9 | 14.6 | 0.98× |
+| AMD | typed-decisions | plain | 4 | 13.8 | 17.0 | 1.23× |
+| AMD | typed-decisions | plain | 8 | 12.0 | 16.1 | 1.35× |
 | AMD | typed-decisions | compensated | 1 | 13.5 | 17.4 | 1.28× |
 | AMD | typed-decisions | compensated | 2 | 14.7 | 22.7 | 1.55× |
 | AMD | typed-decisions | compensated | 4 | 13.7 | 23.0 | 1.68× |
 | AMD | typed-decisions | compensated | 8 | 11.8 | 22.0 | 1.86× |
-
-Measurements for remaining GPU/model/mode combinations are pending.
 
 See [measurement metadata](measurements/vulkan-packed-fp32-performance.json) for
 binary, weight, corpus and report identities.
