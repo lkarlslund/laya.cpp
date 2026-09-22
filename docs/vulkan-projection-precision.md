@@ -222,3 +222,12 @@ experimental kernel. Four matrix geometries, including 706- and 1,024-element
 reductions, reproduce every experimental output bit while leaving every ordinary
 FP32 output bit unchanged. Mathematical checks pass on AMD and NVIDIA. Projection
 integration and full runtime validation remain outstanding.
+
+
+The dedicated native AMD FP16 projection pipeline now uses the measured traversal
+policy and sequential scalar accumulation. Only tagged low-precision projections
+select it or bypass the automatic vector and split-K paths. Seven geometries cover
+scalar scoring, small output heads, QKV and MLP projections, including unaligned
+input widths. Every tested tagged output matches the experimental backend bitwise,
+and untagged outputs remain bitwise unchanged. Mathematical checks pass on both
+GPUs. BF16 projection integration and full runtime activation remain pending.

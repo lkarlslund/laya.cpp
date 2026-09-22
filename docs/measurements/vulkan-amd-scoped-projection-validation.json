@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "scope": "Dedicated AMD FP16 projection pipeline; full runtime activation and BF16 integration pending",
+  "gpu": "AMD Radeon 8060S Graphics",
+  "matching_values": 497696,
+  "ordinary_values_unchanged": true,
+  "operator_tests": [
+    "AMD Radeon 8060S Graphics",
+    "NVIDIA RTX PRO 6000 Blackwell Workstation Edition"
+  ],
+  "cases": [
+    {
+      "k": 768,
+      "m": 1,
+      "n": 8,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 1024,
+      "m": 1,
+      "n": 8,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 256,
+      "m": 2,
+      "n": 8,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 768,
+      "m": 2304,
+      "n": 2,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 1028,
+      "m": 256,
+      "n": 193,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 772,
+      "m": 256,
+      "n": 193,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 2624,
+      "m": 1024,
+      "n": 385,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    }
+  ],
+  "artifacts": {
+    "projection-amd.bin": "252cf36644bd802494b4856f00754c028b2e1de952e312a069b8797197f1d9af",
+    "projection-amd-baseline.bin": "ad9259604573fcebd2ba0a3eed17275b7912a2d972a6825ec66e5916bf3762e6",
+    "projection-amd-experimental.bin": "102cfd80d511a2204985423b020782f5b5b1dfc1907aeb1185eea34d8bd4e2a8",
+    "projection-nvidia.bin": "7cd76be57037aae6d0f5e07a661c7d3ebec6ae5cf12d97a7a932e304f8c14df9",
+    "scoped-projection-check.json": "925cc568c114d0e54fe267d85dc7c37be552e362d1a2d004ab6eef5630395c18"
+  }
+}

@@ -11,29 +11,29 @@ laya_vk_replace(
   "mmp_map = ggml_vk_get_mul_mat_mat_pipeline_map(ctx, src0->type, y_non_contig ? f16_type : src1->type, (ggml_prec)dst->op_params[0]);"
   "mmp_map = ggml_vk_get_mul_mat_mat_pipeline_map(ctx, src0->type, y_non_contig ? f16_type : src1->type, (ggml_prec)dst->op_params[0], false, ctx->device->vendor_id==VK_VENDOR_ID_AMD && (std::strcmp(dst->name,\"laya.amd-low-qk\")==0 || std::strcmp(dst->name,\"laya.amd-low-pv\")==0));")
 
-function(laya_amd_attention_replace old new target)
+function(laya_vk_shader_replace old new target)
   string(FIND "${${target}}" "${old}" position)
   if(position EQUAL -1)
-    message(FATAL_ERROR "Pinned AMD attention shader extension no longer matches")
+    message(FATAL_ERROR "Pinned Vulkan shader extension no longer matches")
   endif()
   string(REPLACE "${old}" "${new}" updated "${${target}}")
   set(${target} "${updated}" PARENT_SCOPE)
 endfunction()
 set(laya_amd_shader_dir "${CMAKE_CURRENT_SOURCE_DIR}/third_party/ggml/src/ggml-vulkan/vulkan-shaders")
 file(READ "${laya_amd_shader_dir}/dot_product_funcs.glsl" laya_amd_dot)
-laya_amd_attention_replace(
+laya_vk_shader_replace(
   "return fma(ACC_TYPE(a.x), ACC_TYPE(b.x), fma(ACC_TYPE(a.y), ACC_TYPE(b.y),\n           fma(ACC_TYPE(a.z), ACC_TYPE(b.z), fma(ACC_TYPE(a.w), ACC_TYPE(b.w), acc))));"
   "return fma(ACC_TYPE(a.w), ACC_TYPE(b.w), fma(ACC_TYPE(a.z), ACC_TYPE(b.z),\n           fma(ACC_TYPE(a.y), ACC_TYPE(b.y), fma(ACC_TYPE(a.x), ACC_TYPE(b.x), acc))));"
   laya_amd_dot)
-laya_amd_attention_replace(
+laya_vk_shader_replace(
   "return fma(ACC_TYPE(a.x), ACC_TYPE(b.x), fma(ACC_TYPE(a.y), ACC_TYPE(b.y), acc));"
   "return fma(ACC_TYPE(a.y), ACC_TYPE(b.y), fma(ACC_TYPE(a.x), ACC_TYPE(b.x), acc));"
   laya_amd_dot)
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/laya_amd_dot_product_funcs.glsl" CONTENT "${laya_amd_dot}")
 file(READ "${laya_amd_shader_dir}/mul_mm.comp" laya_amd_attention)
-laya_amd_attention_replace( "#include \"dot_product_funcs.glsl\"" "#include \"laya_amd_dot_product_funcs.glsl\"" laya_amd_attention)
-laya_amd_attention_replace( "#define BK 32" "#define BK 8" laya_amd_attention)
-laya_amd_attention_replace( "    for (uint block = start_k; block < end_k; block += BK) {"
+laya_vk_shader_replace( "#include \"dot_product_funcs.glsl\"" "#include \"laya_amd_dot_product_funcs.glsl\"" laya_amd_attention)
+laya_vk_shader_replace( "#define BK 32" "#define BK 8" laya_amd_attention)
+laya_vk_shader_replace( "    for (uint block = start_k; block < end_k; block += BK) {"
   [=[    const uint base_a=pos_a,base_b=pos_b;
     const uint full_k=(p.K/BK)*BK;
     const uint groups=min(32u,1u<<findMSB(max(1u,full_k/64u)));
