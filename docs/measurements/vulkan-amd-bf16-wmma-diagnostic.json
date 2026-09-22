@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "scope": "Isolated first English encoder QKV projection for billing-01; hardware arithmetic diagnostic, not a validated Vulkan implementation.",
+  "gpu": "Radeon 8060S Graphics",
+  "torch": "2.11.0+rocm7.13.0",
+  "projection": {
+    "input_shape": [
+      54,
+      1024
+    ],
+    "weight_shape": [
+      3072,
+      1024
+    ],
+    "output_elements": 165888,
+    "accumulation": "Ascending K in groups of 16, native WMMA FP32 accumulator"
+  },
+  "boundary_check": {
+    "gpu": "Radeon 8060S Graphics",
+    "torch": "2.11.0+rocm7.13.0",
+    "input_gpu_cpu_cast_differences": 0,
+    "weight_gpu_cpu_cast_differences": 0,
+    "input_not_exact_fp16": 5,
+    "weight_not_exact_fp16": 0,
+    "manual_bf16_linear_vs_model_differences": 0,
+    "manual_bf16_linear_vs_model_max_error": 0.0
+  },
+  "modes": [
+    {
+      "mode": "bf16",
+      "swap": true,
+      "max_error": 0.0,
+      "raw_vs_bf16_differences": 0,
+      "input_values_not_exact_in_fp16_at_scale": 5,
+      "stored_bf16_tensor_differences": 0
+    },
+    {
+      "mode": "fp16",
+      "swap": true,
+      "max_error": 0.0,
+      "raw_vs_bf16_differences": 846,
+      "input_values_not_exact_in_fp16_at_scale": 5,
+      "stored_bf16_tensor_differences": 0
+    },
+    {
+      "mode": "fp16-scaled-16",
+      "swap": true,
+      "max_error": 0.0,
+      "raw_vs_bf16_differences": 0,
+      "input_values_not_exact_in_fp16_at_scale": 0,
+      "stored_bf16_tensor_differences": 0
+    },
+    {
+      "mode": "fp16-scaled-256",
+      "swap": true,
+      "max_error": 0.0,
+      "raw_vs_bf16_differences": 0,
+      "input_values_not_exact_in_fp16_at_scale": 0,
+      "stored_bf16_tensor_differences": 0
+    }
+  ],
+  "fixed_scale_trace_coverage": {
+    "1": {
+      "inexact_tensors": 96,
+      "inexact_values": 1858
+    },
+    "16": {
+      "inexact_tensors": 36,
+      "inexact_values": 186
+    },
+    "256": {
+      "inexact_tensors": 14,
+      "inexact_values": 36
+    }
+  },
+  "per_vector_scale_trace_coverage": {
+    "tensors": 114,
+    "vectors": 6156,
+    "vectors_without_exact_scale": 0,
+    "tested_powers_of_two": [
+      -8,
+      -7,
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24
+    ]
+  },
+  "artifact_sha256": {
+    "research/wmma_qkv.cpp": "39d7fa67e40b158984f4763f7e2d78cf0c3c261573bf673dde5ff13b420633a4",
+    "research/run_wmma_qkv.py": "84bd9f05d6f2fe660a4635dac6608abc78ba44cad645473606267c542f0933ba",
+    "research/wmma-qkv-output.bin": "3c5e93f3ec4946a36b246941d320811523954675701017e8470bad20449c3ca5",
+    "research/amd-bf16-cast-inputs.npz": "0f4e7a4b9a765d95cce93be3711dfc6e5bd4345655cd68a4618a37b57861307d"
+  },
+  "limitations": [
+    "Single request trace; no general representability guarantee.",
+    "Fixed scaling fails to preserve some other layer inputs.",
+    "No end-to-end BF16 correctness or performance claim."
+  ]
+}

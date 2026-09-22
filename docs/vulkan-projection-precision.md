@@ -88,3 +88,18 @@ vector path for low-precision products with multiple input columns and at least
 64 output rows. This resolves the batch-1 `accessibility-05` discrepancy: all
 captured tensors, including the four scorer stages, match at their storage
 boundaries. Full-corpus validation of this additional change remains pending.
+
+An AMD BF16 hardware diagnostic now reproduces all 165,888 stored values of the
+first English encoder QKV projection for `billing-01`. GPU and CPU BF16 input
+and weight casts agree. With exact power-of-two input scaling by 16 or 256,
+FP16 WMMA instructions produce bit-identical FP32 accumulators to BF16 WMMA;
+removing the scale preserves the stored BF16 result. An unscaled FP16 conversion
+loses five input values and changes 846 raw accumulators, despite matching the
+stored output in this particular projection.
+
+This suggests a possible Vulkan implementation using exact scaled operands,
+but fixed scaling does not preserve all other captured layer inputs. Every one
+of the 6,156 captured input vectors has an exact individual scale in the tested
+range; this is evidence from one request, not a general guarantee. Range handling,
+Vulkan implementation, full-model correctness and performance remain unverified.
+See the [BF16 arithmetic diagnostic](measurements/vulkan-amd-bf16-wmma-diagnostic.json).
