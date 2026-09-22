@@ -92,10 +92,10 @@ Vulkan supports plain FP32 and compensated projections with `--tensor-core-fp32`
 Mixed `--fp16` and `--bf16` are validated for all three models on RTX PRO 6000
 Blackwell. AMD 16-bit support is still under development. `--flash-fp32` remains
 CUDA-only. See [Vulkan support](docs/vulkan.md) for validation and limits.
-The performance table above measures CUDA. [Current NVIDIA Vulkan measurements](docs/vulkan-projection-performance.md)
-compare compensated FP32 with Python on RTX PRO 6000 at 450 W.
-[Additional paired measurements](docs/vulkan-fused-performance.md) cover Radeon 8060S
-and native CUDA comparisons using the earlier fused projection build.
+The performance table above measures CUDA. [Paired Vulkan FP32 measurements](docs/vulkan-packed-fp32-performance.md)
+compare plain and compensated FP32 with same-GPU Python for all three models
+on RTX PRO 6000 Blackwell capped at 450 W and Radeon 8060S. All 48 measured
+model, mode, GPU and batch combinations pass the correctness checks.
 [Paired 16-bit measurements](docs/vulkan-current-16bit-performance.md) compare
 FP16 and BF16 Vulkan with matching-precision Python for all three models.
 The measured input-rounding build reaches 63–102% of Python throughput.
