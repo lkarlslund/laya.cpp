@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -15,6 +16,7 @@ except ImportError:  # Allows CLI argument/report tests on machines without PyTo
     torch = None
 
 from compare import compare_values
+from identity import file_hash, native_hash
 from native import Native
 
 
@@ -29,6 +31,39 @@ def sha256(path):
 
 def model_path(root, variant):
     return Path(root) if variant == 'english' else Path(root) / variant
+
+
+def select_bucket(manifest, requests):
+    questions = sum(len(request['questions']) for request in requests)
+    candidates = sorted(manifest['buckets'], key=lambda item: item['batch'])
+    try:
+        bucket = next(item for item in candidates if item['batch'] >= questions)
+    except StopIteration as exc:
+        maximum = max((item['batch'] for item in candidates), default=0)
+        raise ValueError(f'Group has {questions} questions but the largest Core ML bucket is {maximum}') from exc
+    return bucket['name'], questions
+
+
+def grouped_requests(cases, batch_size, manifest):
+    groups = {}
+    for start in range(0, len(cases), batch_size):
+        requests = cases[start:start + batch_size]
+        bucket, questions = select_bucket(manifest, requests)
+        groups.setdefault(bucket, []).append((start, requests, questions))
+    return groups
+
+
+def coreml_environment(cache_root, bucket):
+    if not re.fullmatch(r'[A-Za-z0-9._-]+', bucket):
+        raise ValueError(f'Unsafe Core ML bucket name: {bucket!r}')
+    home = (Path(cache_root) / bucket).resolve()
+    (home / 'Library' / 'Caches').mkdir(parents=True, exist_ok=True)
+    environment = os.environ.copy()
+    # Foundation honors CFFIXED_USER_HOME for isolated test homes. Keeping one
+    # home per compiled bucket prevents E5RT cache collisions between shapes.
+    environment['CFFIXED_USER_HOME'] = str(home)
+    environment['HOME'] = str(home)
+    return environment
 
 
 class CPUOracle:
@@ -87,6 +122,10 @@ class CPUOracle:
             self.agent.model = original
         return results
 
+    def predict_batch(self, requests):
+        inputs = self.prepare(requests)
+        return self.format(requests, self.forward(inputs))
+
 
 def validate_tolerances(values):
     if not all(math.isfinite(value) and value >= 0 for value in values):
@@ -127,28 +166,47 @@ def write_report(path, report):
 
 def validate_variant(args, cases, variant, report):
     reference_model = model_path(args.model, variant)
+    manifest_path = reference_model / 'coreml' / 'manifest.json'
+    manifest = json.loads(manifest_path.read_text())
+    if manifest.get('variant') != variant:
+        raise ValueError(f"Core ML manifest variant {manifest.get('variant')!r} does not match {variant!r}")
     oracle = CPUOracle(args.source, reference_model)
-    variant_report = dict(variant=variant, model=str(reference_model), passed=True, batches=[])
+    revision_path = reference_model / 'REVISION'
+    variant_report = dict(
+        variant=variant, model=str(reference_model.resolve()),
+        model_revision=revision_path.read_text().strip(),
+        weights_sha256=file_hash(reference_model / 'model.safetensors'),
+        coreml_manifest_sha256=file_hash(manifest_path),
+        precision=manifest.get('precision'), passed=True, batches=[])
     report['variants'].append(variant_report)
+    tasks_by_bucket = {}
     for batch_size in args.batch_sizes:
         summary = dict(batch_size=batch_size, questions=0, max_logit_error=0.0,
                        max_action_error=0.0, input_failures=[], raw_failures=[],
                        deterministic_failures=[], answer_failures=[])
         variant_report['batches'].append(summary)
+        groups = grouped_requests(cases, batch_size, manifest)
+        for bucket, bucket_groups in groups.items():
+            for start, requests, questions in bucket_groups:
+                tasks_by_bucket.setdefault(bucket, []).append((summary, start, requests, questions))
 
-        # One bucket per process avoids an MPSGraph cache crash observed when a
-        # long-lived process switches between several large compiled models.
-        with Native(args.executable, reference_model, raw=True, backend='coreml') as raw_native:
-            probe = raw_native.call(cases[:batch_size])
-            if re.sub(r'[^a-z0-9]', '', str(probe.get('backend', '')).casefold()) != 'coreml':
-                raise RuntimeError(f"Core ML backend was not selected: {probe.get('backend')!r}")
-            variant_report['device'] = probe.get('device')
-            for start in range(0, len(cases), batch_size):
-                requests = cases[start:start + batch_size]
+    # Process all tasks for a compiled bucket together, so no process switches
+    # models and no large bucket is repeatedly reopened after another bucket.
+    for bucket, bucket_tasks in tasks_by_bucket.items():
+        environment = coreml_environment(args.cache_root, bucket)
+        with Native(args.executable, reference_model, raw=True, backend='coreml', env=environment) as raw_native:
+            for summary, start, requests, questions in bucket_tasks:
+                probe = raw_native.call(requests)
+                if re.sub(r'[^a-z0-9]', '', str(probe.get('backend', '')).casefold()) != 'coreml':
+                    raise RuntimeError(f"Core ML backend was not selected: {probe.get('backend')!r}")
+                device = probe.get('device')
+                if 'device' in variant_report and variant_report['device'] != device:
+                    raise RuntimeError('Core ML device changed during validation')
+                variant_report['device'] = device
                 inputs = oracle.prepare(requests)
                 expected_inputs = oracle.expected_inputs(inputs)
                 expected_raw = oracle.forward(inputs)
-                raw = raw_native.call(requests)['results']
+                raw = probe['results']
                 repeated = raw_native.call(requests)['results']
                 if raw_signature(raw) != raw_signature(repeated):
                     summary['deterministic_failures'].append(
@@ -161,11 +219,10 @@ def validate_variant(args, cases, variant, report):
                                 action_atol=args.raw_action_atol, rtol=args.raw_rtol,
                                 summary=summary, start=start,
                                 ids=[request['id'] for request in requests])
-                summary['questions'] += sum(len(request['questions']) for request in requests)
+                summary['questions'] += questions
 
-        with Native(args.executable, reference_model, raw=False, backend='coreml') as public_native:
-            for start in range(0, len(cases), batch_size):
-                requests = cases[start:start + batch_size]
+        with Native(args.executable, reference_model, raw=False, backend='coreml', env=environment) as public_native:
+            for summary, start, requests, _questions in bucket_tasks:
                 inputs = oracle.prepare(requests)
                 expected_raw = oracle.forward(inputs)
                 expected_answers = oracle.format(requests, expected_raw)
@@ -184,6 +241,7 @@ def validate_variant(args, cases, variant, report):
                         except ValueError as exc:
                             summary['answer_failures'].append(dict(id=request['id'], error=str(exc)))
 
+    for summary in variant_report['batches']:
         summary['passed'] = not any(summary[key] for key in
                                     ('input_failures', 'raw_failures', 'deterministic_failures', 'answer_failures'))
         variant_report['passed'] &= summary['passed']
@@ -203,6 +261,7 @@ def arguments():
     parser.add_argument('--raw-action-atol', type=float, default=0.1)
     parser.add_argument('--raw-rtol', type=float, default=0.00001)
     parser.add_argument('--answer-atol', type=float, default=0.0001)
+    parser.add_argument('--cache-root', type=Path, default=Path('results/coreml-cache'))
     parser.add_argument('--output', type=Path, default=Path('results/coreml-validation.json'))
     return parser.parse_args()
 
@@ -218,18 +277,20 @@ def main():
         cases = json.loads(args.cases.read_text())
         if not cases:
             raise ValueError('Cases must be nonempty')
-        report = dict(schema_version=1, backend='coreml', passed=True, complete=False,
+        report = dict(schema_version=2, backend='coreml', passed=True, complete=False,
                       acceptance='exact_categories_absolute_numeric_0.0001',
-                      cases_sha256=sha256(args.cases), executable_sha256=sha256(args.executable),
+                      cases_sha256=sha256(args.cases),
+                      native_build_sha256=native_hash(args.executable),
                       raw_atol=args.raw_atol, raw_action_atol=args.raw_action_atol,
                       raw_rtol=args.raw_rtol,
                       answer_atol=args.answer_atol, batch_sizes=args.batch_sizes,
+                      cache_strategy='isolated_per_bucket',
                       variants=[])
         for variant in args.variants:
             validate_variant(args, cases, variant, report)
         report['complete'] = True
     except Exception as exc:  # Always leave a machine-readable, failing artifact.
-        report = locals().get('report', dict(schema_version=1, backend='coreml', variants=[]))
+        report = locals().get('report', dict(schema_version=2, backend='coreml', variants=[]))
         report.update(passed=False, complete=False, error=f'{type(exc).__name__}: {exc}')
     write_report(args.output, report)
     print(json.dumps(dict(passed=report['passed'], complete=report['complete'], output=str(args.output))))

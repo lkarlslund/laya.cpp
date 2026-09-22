@@ -29,12 +29,12 @@ class NativeIdentityTests(unittest.TestCase):
             library=root/'libcublas.so.13'
             library.write_bytes(b'first math implementation')
             linked=SimpleNamespace(stdout=f'libcublas.so.13 => {library} (0x1234)\n')
-            with patch.object(identity.subprocess,'run',return_value=linked) as resolve:
+            with patch.object(identity.sys,'platform','linux'), patch.object(identity.subprocess,'run',return_value=linked) as resolve:
                 first=identity.native_hash(executable)
                 self.assertEqual(first,identity.native_hash(executable))
                 library.write_bytes(b'different math implementation')
                 self.assertNotEqual(first,identity.native_hash(executable))
-                self.assertEqual(resolve.call_args.args[0],['ldd',str(executable)])
+                self.assertEqual(resolve.call_args.args[0],['ldd',str(executable.resolve())])
 
 
     def test_loader_overrides_change_native_identity(self):
@@ -47,12 +47,27 @@ class NativeIdentityTests(unittest.TestCase):
                 library=root/name
                 library.write_bytes(b'first math implementation')
                 linked=SimpleNamespace(stdout=f'{name} => {library} (0x1234)\n')
-                with patch.object(identity.subprocess,'run',return_value=linked) as resolve:
+                with patch.object(identity.sys,'platform','linux'), patch.object(identity.subprocess,'run',return_value=linked) as resolve:
                     first=identity.native_hash(executable)
                     self.assertEqual(first,identity.native_hash(executable))
                     library.write_bytes(b'different math implementation')
                     self.assertNotEqual(first,identity.native_hash(executable))
-                    self.assertEqual(resolve.call_args.args[0],['ldd',str(executable)])
+                    self.assertEqual(resolve.call_args.args[0],['ldd',str(executable.resolve())])
+
+    def test_macos_loaded_icu_changes_native_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            executable=root/'build/bin/laya-cli'
+            executable.parent.mkdir(parents=True)
+            executable.write_bytes(b'unchanged executable')
+            library=root/'libicuuc.78.dylib'
+            library.write_bytes(b'first ICU implementation')
+            linked=SimpleNamespace(stdout=f'{executable}:\n\t{library} (compatibility version 78.0.0, current version 78.3.0)\n')
+            with patch.object(identity.sys,'platform','darwin'), patch.object(identity.subprocess,'run',return_value=linked) as resolve:
+                first=identity.native_hash(executable)
+                library.write_bytes(b'different ICU implementation')
+                self.assertNotEqual(first,identity.native_hash(executable))
+                self.assertEqual(resolve.call_args.args[0],['otool','-L',str(executable.resolve())])
 
 if __name__=='__main__':
     unittest.main()

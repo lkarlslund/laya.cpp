@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -60,6 +61,26 @@ class CoreMLValidationTests(unittest.TestCase):
         with patch('native.subprocess.Popen') as process:
             Native('laya-cli', 'model', backend='coreml')
             self.assertIn('--coreml', process.call_args.args[0])
+
+    def test_request_groups_never_mix_compiled_buckets(self):
+        manifest = {'buckets': [{'name': f'b{size}', 'batch': size} for size in (1, 2, 4, 8)]}
+        cases = [
+            {'id': 'multi', 'questions': {'a': {}, 'b': {}, 'c': {}}},
+            {'id': 'single', 'questions': {'a': {}}},
+        ]
+        groups = validate_coreml.grouped_requests(cases, 1, manifest)
+        self.assertEqual([item[0] for item in groups['b4']], [0])
+        self.assertEqual([item[0] for item in groups['b1']], [1])
+
+    def test_coreml_cache_home_is_isolated_by_bucket(self):
+        with tempfile.TemporaryDirectory() as directory:
+            first = validate_coreml.coreml_environment(directory, 'b1-l512-o12')
+            second = validate_coreml.coreml_environment(directory, 'b2-l512-o12')
+            self.assertNotEqual(first['CFFIXED_USER_HOME'], second['CFFIXED_USER_HOME'])
+            self.assertEqual(first['HOME'], first['CFFIXED_USER_HOME'])
+            self.assertTrue((Path(first['HOME']) / 'Library' / 'Caches').is_dir())
+            with self.assertRaisesRegex(ValueError, 'Unsafe'):
+                validate_coreml.coreml_environment(directory, '../escape')
 
     def test_validator_keeps_raw_and_public_processes_separate(self):
         source = (ROOT / 'benchmarks' / 'validate_coreml.py').read_text()

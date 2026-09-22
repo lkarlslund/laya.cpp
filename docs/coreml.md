@@ -138,6 +138,41 @@ Do not publish performance numbers until this report has `passed: true` and
 `complete: true`. Use Instruments or `powermetrics` separately to inspect the
 actual accelerator placement.
 
+The validation report is bound to the native build, checkpoint weights, Core ML
+manifest, corpus and batch sizes. Regenerate it after rebuilding the executable
+or exporting the model. E5RT caches are isolated by compiled bucket under
+`results/coreml-cache/`; this avoids cross-shape MPSGraph cache failures and
+allows the benchmark to reuse the validation caches. The directory can consume
+several additional GiB and may be removed when no validation or sweep is active.
+
+## Benchmark on Apple Silicon
+
+Run the paired CPU/Core ML sweep only after the complete validation succeeds:
+
+```sh
+.venv-coreml/bin/python benchmarks/sweep_coreml.py \
+  --executable build-coreml/bin/laya-cli \
+  --source research/laya --model models/laya --variant english \
+  --validation results/coreml-validation.json \
+  --cache-root results/coreml-cache \
+  --batch-sizes 1 2 4 8 --warmup 3 --iterations 5 \
+  --output results/coreml-sweep.json
+```
+
+The sweep uses the same committed 250-question corpus and report shape as the
+CUDA/Vulkan sweep. It records paired FP32 PyTorch CPU and Core ML p50/p95 latency,
+questions per second, all timing samples and the Core ML speedup. Preprocessing,
+inference and result formatting are measured; model loading and JSON transport
+are excluded. Execution order alternates to reduce thermal and ordering bias.
+
+Each Core ML process loads only one compiled bucket. A final partial request
+group may use a smaller bucket in a separate process. Correctness is checked
+again before timing every group, and no speedup is reported for a failing batch.
+Use an idle Mac on external power and keep Low Power Mode disabled for comparable
+results. The CPU baseline and Core ML use the same machine, but this paired
+speedup is not directly interchangeable with CUDA/PyTorch measurements from a
+different host.
+
 ## Migration and rollback
 
 Core ML is opt-in. Existing CUDA, Vulkan and CPU behavior is unchanged unless
