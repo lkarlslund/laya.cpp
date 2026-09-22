@@ -40,6 +40,10 @@ Rates are questions/second.
 | NVIDIA | typed-decisions | compensated | 2 | 177.5 | 144.0 | 0.81× |
 | NVIDIA | typed-decisions | compensated | 4 | 191.7 | 172.8 | 0.90× |
 | NVIDIA | typed-decisions | compensated | 8 | 169.9 | 187.8 | 1.11× |
+| AMD | english | compensated | 1 | 16.1 | 20.2 | 1.26× |
+| AMD | english | compensated | 2 | 17.2 | 26.3 | 1.53× |
+| AMD | english | compensated | 4 | 16.9 | 27.6 | 1.63× |
+| AMD | english | compensated | 8 | 15.1 | 27.9 | 1.85× |
 
 Measurements for remaining GPU/model/mode combinations are pending.
 
