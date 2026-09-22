@@ -157,3 +157,8 @@ The first remaining batch-4 attention difference is confined to padded query
 positions: 137–511 and 138–511 in sequences with 73 and 74 valid tokens. No valid
 query position differs in that tensor. Later tensors are not covered by this
 observation; the full public-answer gate remains the acceptance criterion.
+
+The extended-policy English BF16 corpus gate finishes with 0, 0, 3 and 2 answer
+failures at batches 1, 2, 4 and 8, down from 0, 0, 30 and 52. This is progress
+but still fails the required numeric tolerance. The remaining failures affect
+expense, travel and quoted-content questions; their detailed traces are pending.

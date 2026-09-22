@@ -226,5 +226,59 @@
         "max_action_error": 32.0
       }
     ]
+  },
+  "extended_projection_full_corpus": {
+    "model": "english",
+    "precision": "bf16",
+    "passed": false,
+    "report_sha256": "3136e318311b9e698d29110a894e958fd0508df0af0c691dca2cc1e12833d46e",
+    "batches": [
+      {
+        "batch_size": 1,
+        "questions": 250,
+        "input_failures": 0,
+        "answer_failures": []
+      },
+      {
+        "batch_size": 2,
+        "questions": 250,
+        "input_failures": 0,
+        "answer_failures": []
+      },
+      {
+        "batch_size": 4,
+        "questions": 250,
+        "input_failures": 0,
+        "answer_failures": [
+          {
+            "id": "expense-06",
+            "error": "result.answers.expense-06.score: 1.8978 != 1.896 (tolerance 0.0001)"
+          },
+          {
+            "id": "travel-01",
+            "error": "result.answers.travel-01.probabilities.data engineering: 0.354 != 0.3542 (tolerance 0.0001)"
+          },
+          {
+            "id": "quoted_content-04",
+            "error": "result.answers.quoted_content-04.probabilities.customer message: 0.5435 != 0.5483 (tolerance 0.0001)"
+          }
+        ]
+      },
+      {
+        "batch_size": 8,
+        "questions": 250,
+        "input_failures": 0,
+        "answer_failures": [
+          {
+            "id": "travel-09",
+            "error": "result.answers.travel-09.noul: 0.7975 != 0.7978 (tolerance 0.0001)"
+          },
+          {
+            "id": "quoted_content-07",
+            "error": "result.answers.quoted_content-07.score: 0.0846 != 0.0856 (tolerance 0.0001)"
+          }
+        ]
+      }
+    ]
   }
 }
