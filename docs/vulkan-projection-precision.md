@@ -182,3 +182,11 @@ at batches 1, 2, 4 and 8. A separate trace is needed; English acceptance does no
 establish multilingual support. Multilingual and typed decisions also allow
 1,024-token sequences, requiring projection-policy coverage through 8,192 columns
 at batch 8. The profiling extension is pending.
+
+
+The multilingual diagnostic now matches every common trace tensor and the final
+answer. The normalization fix uses the AMD weighted-mean FMA ordering and
+preserves all eleven explicit FMA instructions through SPIR-V `NoContraction`.
+Changing the mean ordering alone was insufficient. Projection profiling also now
+covers all 327,680 shape/precision cases through 8,192 columns. The combined
+experimental build is undergoing a fresh full three-model, two-precision gate.

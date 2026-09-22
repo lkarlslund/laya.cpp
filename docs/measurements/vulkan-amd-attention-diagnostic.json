@@ -339,5 +339,25 @@
     "comparison_sha256": "d6678343aa22310968b215e549fbc8e55b62c8873ef23dca1f31fe229527817f",
     "response_sha256": "b8958b752e1fb92af8cd64b56993ca313efa1e714045dae864564e001bdcc21d",
     "scope": "Experimental BF16 scalar F32 accumulation; whole-corpus validation of this revision is pending."
+  },
+  "multilingual_strict_normalization_diagnostic": {
+    "precision": "bf16",
+    "case_ids": [
+      "billing-01"
+    ],
+    "normalization_width": 768,
+    "comparable_trace_tensors": 194,
+    "python_trace_tensors": 316,
+    "common_trace_differences": 0,
+    "exact_public_answers": 1,
+    "changes": [
+      "Match AMD weighted-mean FMA operand ordering.",
+      "Preserve all 11 explicit normalization FMA instructions with SPIR-V NoContraction.",
+      "Extend measured projection traversal coverage through 8192 columns."
+    ],
+    "comparison_sha256": "d6678343aa22310968b215e549fbc8e55b62c8873ef23dca1f31fe229527817f",
+    "response_sha256": "7daa59ebff86ee43f3547499153e736e404b91641494c07b424cc4f1f8b7816c",
+    "normalization_spirv_header_sha256": "212c4d84b15a14287a5bb9acb319aa345ba9d78b235944e5498f9921aff3f2d1",
+    "scope": "Isolated experimental multilingual result; full three-model BF16/FP16 validation is running."
   }
 }
