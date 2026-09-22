@@ -54,17 +54,21 @@ cmake --build build-vulkan --parallel 8
 ```
 
 On Apple Silicon, Core ML uses the CPU, GPU and Neural Engine through
-`MLComputeUnitsAll`. Build with a macOS 12 deployment target:
+`MLComputeUnitsAll`. The build requires macOS 12 or newer, full Xcode (the
+Command Line Tools alone are not sufficient), and the host dependencies:
 
 ```sh
-cmake -S . -B build-coreml -G Ninja -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
-  -DLAYA_CUDA=OFF -DLAYA_COREML=ON
-cmake --build build-coreml --parallel 8
+brew install cmake ninja icu4c nlohmann-json
+scripts/build_coreml.sh
 ```
 
+The script selects the standard `/Applications/Xcode.app`, locates the Homebrew
+packages, initializes submodules, configures Release for arm64 and macOS 12, and
+builds `build-coreml/bin/laya-cli`. Pass `--test` to run CTest, or `--fresh` to
+discard a stale CMake cache. Run `--help` for all options.
+
 The checkpoint must first be exported and compiled. See [Core ML](docs/coreml.md)
-for the pinned Python environment, bucket choices and M1 validation command.
+for model preparation, manual build commands, bucket choices and M1 validation.
 
 ## Run
 

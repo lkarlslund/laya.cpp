@@ -6,6 +6,26 @@ ML Program has fixed shapes and FP32 compute by default. The native runtime uses
 GPU and Neural Engine. Placement remains a Core ML decision; it is not a promise
 that every operation runs on the Neural Engine.
 
+## Prerequisites
+
+Install full Xcode from Apple. The standalone Command Line Tools are not enough:
+a selected Command Line Tools SDK can be newer than its linker and fail with a
+TAPI or `unknown architecture` error. The build script selects the standard
+Xcode installation without changing the system-wide `xcode-select` setting.
+
+Install the remaining tools and host dependencies with Homebrew:
+
+```sh
+brew install cmake ninja icu4c nlohmann-json uv
+```
+
+Xcode installed elsewhere can be selected for the current shell:
+
+```sh
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+xcodebuild -version
+```
+
 ## Export
 
 Export requires the original PyTorch graph as well as the downloaded checkpoint.
@@ -54,9 +74,44 @@ typed-decisions.
 
 ## Build and run
 
+The build script is the recommended path:
+
 ```sh
-cmake -S . -B build-coreml -G Ninja -DCMAKE_BUILD_TYPE=Release \
+scripts/build_coreml.sh
+build-coreml/bin/laya-cli --coreml --model models/laya \
+  --input benchmarks/cases/smoke.json
+```
+
+It verifies macOS and arm64, selects full Xcode, locates ICU and nlohmann-json,
+initializes the Git submodules, configures CMake, and builds the Release
+executable. Subsequent executions are incremental.
+
+Useful options:
+
+```sh
+scripts/build_coreml.sh --test
+scripts/build_coreml.sh --fresh
+scripts/build_coreml.sh --build-dir build-coreml-debug --jobs 4
+DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+  scripts/build_coreml.sh
+```
+
+`--test` runs CTest after the build. `--fresh` discards a stale SDK or compiler
+selection from an earlier Command Line Tools build. `--build-dir` accepts an
+absolute path or a path relative to the repository root. Run
+`scripts/build_coreml.sh --help` for the complete interface.
+
+For troubleshooting or integration into another build system, the equivalent
+manual commands are:
+
+```sh
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+ICU_PREFIX="$(brew --prefix icu4c)"
+JSON_PREFIX="$(brew --prefix nlohmann-json)"
+git submodule update --init --recursive
+cmake --fresh -S . -B build-coreml -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+  -DCMAKE_PREFIX_PATH="${ICU_PREFIX};${JSON_PREFIX}" \
   -DLAYA_CUDA=OFF -DLAYA_VULKAN=OFF -DLAYA_COREML=ON
 cmake --build build-coreml --parallel 8
 build-coreml/bin/laya-cli --coreml --model models/laya \
