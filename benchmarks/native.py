@@ -8,7 +8,7 @@ class Native:
     def __init__(self, executable, model, *, raw=False, prepare=False, fp32=True, fp16=False, flash=False, tensor_core=False, backend="cuda", env=None):
         if fp32 and fp16: raise ValueError('Choose one native precision')
         command = [str(Path(executable).resolve()), '--model', str(Path(model).resolve())]
-        if backend not in ('cuda', 'cpu', 'vulkan'): raise ValueError('Unknown backend')
+        if backend not in ('cuda', 'cpu', 'vulkan', 'coreml'): raise ValueError('Unknown backend')
         if backend != 'cuda': command += ['--' + backend]
         if raw: command += ['--raw']
         if prepare: command += ['--prepare']

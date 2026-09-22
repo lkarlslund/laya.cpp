@@ -1,4 +1,7 @@
 #include "laya/runtime.hpp"
+#ifdef LAYA_COREML
+#include "laya/coreml.hpp"
+#endif
 #include "laya/precision.hpp"
 #include "vulkan_precision.hpp"
 #include "vulkan/gelu_tables.hpp"
@@ -55,6 +58,9 @@ struct graph_state {
 }
 struct runtime::impl {
     json config, encoder;
+#ifdef LAYA_COREML
+    std::unique_ptr<coreml_runtime> coreml;
+#endif
     ggml_backend_t backend = nullptr;
     ggml_context* weight_context = nullptr;
     ggml_backend_buffer_t weight_buffer = nullptr;
@@ -539,6 +545,9 @@ struct runtime::impl {
     }
 
     raw_result run(const batch& input) {
+#ifdef LAYA_COREML
+        if (coreml) return coreml->forward(input);
+#endif
         if (input.size < 1 || input.length < 1 || input.length > config.value("max_len", 512) || input.options < 2 ||
             input.ids.size() != size_t(input.size * input.length)) throw std::runtime_error("Invalid model batch");
         if (input.lengths.size() != size_t(input.size) || input.types.size() != size_t(input.size) ||
@@ -646,6 +655,17 @@ runtime::runtime(const std::filesystem::path& path, bool cuda, bool low_precisio
 runtime::runtime(const std::filesystem::path& path, backend_type selected, bool low_precision, bool flash, bool tensor_core)
     : runtime(path,selected,low_precision ? precision_type::bf16 : precision_type::fp32,flash,tensor_core) {}
 runtime::runtime(const std::filesystem::path& path, backend_type selected, precision_type precision, bool flash, bool tensor_core) : p(std::make_unique<impl>()) {
+    if (selected == backend_type::coreml) {
+#ifdef LAYA_COREML
+        if (precision != precision_type::fp32 || flash || tensor_core)
+            throw std::invalid_argument("Core ML selects precision and kernels from its compiled model; use --coreml with --fp32 only");
+        p->coreml = std::make_unique<coreml_runtime>(path);
+        p->config = p->coreml->config();
+        return;
+#else
+        throw std::runtime_error("This build has no Core ML backend; rebuild with -DLAYA_COREML=ON on macOS arm64");
+#endif
+    }
     const bool low_precision = precision != precision_type::fp32;
     if (precision==precision_type::fp16 && selected!=backend_type::vulkan) throw std::invalid_argument("FP16 currently requires Vulkan");
     p->low_type = precision==precision_type::fp16 ? GGML_TYPE_F16 : GGML_TYPE_BF16;
@@ -660,6 +680,16 @@ runtime::runtime(const std::filesystem::path& path, backend_type selected, preci
 runtime::~runtime() = default;
 raw_result runtime::forward(const batch& input) { return p->run(input); }
 const json& runtime::config() const { return p->config; }
-std::string runtime::backend_name() const { return ggml_backend_name(p->backend); }
-std::string runtime::device_name() const { return ggml_backend_dev_description(ggml_backend_get_device(p->backend)); }
+std::string runtime::backend_name() const {
+#ifdef LAYA_COREML
+    if (p->coreml) return p->coreml->backend_name();
+#endif
+    return ggml_backend_name(p->backend);
+}
+std::string runtime::device_name() const {
+#ifdef LAYA_COREML
+    if (p->coreml) return p->coreml->device_name();
+#endif
+    return ggml_backend_dev_description(ggml_backend_get_device(p->backend));
+}
 }
