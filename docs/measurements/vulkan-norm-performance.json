@@ -169,6 +169,83 @@
       "torch": "2.11.0+cu130",
       "warmup": 3,
       "iterations": 5,
+      "precision": "fp16",
+      "model": "multilingual",
+      "report_sha256": "596fda07b1307e0455333879a1a001a8d0f26f2b07898070310847ea1684500f",
+      "rows": [
+        {
+          "batch_size": 1,
+          "before": {
+            "p50_ms": 4.734374,
+            "p95_ms": 9.2444752,
+            "questions_per_second": 180.7732720491733
+          },
+          "after": {
+            "p50_ms": 4.722511000000001,
+            "p95_ms": 9.18328505,
+            "questions_per_second": 181.769184804144
+          },
+          "speedup": 1.0055091814386135,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 2,
+          "before": {
+            "p50_ms": 5.000527,
+            "p95_ms": 13.920201599999999,
+            "questions_per_second": 316.57723276686716
+          },
+          "after": {
+            "p50_ms": 4.987543,
+            "p95_ms": 13.7293702,
+            "questions_per_second": 317.31980059664346
+          },
+          "speedup": 1.0023456134962274,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 4,
+          "before": {
+            "p50_ms": 5.47737,
+            "p95_ms": 24.268895,
+            "questions_per_second": 485.6466520084132
+          },
+          "after": {
+            "p50_ms": 5.395455,
+            "p95_ms": 23.8583964,
+            "questions_per_second": 492.28230985614687
+          },
+          "speedup": 1.0136635511030325,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 8,
+          "before": {
+            "p50_ms": 6.436075499999999,
+            "p95_ms": 43.78537465,
+            "questions_per_second": 622.5776536973541
+          },
+          "after": {
+            "p50_ms": 6.368257,
+            "p95_ms": 43.24936495,
+            "questions_per_second": 628.6723755365684
+          },
+          "speedup": 1.009789496624267,
+          "answer_failures": 0
+        }
+      ]
+    },
+    {
+      "before_backend": "vulkan",
+      "after_backend": "vulkan",
+      "before_sha256": "53b8aae20adf417aa2d49064297c550c03b85fcc6590ccd2db97f560947268e8",
+      "after_sha256": "2c6b4cec9d5002693e76b730023d74a81989749fdcfbc8fc58647da25a39a9e6",
+      "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "torch": "2.11.0+cu130",
+      "warmup": 3,
+      "iterations": 5,
       "precision": "bf16",
       "model": "multilingual",
       "report_sha256": "4cdba721cb81db8c924dcc3487adeaa751088dfca41b26a170bee4a00c7ebe2c",

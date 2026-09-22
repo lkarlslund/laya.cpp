@@ -22,12 +22,16 @@ Rates are questions/second.
 | english | BF16 | 2 | 235.8 | 237.8 | 1.01× |
 | english | BF16 | 4 | 385.5 | 390.3 | 1.01× |
 | english | BF16 | 8 | 512.7 | 520.7 | 1.02× |
+| multilingual | FP16 | 1 | 180.8 | 181.8 | 1.01× |
+| multilingual | FP16 | 2 | 316.6 | 317.3 | 1.00× |
+| multilingual | FP16 | 4 | 485.6 | 492.3 | 1.01× |
+| multilingual | FP16 | 8 | 622.6 | 628.7 | 1.01× |
 | multilingual | BF16 | 1 | 181.8 | 184.0 | 1.01× |
 | multilingual | BF16 | 2 | 314.7 | 316.0 | 1.00× |
 | multilingual | BF16 | 4 | 479.8 | 487.8 | 1.02× |
 | multilingual | BF16 | 8 | 609.0 | 618.1 | 1.01× |
 
-Measured throughput change is 0.4–1.7% in the completed runs.
+Measured throughput change is 0.2–1.7% in the completed runs.
 Measurements for the remaining model/precision pairs are pending.
 See [measurement metadata](measurements/vulkan-norm-performance.json) for build,
 weight, corpus and report identities. Matching Python timings for this build remain pending.
