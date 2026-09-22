@@ -102,6 +102,9 @@ The measured input-rounding build reaches 63–102% of Python throughput.
 Subsequent [fused normalization](docs/vulkan-norm-performance.md) adds 0.2–1.7%
 native throughput across all three models and both precisions, with all 6,000
 matching-precision correctness comparisons passing.
+[Bit-preserving weight padding](docs/vulkan-pad16-performance.md) measures a further
+−0.3% to +4.6% throughput change across the same model, precision and batch matrix;
+its 6,000 matching-precision correctness comparisons also pass.
 [QKV packing](docs/vulkan-packed-performance.md) and
 [fused projection storage](docs/vulkan-finish-performance.md) document the
 individual optimization gains. [Native CUDA versus Vulkan BF16](docs/vulkan-current-cuda-performance.md)
