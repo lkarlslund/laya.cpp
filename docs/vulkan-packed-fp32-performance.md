@@ -56,6 +56,10 @@ Rates are questions/second.
 | AMD | multilingual | compensated | 2 | 38.2 | 80.6 | 2.11× |
 | AMD | multilingual | compensated | 4 | 36.8 | 84.6 | 2.30× |
 | AMD | multilingual | compensated | 8 | 31.4 | 76.9 | 2.45× |
+| AMD | typed-decisions | compensated | 1 | 13.5 | 17.4 | 1.28× |
+| AMD | typed-decisions | compensated | 2 | 14.7 | 22.7 | 1.55× |
+| AMD | typed-decisions | compensated | 4 | 13.7 | 23.0 | 1.68× |
+| AMD | typed-decisions | compensated | 8 | 11.8 | 22.0 | 1.86× |
 
 Measurements for remaining GPU/model/mode combinations are pending.
 
