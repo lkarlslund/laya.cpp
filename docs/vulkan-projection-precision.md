@@ -101,5 +101,11 @@ This suggests a possible Vulkan implementation using exact scaled operands,
 but fixed scaling does not preserve all other captured layer inputs. Every one
 of the 6,156 captured input vectors has an exact individual scale in the tested
 range; this is evidence from one request, not a general guarantee. Range handling,
-Vulkan implementation, full-model correctness and performance remain unverified.
+full-model correctness and performance remain unverified.
 See the [BF16 arithmetic diagnostic](measurements/vulkan-amd-bf16-wmma-diagnostic.json).
+
+An isolated Vulkan prototype now also matches all 165,888 stored QKV values in
+that first projection. It decodes BF16 buffers into scaled FP16 cooperative-matrix
+operands and removes the scale from the FP32 result. This establishes the path
+without requiring Vulkan BF16 cooperative-matrix support. The fixed-scale
+prototype is not enabled in the runtime and is not a general inference solution.

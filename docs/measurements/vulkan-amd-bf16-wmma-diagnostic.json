@@ -123,5 +123,20 @@
     "Single request trace; no general representability guarantee.",
     "Fixed scaling fails to preserve some other layer inputs.",
     "No end-to-end BF16 correctness or performance claim."
-  ]
+  ],
+  "vulkan_fixed_scale_probe": {
+    "scope": "First encoder QKV only; fixed scaling is not general",
+    "elements": 165888,
+    "differences": 0,
+    "max_error": 0.0,
+    "input_scale": 16,
+    "implementation": "BF16 buffer decoding into FP16 cooperative-matrix operands, FP32 accumulation, exact output unscaling; no native Vulkan BF16 cooperative-matrix capability required",
+    "validated_scope": "First captured QKV only; not general model inference",
+    "artifact_sha256": {
+      "research/build_amd_bf16_scaled_probe.py": "9a75143b3bdd6c770f01558ed06294f139a847070c039ec5498990fd7279acdd",
+      "research/amd-bf16-scaled-probe/scaled.comp": "888970e56453663958968aba82fbfa3ff914e409ccf2ed4bf6b9ac516aa265e7",
+      "research/amd-bf16-scaled-probe/mul_mm_funcs.glsl": "2fc0c6a59efc4230c9e79799e38ba47bebe5725e76a641b0c939ac2a7278e9f5",
+      "research/amd-bf16-scaled-probe/libggml-vulkan.so.0": "a055e6214f95d5b0eb617a00b5dbea5d3eef6ad9d526ec418d74eb891ab9f596"
+    }
+  }
 }
