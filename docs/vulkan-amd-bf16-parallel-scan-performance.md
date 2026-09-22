@@ -18,6 +18,10 @@ Rates are questions/second. Only completed, passing runs appear below.
 | multilingual | BF16 | 2 | 63.4 | 48.9 | 0.77× |
 | multilingual | BF16 | 4 | 73.0 | 60.0 | 0.82× |
 | multilingual | BF16 | 8 | 68.0 | 62.7 | 0.92× |
+| typed-decisions | BF16 | 1 | 24.9 | 14.3 | 0.57× |
+| typed-decisions | BF16 | 2 | 30.9 | 17.3 | 0.56× |
+| typed-decisions | BF16 | 4 | 35.1 | 20.5 | 0.59× |
+| typed-decisions | BF16 | 8 | 31.9 | 20.6 | 0.65× |
 
 See [measurement identities](measurements/vulkan-amd-bf16-parallel-scan-performance.json)
 and [BF16 acceptance](measurements/vulkan-amd-bf16-parallel-scan-validation.json).
