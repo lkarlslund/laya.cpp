@@ -44,7 +44,7 @@ boolean CUDA/CPU constructors remain supported.
 
 Vulkan supports plain FP32 and compensated FP32 (`--tensor-core-fp32`), plus
 mixed FP16 and BF16 on the validated NVIDIA profile described below. AMD FP16
-is also validated on Radeon 8060S; AMD BF16 production acceptance is in progress.
+and BF16 are also validated on Radeon 8060S.
 `--flash-fp32` remains unsupported.
 
 Compensated FP32 splits each projection input into two FP16 components, computes
@@ -234,14 +234,16 @@ the validated native build with matching-precision Python.
 
 ## FP16 and BF16 on AMD
 
-Production FP16 passes all 3,000 fixed-corpus comparisons on Radeon 8060S:
+Production FP16 and BF16 each pass all 3,000 fixed-corpus comparisons on Radeon 8060S:
 all three models, 250 questions each, at batches 1, 2, 4 and 8. Categories and
-numeric outputs match Python ROCm, with zero raw-output differences in this run.
-See [the production validation record](measurements/vulkan-amd-fp16-runtime-validation.json).
-Use the same `--vulkan --fp16` flags after selecting the AMD device.
+numeric outputs meet the matching-precision Python ROCm acceptance contract.
+BF16 raw outputs also match exactly; FP16 has raw action differences at batch 1
+(up to 4.0), despite passing all public answers at absolute tolerance 0.0001.
+See the production validation records for [FP16](measurements/vulkan-amd-fp16-runtime-validation.json)
+and [BF16](measurements/vulkan-amd-bf16-runtime-validation.json).
+Use `--vulkan --fp16` or `--vulkan --bf16` after selecting the AMD device.
 
 The AMD path uses separate tagged projection, attention and softmax pipelines.
 Its reduction and rounding rules are measured for the recorded GPU and ROCm
-version. Full BF16 production acceptance and paired AMD 16-bit Python timings
-are in progress. The [precision notes](vulkan-projection-precision.md) explain
+version. Paired AMD 16-bit Python timings are in progress. The [precision notes](vulkan-projection-precision.md) explain
 the BF16 conversion-residual correction and current validation scope.

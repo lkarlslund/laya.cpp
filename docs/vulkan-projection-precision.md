@@ -66,9 +66,11 @@ compensated FP32 pass all 6,000 comparisons against Python on the same GPU
 throughput gain from packing across all three models in FP16 and BF16 on NVIDIA.
 
 AMD FP16 production inference passes all 3,000 fixed-corpus comparisons across
-English, multilingual and typed-decisions at batches 1, 2, 4 and 8, with zero
-raw-output differences from matching-precision Python on the Radeon 8060S
+English, multilingual and typed-decisions at batches 1, 2, 4 and 8 against
+matching-precision Python on the Radeon 8060S
 ([validation record](measurements/vulkan-amd-fp16-runtime-validation.json)).
+FP16 logits match exactly; some batch-1 raw action values differ by up to 4.0.
+All public numeric answers still meet absolute tolerance 0.0001.
 The policy is measured for gfx1151 with the recorded ROCm version; it is not a
 correctness guarantee for other AMD devices or library versions.
 
@@ -102,9 +104,11 @@ The BF16 GPU range test preserves a selected `2^-100` activation exactly in a
 column whose other values are one, checks that failure status survives output
 overwrites, and checks reset before a valid request. The seven projection
 geometries also pass their numerical checks. All three models pass an eight-case
-BF16 preflight at batches 1 and 8 with zero raw-output differences. Full production
-BF16 acceptance is in progress; these operator and preflight results establish
-no BF16 performance claim.
+BF16 preflight at batches 1 and 8 with zero raw-output differences. The subsequent
+[full production BF16 gate](measurements/vulkan-amd-bf16-runtime-validation.json)
+also passes all 3,000 comparisons across the three models at batches 1, 2, 4 and 8,
+with zero raw-output differences. These correctness results establish no
+BF16 performance claim.
 
 An earlier experimental build passed all 6,000 AMD FP16/BF16 comparisons
 ([record](measurements/vulkan-amd-long-softmax-16bit-validation.json)). Its
