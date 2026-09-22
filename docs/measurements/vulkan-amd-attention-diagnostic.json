@@ -141,5 +141,74 @@
       "research/amd-fp16-b2-bias-check.json": "87462f359aef98048d3b893f46924bdd8e61bbf81777cd872d305f31f9fcce00",
       "research/amd-fp16-b2-head-kernels.json": "5fe574e3bc21d86a5c2b27a958b1b01a4d3f4414d4e99acfaa4e8506a3d2ead2"
     }
+  },
+  "batched_head_layout_prototype": {
+    "model": "english",
+    "precision": "fp16",
+    "isolated_case_ids": [
+      "data_pipeline-05",
+      "data_pipeline-06"
+    ],
+    "isolated_comparison": "Differing tensors 0",
+    "full_corpus_passed": false,
+    "batches": [
+      {
+        "batch_size": 1,
+        "questions": 250,
+        "answer_failures": 0
+      },
+      {
+        "batch_size": 2,
+        "questions": 250,
+        "answer_failures": 1
+      },
+      {
+        "batch_size": 4,
+        "questions": 250,
+        "answer_failures": 28
+      },
+      {
+        "batch_size": 8,
+        "questions": 250,
+        "answer_failures": 46
+      }
+    ],
+    "validation_report_sha256": "bff37d84856d5d76eb70254ba36a020c56035688b8439b8a614852209ea08d39",
+    "scope": "Diagnostic prototype only; full correctness acceptance has not passed."
+  },
+  "batch4_projection_diagnostic": {
+    "case_ids": [
+      "leave-09",
+      "leave-10",
+      "expense-01",
+      "expense-02"
+    ],
+    "batch_size": 4,
+    "sequence_length": 512,
+    "projection_columns": 2048,
+    "measured_policy_max_columns": 1024,
+    "finding": "Both precisions first diverge in encoder QKV. Python selects SU32/SUS256 while the prototype policy has no coverage above 1024 columns. Extended profiling is pending; this identifies a discrepancy, not a proven complete fix.",
+    "precisions": {
+      "bf16": {
+        "first_difference": {
+          "name": "encoder.layers.0.attn.Wqkv",
+          "numerical_differences": 4556,
+          "bit_differences": 4556,
+          "max_error": 0.015625
+        },
+        "comparison_sha256": "87e4aeb32c7534a95a39b7d54c051064af05e6bac3cdb6cdf7ceabf8218311a3",
+        "python_profile_sha256": "b92f3bf9b064c7135379fd8ca7d7648951d067d48e74d8f9912b6d8843977639"
+      },
+      "fp16": {
+        "first_difference": {
+          "name": "encoder.layers.0.attn.Wqkv",
+          "numerical_differences": 64258,
+          "bit_differences": 64258,
+          "max_error": 0.001953125
+        },
+        "comparison_sha256": "2c6216795bfd131e5d47c9c27e4a73fe3579a9129d7b597c843ce4f859af6c2a",
+        "python_profile_sha256": "c649caee9188df5a36e83dfc2d2e9cae66e95918dd2cefd4a5920d99a9027478"
+      }
+    }
   }
 }

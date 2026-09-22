@@ -129,5 +129,14 @@ The remaining FP16 batch-2 diagnostic first diverges in the first head QKV
 projection, despite matching normalized inputs and bias-addition semantics.
 Python selects a batched matrix kernel with a different reduction traversal
 (SU32/SUS256). Forcing the final scalar projection onto a matrix path does not
-resolve the discrepancy. A corresponding batched-head implementation remains
-unverified.
+resolve the discrepancy. Preserving the batched layout now matches every common
+trace tensor and the answer for that request pair. The full English FP16 gate
+still reports 0, 1, 28 and 46 answer failures at batches 1, 2, 4 and 8, so the
+layout prototype is not accepted.
+
+A batch-4 trace in both precisions first diverges at the encoder QKV projection.
+Its 512-token sequences produce 2,048 projection columns, beyond the prototype's
+measured 1,024-column policy range. Python selects staggered traversal for this
+shape; the prototype falls back to ascending traversal. Extending the measured
+policy is the next diagnostic step. This does not yet prove that traversal is
+the only remaining cause of the larger-batch failures.
