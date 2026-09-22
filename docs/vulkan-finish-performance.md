@@ -41,5 +41,6 @@ Rates are questions/second.
 
 Projection storage improves throughput by 2.4–4.4% in the completed runs.
 See [measurement metadata](measurements/vulkan-finish-performance.json) for build,
-weight, corpus and report identities. Matching Python timings for this build remain pending.
-AMD 16-bit timing awaits its correctness gate.
+weight, corpus and report identities. This intermediate-build comparison is retained for its optimization history;
+see [the optimized NVIDIA build versus Python](vulkan-final-nvidia-performance.md) for the complete comparison.
+Completed AMD FP16/BF16 baselines are recorded in [AMD measurements](vulkan-amd-16bit-performance.md).

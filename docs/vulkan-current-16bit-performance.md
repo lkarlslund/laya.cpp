@@ -41,4 +41,4 @@ Rates are questions/second.
 | typed-decisions | FP16 | 8 | 532.3 | 342.6 | 0.64× |
 
 See [measurement metadata](measurements/vulkan-current-16bit-performance.json) for binary,
-weight and corpus identities. AMD 16-bit timing awaits its correctness gate.
+weight and corpus identities. Completed AMD FP16/BF16 baselines are recorded in [AMD measurements](vulkan-amd-16bit-performance.md).

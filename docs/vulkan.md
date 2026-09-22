@@ -97,9 +97,9 @@ warmed calls separately. The README performance table describes CUDA only.
 
 ## Measured FP32 throughput
 
-[Current measurements of the fused split/merge build](vulkan-fused-performance.md)
-include Python on both GPUs and native CUDA on RTX. The NVIDIA tables below
-retain the earlier recorded build.
+[Latest paired FP32 measurements](vulkan-packed-fp32-performance.md) compare
+Python on both GPUs. [Earlier split/merge measurements](vulkan-fused-performance.md)
+also include native CUDA on RTX. The NVIDIA tables below retain that earlier build.
 
 On an RTX PRO 6000 Blackwell capped at **450 W**, compensated Vulkan FP32
 produced the following warmed questions/second against Python FP32. Each row
@@ -229,7 +229,7 @@ build-vulkan/bin/laya-cli --vulkan --fp16 --model models/laya --variant multilin
 
 These modes execute entirely in native C++ and Vulkan shaders. GPU/library-specific
 rounding plans are validated only for the measured profile; this result does not
-establish parity on other NVIDIA devices. [Current NVIDIA 16-bit performance measurements](vulkan-current-16bit-performance.md) compare
+establish parity on other NVIDIA devices. [Current NVIDIA 16-bit performance measurements](vulkan-final-nvidia-performance.md) compare
 the validated native build with matching-precision Python.
 
 ## FP16 and BF16 on AMD

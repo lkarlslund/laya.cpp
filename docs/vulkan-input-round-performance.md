@@ -20,7 +20,8 @@ Rates are questions/second.
 | english | FP16 | 8 | 505.4 | 509.6 | 1.01× |
 
 Input rounding improves throughput by 0.8–2.3% in the completed runs.
-Measurements for the remaining model/precision pairs are pending.
+This archived experiment contains only the completed pairs shown above.
 See [measurement metadata](measurements/vulkan-input-round-performance.json) for build,
-weight, corpus and report identities. Matching Python timings for this build remain pending.
-AMD 16-bit timing awaits its correctness gate.
+weight, corpus and report identities. This intermediate-build comparison is retained for its optimization history;
+see [the optimized NVIDIA build versus Python](vulkan-final-nvidia-performance.md) for the complete comparison.
+Completed AMD FP16/BF16 baselines are recorded in [AMD measurements](vulkan-amd-16bit-performance.md).

@@ -70,4 +70,5 @@ The native CUDA/Vulkan pair was timed separately from the Python/Vulkan pair.
 See [validation](measurements/vulkan-fused-fp32.json) and
 [measurement metadata](measurements/vulkan-fused-performance.json) for the
 source revision, binary fingerprints, model identities and full statistics.
-These are FP32 results; 16-bit Vulkan inference is still under development.
+These are archived FP32 results. Current FP16/BF16 support and validation are
+described in [Vulkan inference](vulkan.md).

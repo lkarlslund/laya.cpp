@@ -41,5 +41,5 @@ Rates are questions/second.
 
 Measured throughput change is -0.3–4.6% in the completed runs.
 See [measurement metadata](measurements/vulkan-pad16-performance.json) for build,
-weight, corpus and report identities. Matching Python timings for this build remain pending.
-AMD 16-bit timing awaits its correctness gate.
+weight, corpus and report identities. [Matching Python timings for this build](vulkan-final-nvidia-performance.md) are now complete.
+Completed AMD FP16/BF16 baselines are recorded in [AMD measurements](vulkan-amd-16bit-performance.md).
