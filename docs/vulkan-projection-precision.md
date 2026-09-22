@@ -115,3 +115,10 @@ The Vulkan prototype also reproduces that first QKV with a scale chosen and
 verified independently for each input vector. Nonrepresentable conversions are
 rejected through nonfinite diagnostic outputs. The full-model answer still fails
 the acceptance tolerance, so this remains an isolated arithmetic result.
+
+Combining exact per-vector BF16 operand scaling with the AMD attention and
+projection-order fixes matches all 238 common trace tensors and the final answer
+for `billing-01`. A separate replay of all 112 bias-free encoder projections from
+that request also matches every stored BF16 value, using the captured Python
+input independently for each projection. Missing trace points are not counted.
+Full-corpus validation and performance measurements remain pending.

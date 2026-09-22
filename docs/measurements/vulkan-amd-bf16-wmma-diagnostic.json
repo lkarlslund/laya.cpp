@@ -152,5 +152,41 @@
       "research/amd-bf16-dynamic-probe/mul_mm_funcs.glsl": "ac02cc928a84fe8a295bd7301641dc7e69b6b6a13dd3bb9559019c8facd7bc1e",
       "research/amd-bf16-dynamic-probe/libggml-vulkan.so.0": "572c66b5fb281c6bda164a5cffc77046d3ae682c9314701150266a14fd1c96a9"
     }
+  },
+  "combined_projection_attention_diagnostic": {
+    "case": "billing-01",
+    "matched_common_trace_tensors": 238,
+    "oracle_trace_tensors": 384,
+    "trace_comparison": "Common tensors of identical size; attention projection inputs rounded to BF16 at their storage boundary; absent trace points are not asserted.",
+    "public_answer": {
+      "type": "choice",
+      "confidence": 0.4027,
+      "action": {
+        "act_probability": 1.0
+      },
+      "choice": "billing",
+      "probabilities": {
+        "billing": 0.7868,
+        "technical support": 0.1387,
+        "sales": 0.0745
+      }
+    },
+    "encoder_projection_replay": {
+      "projections": 112,
+      "elements": 15676416,
+      "mismatching_values": 0,
+      "nonfinite_values": 0,
+      "method": "Independent BF16 matrix replay with captured Python input for each bias-free encoder projection; BF16 stored output comparison prevents cascading errors."
+    },
+    "full_corpus_validation": "pending",
+    "performance": "not measured",
+    "artifact_sha256": {
+      "research/build_amd_bf16_combined_probe.py": "215aea3f62ecd65cb1415a006783ff0345735000ed712b92c70f143615e018c5",
+      "research/build_amd_bf16_combined_runtime.py": "308fa3d380c8f39a110f5be93efb847dabd03dd1125b30a6ec3ff752cc9bd930",
+      "research/amd-bf16-combined-probe/libggml-vulkan.so.0": "9a33ce06ddd03a0159ab73d2934243e6a4ea8b7c4daaf961ae02a735d6a85358",
+      "research/amd-bf16-combined-runtime/liblaya.so": "c9fb16569858166087404987b76b8265c9f50de96b718a976e9101947a7447b2",
+      "research/amd-bf16-projection-replay.json": "43b183a3b7aac9632cc273fdf66657ddf28acc8b09ea1545bffb22c4c47cc8ef",
+      "research/amd-bf16-combined-comparison.log": "d6678343aa22310968b215e549fbc8e55b62c8873ef23dca1f31fe229527817f"
+    }
   }
 }
