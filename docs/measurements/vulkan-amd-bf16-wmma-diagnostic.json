@@ -280,5 +280,36 @@
         ]
       }
     ]
+  },
+  "multilingual_bf16_batched_scalar_v2_gate": {
+    "passed": false,
+    "report_sha256": "00fdc4d75be6bf9873adc834562dbb0d78fdb62f32ff79c8abbe8e37f960dfcd",
+    "batches": [
+      {
+        "batch_size": 1,
+        "questions": 250,
+        "input_failures": 0,
+        "answer_failures": 223
+      },
+      {
+        "batch_size": 2,
+        "questions": 250,
+        "input_failures": 0,
+        "answer_failures": 225
+      },
+      {
+        "batch_size": 4,
+        "questions": 250,
+        "input_failures": 0,
+        "answer_failures": 227
+      },
+      {
+        "batch_size": 8,
+        "questions": 250,
+        "input_failures": 0,
+        "answer_failures": 227
+      }
+    ],
+    "scope": "The English projection and head fixes do not yet establish multilingual correctness."
   }
 }

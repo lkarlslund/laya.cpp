@@ -170,3 +170,15 @@ the sequential scalar kernel to run. Extending the batched-head layout to BF16
 also makes the expense and quoted-content groups match every common trace tensor
 and all eight public answers. These isolated fixes are experimental; the full
 three-model, two-precision gate is the next acceptance step.
+
+The experimental combined implementation passes the full English FP16 corpus at
+all four batch sizes. English BF16 has one remaining batch-8 scoring failure;
+extending sequential scalar accumulation to BF16 resolves that isolated group,
+including every common trace tensor and all eight answers. Its full corpus must
+be rerun on the new revision.
+
+Multilingual BF16 still fails broadly: 223, 225, 227 and 227 public-answer failures
+at batches 1, 2, 4 and 8. A separate trace is needed; English acceptance does not
+establish multilingual support. Multilingual and typed decisions also allow
+1,024-token sequences, requiring projection-policy coverage through 8,192 columns
+at batch 8. The profiling extension is pending.

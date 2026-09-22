@@ -321,5 +321,23 @@
       }
     ],
     "scope": "Two isolated experimental groups; all-model acceptance pending."
+  },
+  "bf16_sequential_scalar_gpu_diagnostic": {
+    "case_ids": [
+      "quoted_content-01",
+      "quoted_content-02",
+      "quoted_content-03",
+      "quoted_content-04",
+      "quoted_content-05",
+      "quoted_content-06",
+      "quoted_content-07",
+      "quoted_content-08"
+    ],
+    "batch_size": 8,
+    "exact_public_answers": 8,
+    "common_trace_differences": 0,
+    "comparison_sha256": "d6678343aa22310968b215e549fbc8e55b62c8873ef23dca1f31fe229527817f",
+    "response_sha256": "b8958b752e1fb92af8cd64b56993ca313efa1e714045dae864564e001bdcc21d",
+    "scope": "Experimental BF16 scalar F32 accumulation; whole-corpus validation of this revision is pending."
   }
 }
