@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "scope": "Experimental AMD BF16/FP16 backend with projection traversal through 8192 columns, corrected AMD normalization mean ordering with explicit FMA preservation, corrected division for all softmax columns, batched head projection and FP16/BF16 sequential scalar accumulation. Not yet integrated into the production runtime.",
+  "all_models_passed": false,
+  "runs": [
+    {
+      "backend": "vulkan",
+      "precision": "bf16",
+      "native_build_sha256": "d0cad7ee597fc9f3d3335c6c33fe2d8b3fb8d896b34f62c93b45cf6b7ef5ee0a",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+      "gpu": "Radeon 8060S Graphics",
+      "torch": "2.11.0+rocm7.13.0",
+      "answer_atol": 0.0001,
+      "model": "multilingual",
+      "report_sha256": "edff987d5f27cebb2167007bbe82790ee6002d6a06cb3978646d03d8c2e4bebc",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        }
+      ]
+    }
+  ]
+}
