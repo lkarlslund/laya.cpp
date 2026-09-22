@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "all_models_complete": false,
+  "all_models_complete": true,
   "method": "All 250 fixed questions; three warmups and five timed iterations per group; alternating same-precision Python ROCm and Vulkan calls. Model loading and native JSON transport excluded. No concurrent GPU experiments or builds.",
   "runs": [
     {
@@ -379,6 +379,82 @@
             "questions_per_second": 37.5786584201102
           },
           "ratio": 0.554286788969361,
+          "answer_failures": 0
+        }
+      ]
+    },
+    {
+      "gpu": "Radeon 8060S Graphics",
+      "torch": "2.11.0+rocm7.13.0",
+      "precision": "bf16",
+      "python_runtime": "rocm",
+      "python_runtime_version": "7.13.99004",
+      "native_build_sha256": "d4ced9396eacd9f04d9045c77fad85239db9e6ac3213d108e0972323080bc557",
+      "weights_sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "warmup": 3,
+      "iterations": 5,
+      "model": "typed-decisions",
+      "report_sha256": "ce74d1087fa904535ab8e7b7f1ddc456d63bba82bfaaa98e7c187f2a2eec5483",
+      "rows": [
+        {
+          "batch_size": 1,
+          "python": {
+            "p50_ms": 25.46973602147773,
+            "p95_ms": 148.13144304207526,
+            "questions_per_second": 24.88916961356537
+          },
+          "vulkan": {
+            "p50_ms": 62.6120945,
+            "p95_ms": 342.08031745,
+            "questions_per_second": 10.341915610289682
+          },
+          "ratio": 0.4155187083723764,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 2,
+          "python": {
+            "p50_ms": 35.80324107315391,
+            "p95_ms": 275.2438618335873,
+            "questions_per_second": 30.809999799312678
+          },
+          "vulkan": {
+            "p50_ms": 100.354447,
+            "p95_ms": 675.5692978,
+            "questions_per_second": 11.697125601029299
+          },
+          "ratio": 0.379653543564458,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 4,
+          "python": {
+            "p50_ms": 44.90075400099158,
+            "p95_ms": 556.3596754218452,
+            "questions_per_second": 34.91313632155253
+          },
+          "vulkan": {
+            "p50_ms": 163.122202,
+            "p95_ms": 1323.9676323,
+            "questions_per_second": 12.349450945092977
+          },
+          "ratio": 0.353719323046593,
+          "answer_failures": 0
+        },
+        {
+          "batch_size": 8,
+          "python": {
+            "p50_ms": 70.69545250851661,
+            "p95_ms": 1152.7113426825963,
+            "questions_per_second": 32.000363739810346
+          },
+          "vulkan": {
+            "p50_ms": 287.416471,
+            "p95_ms": 2278.0648235999997,
+            "questions_per_second": 12.561141964840182
+          },
+          "ratio": 0.39253122455021905,
           "answer_failures": 0
         }
       ]
