@@ -48,6 +48,10 @@ Rates are questions/second.
 | AMD | english | compensated | 2 | 17.2 | 26.3 | 1.53× |
 | AMD | english | compensated | 4 | 16.9 | 27.6 | 1.63× |
 | AMD | english | compensated | 8 | 15.1 | 27.9 | 1.85× |
+| AMD | multilingual | compensated | 1 | 35.7 | 64.3 | 1.80× |
+| AMD | multilingual | compensated | 2 | 38.2 | 80.6 | 2.11× |
+| AMD | multilingual | compensated | 4 | 36.8 | 84.6 | 2.30× |
+| AMD | multilingual | compensated | 8 | 31.4 | 76.9 | 2.45× |
 
 Measurements for remaining GPU/model/mode combinations are pending.
 
