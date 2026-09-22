@@ -5,8 +5,17 @@ layout(binding=0) readonly buffer Input { float x[]; };
 layout(binding=1) readonly buffer Weight { float weight[]; };
 layout(binding=2) readonly buffer Bias { float bias[]; };
 layout(binding=3) writeonly buffer Output { float y[]; };
-layout(push_constant) uniform Params { uint width; uint rows; uint has_bias; uint padding; } p;
+layout(push_constant) uniform Params { uint width; uint rows; uint has_bias; uint stored_type; } p;
+#include "rounding.glsl"
 shared vec3 partial[256];
+
+float stored(float value) {
+    if (p.stored_type==0u) return value;
+    if (p.stored_type==1u) return unpackHalf2x16(halfBits(value)).x;
+    uint bits=floatBitsToUint(value);
+    if ((bits&0x7fffffffu)>0x7f800000u) return uintBitsToFloat(bits|0x00400000u);
+    return uintBitsToFloat((bits+0x7fffu+((bits>>16)&1u))&0xffff0000u);
+}
 
 vec3 combine(vec3 left,vec3 right) {
     float count=left.z+right.z;
@@ -47,6 +56,7 @@ void main() {
     float mean=partial[0].x, inverse=inversesqrt(variance+1e-5);
     for (uint i=tid;i<p.width;i+=threads) {
         float normalized=inverse*(x[row*p.width+i]-mean);
-        y[row*p.width+i]=p.has_bias!=0 ? fma(weight[i],normalized,bias[i]) : weight[i]*normalized;
+        float value=p.has_bias!=0 ? fma(weight[i],normalized,bias[i]) : weight[i]*normalized;
+        y[row*p.width+i]=stored(value);
     }
 }

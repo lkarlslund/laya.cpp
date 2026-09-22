@@ -483,7 +483,18 @@ int main() {
             ggml_set_input(x); ggml_set_input(weight); ggml_set_input(bias);
             auto output=laya::vulkan_precision::norm(ctx,x,weight,affine_bias ? bias : nullptr);
             if (!ggml_backend_supports_op(backend,output)) throw std::runtime_error("normalization not supported");
+            ggml_set_output(output);
             auto graph=ggml_new_graph(ctx); ggml_build_forward_expand(graph,output);
+            ggml_tensor* rounded[2];
+            ggml_tensor* fused[2];
+            for (int format=0;format<2;++format) {
+                const auto type=format==0 ? GGML_TYPE_F16 : GGML_TYPE_BF16;
+                rounded[format]=laya::vulkan_precision::finish_projection(ctx,output,nullptr,nullptr,type);
+                fused[format]=laya::vulkan_precision::norm(ctx,x,weight,affine_bias ? bias : nullptr,type);
+                if (!ggml_backend_supports_op(backend,fused[format])) throw std::runtime_error("rounded normalization not supported");
+                ggml_set_output(rounded[format]); ggml_set_output(fused[format]);
+                ggml_build_forward_expand(graph,rounded[format]); ggml_build_forward_expand(graph,fused[format]);
+            }
             // Keep an unused bias allocated for the no-bias case as well.
             ggml_build_forward_expand(graph,bias);
             auto allocator=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
@@ -496,6 +507,13 @@ int main() {
             ggml_backend_tensor_set(bias,beta.data(),0,ggml_nbytes(bias));
             if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("normalization compute failed");
             ggml_backend_tensor_get(output,actual.data(),0,ggml_nbytes(output));
+            for (int format=0;format<2;++format) {
+                std::vector<float> expected(width*3),stored(width*3);
+                ggml_backend_tensor_get(rounded[format],expected.data(),0,ggml_nbytes(rounded[format]));
+                ggml_backend_tensor_get(fused[format],stored.data(),0,ggml_nbytes(fused[format]));
+                if (std::memcmp(expected.data(),stored.data(),expected.size()*sizeof(float))!=0)
+                    throw std::runtime_error("fused normalization changed storage rounding");
+            }
             for (int row=0;row<3;++row) {
                 double mean=0,variance=0;
                 for (int i=0;i<width;++i) mean+=input[row*width+i];

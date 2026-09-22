@@ -2,7 +2,7 @@ set(laya_norm_header "${CMAKE_CURRENT_BINARY_DIR}/laya_norm.spv.h")
 add_custom_command(OUTPUT "${laya_norm_header}"
   COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O -mfmt=c
     "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/norm.comp" -o "${laya_norm_header}"
-  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/norm.comp" VERBATIM)
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/norm.comp" "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/rounding.glsl" VERBATIM)
 set(laya_activation_header "${CMAKE_CURRENT_BINARY_DIR}/laya_activation.spv.h")
 add_custom_command(OUTPUT "${laya_activation_header}"
   COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O -mfmt=c
