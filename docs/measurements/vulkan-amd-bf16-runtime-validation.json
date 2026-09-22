@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "scope": "Production runtime AMD BF16 integration with dedicated tagged projection, attention and softmax pipelines and current packing/fusion optimizations.",
+  "all_models_passed": false,
+  "runs": [
+    {
+      "backend": "vulkan",
+      "precision": "bf16",
+      "native_build_sha256": "d4ced9396eacd9f04d9045c77fad85239db9e6ac3213d108e0972323080bc557",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+      "gpu": "Radeon 8060S Graphics",
+      "torch": "2.11.0+rocm7.13.0",
+      "answer_atol": 0.0001,
+      "model": "english",
+      "report_sha256": "55ad416d7d767177ac0a0383bde936543387b6084278eca69d46685b15d26c4d",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        }
+      ]
+    }
+  ]
+}
