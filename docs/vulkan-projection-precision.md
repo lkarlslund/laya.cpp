@@ -121,4 +121,13 @@ projection-order fixes matches all 238 common trace tensors and the final answer
 for `billing-01`. A separate replay of all 112 bias-free encoder projections from
 that request also matches every stored BF16 value, using the captured Python
 input independently for each projection. Missing trace points are not counted.
-Full-corpus validation and performance measurements remain pending.
+The subsequent English BF16 full-corpus gate passes batches 1 and 2, but has
+30 and 52 public-answer failures at batches 4 and 8. It is not accepted for
+deployment; AMD 16-bit performance measurements remain pending.
+
+The remaining FP16 batch-2 diagnostic first diverges in the first head QKV
+projection, despite matching normalized inputs and bias-addition semantics.
+Python selects a batched matrix kernel with a different reduction traversal
+(SU32/SUS256). Forcing the final scalar projection onto a matrix path does not
+resolve the discrepancy. A corresponding batched-head implementation remains
+unverified.

@@ -108,5 +108,38 @@
         "answer_failures": 45
       }
     ]
+  },
+  "batched_head_diagnostic": {
+    "case_ids": [
+      "data_pipeline-05",
+      "data_pipeline-06"
+    ],
+    "batch_size": 2,
+    "sequence_length": 89,
+    "first_divergence": "head.layers.0.attn.Wqkv",
+    "checks": [
+      {
+        "layer": 0,
+        "norm_input_differences": 0,
+        "norm_input_fp16_differences": 0,
+        "separate_bias_vs_actual_differences": 0,
+        "native_vs_actual_differences": 2654,
+        "native_vs_separate_bias_differences": 2654
+      },
+      {
+        "layer": 1,
+        "norm_input_differences": 178631,
+        "norm_input_fp16_differences": 5887,
+        "separate_bias_vs_actual_differences": 0,
+        "native_vs_actual_differences": 39392,
+        "native_vs_separate_bias_differences": 39392
+      }
+    ],
+    "finding": "The first head normalized input and separate bias addition match. The actual Python head projection uses a batched GEMM kernel with SU32/SUS256, distinct from the flattened projection policy.",
+    "all_matrix_selector_fixed_answer": false,
+    "artifact_sha256": {
+      "research/amd-fp16-b2-bias-check.json": "87462f359aef98048d3b893f46924bdd8e61bbf81777cd872d305f31f9fcce00",
+      "research/amd-fp16-b2-head-kernels.json": "5fe574e3bc21d86a5c2b27a958b1b01a4d3f4414d4e99acfaa4e8506a3d2ead2"
+    }
   }
 }

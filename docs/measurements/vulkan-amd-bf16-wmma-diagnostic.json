@@ -178,7 +178,7 @@
       "nonfinite_values": 0,
       "method": "Independent BF16 matrix replay with captured Python input for each bias-free encoder projection; BF16 stored output comparison prevents cascading errors."
     },
-    "full_corpus_validation": "pending",
+    "full_corpus_validation": "failed for batches 4 and 8",
     "performance": "not measured",
     "artifact_sha256": {
       "research/build_amd_bf16_combined_probe.py": "215aea3f62ecd65cb1415a006783ff0345735000ed712b92c70f143615e018c5",
@@ -188,5 +188,43 @@
       "research/amd-bf16-projection-replay.json": "43b183a3b7aac9632cc273fdf66657ddf28acc8b09ea1545bffb22c4c47cc8ef",
       "research/amd-bf16-combined-comparison.log": "d6678343aa22310968b215e549fbc8e55b62c8873ef23dca1f31fe229527817f"
     }
+  },
+  "english_full_corpus_gate": {
+    "passed": false,
+    "native_build_sha256": "0761e0acde6caca989bb494ee18d3c75b6d50e37c2884d8387e1a0dbb053abd7",
+    "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+    "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+    "report_sha256": "ad3df13edcd49b88d277f196702758282179761a64852d0af97ea1051d5d8cc5",
+    "answer_atol": 0.0001,
+    "batches": [
+      {
+        "batch_size": 1,
+        "questions": 250,
+        "answer_failures": 0,
+        "max_logit_error": 0.0,
+        "max_action_error": 0.0
+      },
+      {
+        "batch_size": 2,
+        "questions": 250,
+        "answer_failures": 0,
+        "max_logit_error": 0.00048828125,
+        "max_action_error": 0.0
+      },
+      {
+        "batch_size": 4,
+        "questions": 250,
+        "answer_failures": 30,
+        "max_logit_error": 0.25,
+        "max_action_error": 32.0
+      },
+      {
+        "batch_size": 8,
+        "questions": 250,
+        "answer_failures": 52,
+        "max_logit_error": 0.125,
+        "max_action_error": 32.0
+      }
+    ]
   }
 }
