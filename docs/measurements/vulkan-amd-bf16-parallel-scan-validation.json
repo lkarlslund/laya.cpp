@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "scope": "AMD BF16 parallel subgroup conversion scan; full matching-precision model acceptance.",
-  "all_models_passed": false,
+  "all_models_passed": true,
   "runs": [
     {
       "backend": "vulkan",
@@ -60,6 +60,52 @@
       "answer_atol": 0.0001,
       "model": "multilingual",
       "report_sha256": "3b2fb834680b0f33656ad54aae5452994bcc0009b954e43fb25ff94c4413c451",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 2,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 4,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 8,
+          "questions": 250,
+          "answer_failures": 0,
+          "input_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        }
+      ]
+    },
+    {
+      "backend": "vulkan",
+      "precision": "bf16",
+      "native_build_sha256": "1e6277ea1a0ad6f10764da031452b5117d660564698943847a66659afd9d24bc",
+      "cases_sha256": "cd991ea8d6c4ac2124f96672d0552780e2ae06839313f147f1f1ac9af6d3bab4",
+      "weights_sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e",
+      "gpu": "Radeon 8060S Graphics",
+      "torch": "2.11.0+rocm7.13.0",
+      "answer_atol": 0.0001,
+      "model": "typed-decisions",
+      "report_sha256": "ab1c972d3c9280839a14601ceb193d29c16893461c9e4790b7551123970031a9",
       "batches": [
         {
           "batch_size": 1,
