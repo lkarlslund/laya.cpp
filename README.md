@@ -102,9 +102,11 @@ model, mode, GPU and batch combinations pass the correctness checks.
 models at batches 1/2/4/8 against same-GPU Python ROCm. FP16 reaches 72–125%
 of Python throughput; BF16 reaches 30–55%. All measured answer checks pass;
 the AMD BF16 path remains a performance optimization target.
-[Paired 16-bit measurements](docs/vulkan-current-16bit-performance.md) compare
-FP16 and BF16 Vulkan with matching-precision Python for all three models.
-The measured input-rounding build reaches 63–102% of Python throughput.
+[Updated RTX 16-bit measurements](docs/vulkan-final-nvidia-performance.md) compare
+FP16 and BF16 Vulkan with matching-precision Python for all three models at 450 W.
+The optimized build reaches 64–102% of Python throughput across batches 1/2/4/8.
+[Earlier input-rounding measurements](docs/vulkan-current-16bit-performance.md)
+retain the preceding build results.
 Subsequent [fused normalization](docs/vulkan-norm-performance.md) adds 0.2–1.7%
 native throughput across all three models and both precisions, with all 6,000
 matching-precision correctness comparisons passing.
