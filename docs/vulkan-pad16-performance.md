@@ -1,0 +1,26 @@
+# Bit-preserving weight-padding performance
+
+Warmed native Vulkan comparisons on RTX PRO 6000 Blackwell capped at **450 W**.
+Each row covers all 250 fixed questions, three warmups and five timed iterations
+per request group, alternating the two builds. Loading and native JSON transport
+are excluded. Both builds retain their own shared libraries. Background services
+retained GPU allocations; no other GPU experiments or builds ran concurrently.
+
+All measured answers meet exact categories and absolute numeric tolerance 0.0001.
+The after build also passed the [6,000-case Python comparison](measurements/vulkan-pad16-16bit-validation.json).
+This table measures the weight-padding change; it does not measure speed relative to Python.
+
+Rates are questions/second.
+
+| Model | Precision | Batch | Before | Bit-preserving padding | Speedup |
+|---|---|---:|---:|---:|---:|
+| english | BF16 | 1 | 138.0 | 144.3 | 1.05× |
+| english | BF16 | 2 | 245.3 | 252.5 | 1.03× |
+| english | BF16 | 4 | 392.4 | 400.0 | 1.02× |
+| english | BF16 | 8 | 521.2 | 521.9 | 1.00× |
+
+Measured throughput change is 0.1–4.6% in the completed runs.
+Measurements for the remaining model/precision pairs are pending.
+See [measurement metadata](measurements/vulkan-pad16-performance.json) for build,
+weight, corpus and report identities. Matching Python timings for this build remain pending.
+AMD 16-bit timing awaits its correctness gate.
