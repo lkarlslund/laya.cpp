@@ -1,189 +1,99 @@
 # laya.cpp
 
-Standalone C++ inference for Laya typed decisions using ggml, with optimized
-CUDA execution on NVIDIA RTX GPUs and a Vulkan backend. Model loading, Unicode/BPE tokenization, transformer
-inference, decision heads, and JSON output all run natively.
-
-All three checkpoints are supported:
-
-| Variant | Context | Encoder width / layers | Tokenizer |
-|---|---:|---:|---|
-| `english` | 512 | 1024 / 28 | NFC byte-level BPE |
-| `multilingual` | 1024 | 768 / 22 | Metaspace BPE with byte fallback |
-| `typed-decisions` | 1024 | 1024 / 28 | NFC byte-level BPE |
-
-Strict FP32 is the default. The optimized CUDA path uses exact checkpoint FP16
-weights, paired activation components, FP32 accumulation, and fused packing
-kernels. Enable it with `--tensor-core-fp32 --flash-fp32`. Native mixed BF16 is
-available with `--bf16` using the validated CUDA 13.0 / cuBLAS 13.1.0 build profile.
-Correctness is checked against the baseline at matching precision; see
-[precision comparisons](docs/precision.md).
+Native C++ inference for Laya typed decisions, powered by ggml with CUDA and
+Vulkan backends. Tokenization, inference and JSON output run without Python.
+Supports the `english`, `multilingual` and `typed-decisions` models, plus a
+JEV-compatible HTTP server with automatic request batching.
 
 ## Performance
 
-Measured on an **NVIDIA RTX PRO 6000 Blackwell (96 GB), capped at 450 W**, using
-all 250 fixed acceptance questions at batches 1, 2, 4 and 8. Throughput is
-**questions/second**; higher is better. Python denotes the original implementation.
-The 16-bit mode is **BF16**.
+Latest paired comparisons against matching-precision Python, using 250 fixed
+questions across all three models at batch sizes 1, 2, 4 and 8. Higher is better;
+**1× means equal throughput**. NVIDIA measurements use an **RTX PRO 6000
+Blackwell (96 GB), capped at 450 W**; AMD measurements use a **Radeon 8060S**.
 
-| Model | Batch | Python BF16 | laya.cpp BF16 | Python FP32 | laya.cpp FP32 |
-|---|---:|---:|---:|---:|---:|
-| english | 1 | 149.2 | 365.8 | 147.9 | 341.7 |
-| english | 2 | 267.5 | 585.6 | 201.6 | 420.6 |
-| english | 4 | 459.8 | 761.1 | 232.9 | 437.2 |
-| english | 8 | 662.5 | 809.8 | 231.7 | 385.7 |
-| multilingual | 1 | 178.9 | 485.4 | 191.7 | 475.3 |
-| multilingual | 2 | 320.7 | 816.0 | 299.8 | 610.0 |
-| multilingual | 4 | 550.2 | 1,164.0 | 388.5 | 673.4 |
-| multilingual | 8 | 828.1 | 1,246.4 | 408.0 | 552.1 |
-| typed-decisions | 1 | 142.7 | 303.9 | 130.6 | 263.4 |
-| typed-decisions | 2 | 248.0 | 498.8 | 169.9 | 302.4 |
-| typed-decisions | 4 | 399.2 | 610.3 | 178.6 | 284.1 |
-| typed-decisions | 8 | 529.0 | 587.7 | 164.3 | 238.7 |
+| GPU | Backend / mode | Throughput relative to Python |
+|---|---|---:|
+| NVIDIA | CUDA optimized FP32 | 1.35–2.48× |
+| NVIDIA | CUDA BF16 | 1.11–2.71× |
+| NVIDIA | Vulkan plain FP32 | 0.44–0.73× |
+| NVIDIA | Vulkan compensated FP32 | 0.60–1.14× |
+| NVIDIA | Vulkan FP16 / BF16 | 0.64–1.02× |
+| AMD | Vulkan plain FP32 | 0.61–1.82× |
+| AMD | Vulkan compensated FP32 | 1.26–2.45× |
+| AMD | Vulkan FP16 | 0.72–1.25× |
+| AMD | Vulkan BF16 | 0.49–0.92× |
 
-Each precision was measured as a paired Python-baseline/C++ run with alternating
-execution order, three warmups and five timed iterations per request group.
-Both use identical checkpoints and inputs. The C++ FP32 column uses
-`--tensor-core-fp32 --flash-fp32`; the Python FP32 baseline disables autocast and
-TF32. BF16 uses matching mixed precision on both sides. Speed comparisons are
-paired within each precision; BF16 and FP32 were timed in separate runs.
+All measured answer checks pass: exact categories and numeric absolute error
+at most **0.0001**. Timings include preprocessing, inference and formatting,
+excluding model loading and JSON transport.
 
-Both native modes pass all 3,000 matching-precision corpus comparisons across
-the three models: exact categories and numeric output error at most 0.0001.
-Timing includes preprocessing, inference and output formatting, excluding model
-loading and JSON transport. These are shared-GPU measurements.
-
-Measured build: `f89a5da`, CUDA 13.0.88, cuBLAS 13.1.0.3; Python baseline:
-PyTorch 2.11.0+cu130. See [measurement metadata](docs/measurements/readme-performance.json)
-and [benchmarking instructions](docs/benchmarking.md) for identities and reproduction.
+See [latest measurements](docs/performance.md) for per-model throughput,
+Vulkan FP32 results, direct CUDA/Vulkan comparisons and measurement identities.
 
 ## Build
 
-Requires a C++20 compiler, CMake 3.24+, ICU, and nlohmann-json, plus CUDA or
-the Vulkan build dependencies for GPU inference. On Debian-like
-systems the host dependencies are `libicu-dev` and `nlohmann-json3-dev`.
+Requires a C++20 compiler, CMake 3.24+, ICU and nlohmann-json, plus the chosen GPU
+backend's dependencies. On Debian-like systems, install `libicu-dev` and
+`nlohmann-json3-dev` for the host dependencies.
 
 ```sh
 git submodule update --init --recursive
 cmake -S . -B build-cuda -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_CUDA_ARCHITECTURES=120
 cmake --build build-cuda --parallel 8
-ctest --test-dir build-cuda --output-on-failure
 ```
 
-Architecture 120 targets RTX Blackwell. Select the architecture appropriate to
-your GPU and a host compiler supported by your CUDA toolkit. For a CPU build,
-configure with `-DLAYA_CUDA=OFF` and run the CLI with `--cpu`.
-
-For Vulkan inference without a CUDA toolkit:
+Architecture 120 targets RTX Blackwell; select the architecture for your GPU.
+For Vulkan, install the Vulkan loader/headers, `glslc` and SPIR-V headers, then:
 
 ```sh
 cmake -S . -B build-vulkan -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DLAYA_CUDA=OFF -DLAYA_VULKAN=ON
 cmake --build build-vulkan --parallel 8
-build-vulkan/bin/laya-cli --vulkan --model models/laya \
-  --input benchmarks/cases/smoke.json
 ```
-
-Vulkan needs the Vulkan loader/headers, `glslc` and SPIR-V headers (on Debian-like
-systems: `libvulkan-dev glslc spirv-headers`) and a working Vulkan driver.
-All three checkpoint variants and HTTP batching use the same `--vulkan` flag.
-Vulkan supports plain FP32 and compensated projections with `--tensor-core-fp32`.
-Mixed `--fp16` and `--bf16` are validated for all three models on RTX PRO 6000
-Blackwell. FP16 and BF16 also pass all three models on Radeon 8060S against same-GPU
-Python ROCm ([FP16 validation](docs/measurements/vulkan-amd-fp16-runtime-validation.json),
-[BF16 validation](docs/measurements/vulkan-amd-bf16-runtime-validation.json)). `--flash-fp32` remains
-CUDA-only. See [Vulkan support](docs/vulkan.md) for validation and limits.
-The performance table above measures CUDA. [Paired Vulkan FP32 measurements](docs/vulkan-packed-fp32-performance.md)
-compare plain and compensated FP32 with same-GPU Python for all three models
-on RTX PRO 6000 Blackwell capped at 450 W and Radeon 8060S. All 48 measured
-model, mode, GPU and batch combinations pass the correctness checks.
-[AMD FP16 measurements](docs/vulkan-amd-16bit-performance.md) and
-[optimized BF16 measurements](docs/vulkan-amd-bf16-parallel-scan-performance.md)
-cover all three models at batches 1/2/4/8 against same-GPU Python ROCm.
-FP16 reaches 72–125% of Python throughput; optimized BF16 reaches 49–92%.
-All measured answer checks pass. BF16 remains slower than Python on AMD.
-[Updated RTX 16-bit measurements](docs/vulkan-final-nvidia-performance.md) compare
-FP16 and BF16 Vulkan with matching-precision Python for all three models at 450 W.
-The optimized build reaches 64–102% of Python throughput across batches 1/2/4/8.
-[Earlier input-rounding measurements](docs/vulkan-current-16bit-performance.md)
-retain the preceding build results.
-Subsequent [fused normalization](docs/vulkan-norm-performance.md) adds 0.2–1.7%
-native throughput across all three models and both precisions, with all 6,000
-matching-precision correctness comparisons passing.
-[Bit-preserving weight padding](docs/vulkan-pad16-performance.md) measures a further
-−0.3% to +4.6% throughput change across the same model, precision and batch matrix;
-its 6,000 matching-precision correctness comparisons also pass.
-[QKV packing](docs/vulkan-packed-performance.md) and
-[fused projection storage](docs/vulkan-finish-performance.md) document the
-individual optimization gains. [Native CUDA versus Vulkan BF16](docs/vulkan-final-cuda-performance.md)
-compares both native backends on the same GPU.
 
 ## Run
 
-Download the checkpoint files with `python scripts/download_model.py --variant all`, then:
+Download the models with the optional Python tooling, then run native inference:
 
 ```sh
-build-cuda/bin/laya-cli --model models/laya --tensor-core-fp32 --flash-fp32 \
-  --input benchmarks/cases/smoke.json
+python scripts/download_model.py --variant all
+build-cuda/bin/laya-cli --model models/laya --variant english \
+  --tensor-core-fp32 --flash-fp32 --input benchmarks/cases/smoke.json
 ```
 
-Select another model with `--variant multilingual` or `--variant typed-decisions`.
-`--model` specifies the model-store root when combined with `--variant`; without
-`--variant`, it can also name a checkpoint directory directly. Selection is
-explicit. Each process keeps its selected checkpoint resident.
+Choose `--variant multilingual` or `--variant typed-decisions` for another model.
+For Vulkan, use `build-vulkan/bin/laya-cli --vulkan` and omit `--flash-fp32`.
+Strict FP32 is the default; `--tensor-core-fp32` enables compensated FP32
+projections. Both GPU backends support `--bf16`; Vulkan also supports `--fp16`.
+See [precision](docs/precision.md) and [Vulkan support](docs/vulkan.md) for tested
+hardware and build requirements.
 
-Without `--input`, the process accepts one JSON request (or an array of requests)
-per input line and keeps weights resident between calls. A request contains
-`state` and a `questions` object. Responses contain `results`, `elapsed_ms`, and
-`backend`. `results` is an array, including for a single request.
+Without `--input`, the CLI accepts one JSON request or request array per line:
 
 ```json
 {"state":"Please refund the duplicate charge.","questions":{"refund":{"type":"noul","instructions":"Does the customer ask for a refund?"}}}
 ```
 
-Use `--raw` to inspect uncalibrated logits and `--prepare` to inspect input tensors.
-The executable does not require Python, PyTorch, or an inference server.
-
-For native HTTP serving with the JEV-compatible `POST /v1/systemone` endpoint:
+To serve HTTP on `127.0.0.1:8080`:
 
 ```sh
 build-cuda/bin/laya-cli --server --port 8080 --variant english \
   --tensor-core-fp32 --flash-fp32
 ```
 
-The default listener is `127.0.0.1:8080`. It also provides `/health`, `/v1/models`,
-and `/predict` for batched requests. Concurrent HTTP calls are automatically combined
-into batches of up to eight questions, with a 2 ms collection window and a bounded
-queue (503 on overload). See [HTTP serving](docs/http.md) for request
-examples, model aliases, concurrency, limits and optional bearer authentication.
+The JEV-compatible endpoint is `POST /v1/systemone`. Concurrent requests are
+batched automatically. See [HTTP serving](docs/http.md) for examples and settings.
 
-## Models and tooling
+## Documentation
 
-The optional Python tooling requirements are in `requirements-bench.txt`:
-
-```sh
-python scripts/download_model.py --variant all
-python benchmarks/validate.py --tensor-core-fp32 --output results/validation.json
-python benchmarks/sweep.py --tensor-core-fp32 --validation results/validation.json \
-  --batch-sizes 1 2 4 8
-```
-
-To validate and benchmark all three checkpoints sequentially:
-
-```sh
-python benchmarks/models.py --sweep
-```
-
-The fixed acceptance corpus contains exactly 250 different questions. The sweep
-requires a passing validation report matching the corpus, weights, and binary.
-Model files, local research, build products, and detailed benchmark reports stay
-outside Git in `models/`, `research/`, `build*/`, and `results/`.
-
-See [model support and validation](docs/models.md), [measured performance](docs/performance.md), [architecture](docs/architecture.md), [benchmarking](docs/benchmarking.md), and
-[development roadmap](docs/roadmap.md).
+- [Models and validation](docs/models.md)
+- [Latest performance measurements](docs/performance.md)
+- [Benchmarking and the fixed 250-question corpus](docs/benchmarking.md)
+- [Vulkan support](docs/vulkan.md)
+- [Architecture](docs/architecture.md)
 
 ## License
 
-The project is licensed under the [MIT License](LICENSE). Dependencies and
-downloaded model files retain their own licenses.
+[MIT](LICENSE). Dependencies and model files retain their own licenses.
