@@ -26,6 +26,10 @@ Rates are questions/second. Only completed, passing runs appear below.
 | english | BF16 | 2 | 37.2 | 14.0 | 0.38× |
 | english | BF16 | 4 | 48.0 | 14.5 | 0.30× |
 | english | BF16 | 8 | 48.4 | 16.2 | 0.33× |
+| multilingual | BF16 | 1 | 55.3 | 27.8 | 0.50× |
+| multilingual | BF16 | 2 | 62.9 | 33.9 | 0.54× |
+| multilingual | BF16 | 4 | 73.0 | 38.9 | 0.53× |
+| multilingual | BF16 | 8 | 67.8 | 37.6 | 0.55× |
 
 See [measurement identities](measurements/vulkan-amd-16bit-python-performance.json)
 and production acceptance for [FP16](measurements/vulkan-amd-fp16-runtime-validation.json)
