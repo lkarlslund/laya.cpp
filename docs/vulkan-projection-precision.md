@@ -213,3 +213,12 @@ backend, selected by an explicit attention-node tag. Tests cover 32, 128, 512,
 outputs match same-device Python exactly; ordinary FP32 outputs remain bitwise
 unchanged. Mathematical operator tests also pass on NVIDIA. Runtime activation
 awaits integration of the remaining AMD projection and attention kernels.
+
+
+The AMD attention matrix kernel now has a separate native pipeline key. Tagged
+QK/PV products select its measured accumulation order; ordinary FP32 products
+retain their existing pipelines. The generated shader is byte-identical to the
+experimental kernel. Four matrix geometries, including 706- and 1,024-element
+reductions, reproduce every experimental output bit while leaving every ordinary
+FP32 output bit unchanged. Mathematical checks pass on AMD and NVIDIA. Projection
+integration and full runtime validation remain outstanding.

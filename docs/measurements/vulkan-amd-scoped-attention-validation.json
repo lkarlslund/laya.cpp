@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "scope": "Dedicated AMD low-precision attention matrix pipeline; runtime activation pending",
+  "gpu": "AMD Radeon 8060S Graphics",
+  "shader_unchanged": true,
+  "matching_values": 555972,
+  "ordinary_fp32_values_unchanged": true,
+  "operator_tests": [
+    "AMD Radeon 8060S Graphics",
+    "NVIDIA RTX PRO 6000 Blackwell Workstation Edition"
+  ],
+  "cases": [
+    {
+      "k": 64,
+      "m": 64,
+      "n": 64,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 64,
+      "m": 706,
+      "n": 706,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 706,
+      "m": 64,
+      "n": 706,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 1024,
+      "m": 64,
+      "n": 129,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    }
+  ],
+  "artifacts": {
+    "attention-amd.bin": "ab69d95f535a597d642eb35c4353190ec3769380bd918a92e48d46fd4e930f5d",
+    "attention-amd-baseline.bin": "3a472a9d0bd4022ab9921518b6af7a8c7b0a0c8be797a5049c516269a121d59d",
+    "attention-amd-experimental.bin": "e4b52f17bd2370ce1dadef8a9d044db28ebdfe6bd257008b70e06cd32037ce3f",
+    "attention-nvidia.bin": "3a472a9d0bd4022ab9921518b6af7a8c7b0a0c8be797a5049c516269a121d59d",
+    "scoped-attention-check.json": "635898e2268c89c6ec690dda328584a14840ed31e5540971227ed29115845a77"
+  }
+}
