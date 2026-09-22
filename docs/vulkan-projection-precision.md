@@ -231,3 +231,18 @@ scalar scoring, small output heads, QKV and MLP projections, including unaligned
 input widths. Every tested tagged output matches the experimental backend bitwise,
 and untagged outputs remain bitwise unchanged. Mathematical checks pass on both
 GPUs. BF16 projection integration and full runtime activation remain pending.
+
+
+All six experimental AMD model/precision combinations now pass the full corpus:
+6,000 public-answer comparisons, with zero raw-tensor differences. The production
+FP16 runtime integration is undergoing its separate full gate.
+
+The dedicated native BF16 projection kernel also matches the experimental kernel
+in seven matrix geometries, including tiny activation columns requiring scaling.
+Ordinary BF16 results remain bitwise unchanged. An integer range predicate passes
+589,824 bit-pattern/scaling checks; a GPU test confirms that an unrepresentable
+column signals NaN while other columns remain exact. The earlier floating-point
+round-trip check failed that diagnostic and has been replaced. All 864,492,800
+BF16-rounded projection weights across the three checkpoints are exactly
+FP16-representable. Runtime weight checks and explicit rejection of activation
+range failures are still required before BF16 activation.

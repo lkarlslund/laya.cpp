@@ -9,7 +9,11 @@
 #include <stdexcept>
 #include <vector>
 
+#ifndef LAYA_TEST_BF16
+#define LAYA_TEST_BF16 0
+#endif
 int main(int argc,char** argv) {
+    constexpr bool bf16=LAYA_TEST_BF16;
     if (!ggml_backend_vk_get_device_count()) return 77;
     auto backend=ggml_backend_vk_init(0);
     if (!backend) return 77;
@@ -20,7 +24,7 @@ int main(int argc,char** argv) {
         for (auto shape : {std::array<int,3>{768,1,8},{1024,1,8},{256,2,8},{768,2304,2},{1028,256,193},{772,256,193},{2624,1024,385}}) {
             const auto [k,m,n]=shape;
             auto ctx=ggml_init({32*ggml_tensor_overhead()+ggml_graph_overhead(),nullptr,true});
-            auto a=ggml_new_tensor_2d(ctx,GGML_TYPE_F16,k,m);
+            auto a=ggml_new_tensor_2d(ctx,bf16 ? GGML_TYPE_BF16 : GGML_TYPE_F16,k,m);
             auto b=ggml_new_tensor_2d(ctx,GGML_TYPE_F32,k,n);
             ggml_set_input(a); ggml_set_input(b);
             auto ordinary=ggml_mul_mat(ctx,a,b),matching=ggml_mul_mat(ctx,a,b);
@@ -34,9 +38,16 @@ int main(int argc,char** argv) {
             std::vector<float> av(k*m),bv(k*n),actual(m*n);
             for (int i=0;i<k*m;++i) av[i]=float((i*17)%127-63)/71.f;
             for (int i=0;i<k*n;++i) bv[i]=float((i*13)%109-54)/59.f;
-            std::vector<ggml_fp16_t> half_a(k*m);
-            for (int i=0;i<k*m;++i) { half_a[i]=ggml_fp32_to_fp16(av[i]); av[i]=ggml_fp16_to_fp32(half_a[i]); }
-            for (auto& value:bv) value=ggml_fp16_to_fp32(ggml_fp32_to_fp16(value));
+            auto encode=[](float value) { return bf16 ? ggml_fp32_to_bf16(value).bits : ggml_fp32_to_fp16(value); };
+            auto decode=[](uint16_t value) { return bf16 ? ggml_bf16_to_fp32(ggml_bf16_t{value}) : ggml_fp16_to_fp32(value); };
+            std::vector<uint16_t> half_a(k*m);
+            for (int i=0;i<k*m;++i) { half_a[i]=encode(av[i]); av[i]=decode(half_a[i]); }
+            for (int i=0;i<k*n;++i) {
+                // Small BF16 activation columns require exact scaling before
+                // cooperative FP16 multiplication, rather than underflowing.
+                if (bf16 && i/k==n-1) bv[i]=std::ldexp(bv[i],-40);
+                bv[i]=decode(encode(bv[i]));
+            }
             ggml_backend_tensor_set(a,half_a.data(),0,ggml_nbytes(a));
             ggml_backend_tensor_set(b,bv.data(),0,ggml_nbytes(b));
             if (ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS) throw std::runtime_error("Compute failed");
@@ -54,7 +65,7 @@ int main(int argc,char** argv) {
             ggml_gallocr_free(alloc); ggml_free(ctx);
         }
         if (argc==2 && !dump) throw std::runtime_error("Output write failed");
-        std::cout << "Vulkan ordinary and matching FP16 projection matrices passed\n";
+        std::cout << "Vulkan ordinary and matching projection matrices passed\n";
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n'; ggml_backend_free(backend); return 1;
     }

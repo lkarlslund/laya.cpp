@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "scope": "Dedicated AMD BF16 projection kernel; runtime activation and rejection of range failures pending",
+  "gpu": "AMD Radeon 8060S Graphics",
+  "matching_values": 497696,
+  "ordinary_values_unchanged": true,
+  "operator_tests": [
+    "AMD Radeon 8060S Graphics",
+    "NVIDIA RTX PRO 6000 Blackwell Workstation Edition"
+  ],
+  "cases": [
+    {
+      "k": 768,
+      "m": 1,
+      "n": 8,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 1024,
+      "m": 1,
+      "n": 8,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 256,
+      "m": 2,
+      "n": 8,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 768,
+      "m": 2304,
+      "n": 2,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 1028,
+      "m": 256,
+      "n": 193,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 772,
+      "m": 256,
+      "n": 193,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    },
+    {
+      "k": 2624,
+      "m": 1024,
+      "n": 385,
+      "ordinary_changed": 0,
+      "matching_experimental_changed": 0
+    }
+  ],
+  "range_check": {
+    "cpu_bit_pattern_scaling_combinations": 589824,
+    "cpu_failures": 0,
+    "gpu_invalid_column_outputs": 64,
+    "gpu_invalid_outputs_all_nan": true,
+    "gpu_other_columns_exact": true
+  },
+  "checkpoint_weight_range": [
+    {
+      "model": "english",
+      "projection_tensors": 124,
+      "values": 369625600,
+      "nonrepresentable": 0,
+      "largest_absolute_value": 4.21875,
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c"
+    },
+    {
+      "model": "multilingual",
+      "projection_tensors": 100,
+      "values": 125241600,
+      "nonrepresentable": 0,
+      "largest_absolute_value": 2.078125,
+      "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204"
+    },
+    {
+      "model": "typed-decisions",
+      "projection_tensors": 124,
+      "values": 369625600,
+      "nonrepresentable": 0,
+      "largest_absolute_value": 4.21875,
+      "weights_sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e"
+    }
+  ],
+  "artifacts": {
+    "bf16-projection-amd.bin": "084dd2fa3e8623a03db81bf019d96b4d84fdf6b7fdf6288dc7dd587366a1c521",
+    "bf16-projection-amd-baseline.bin": "b46130d40782783d5a91efcd67c3f164bd5ff9bd6f198ab3e5d2149bbab552be",
+    "bf16-projection-amd-experimental.bin": "f1e1d335d17a2ecd3ccfad614d001bd632babdf14dbf1d49e3789129f09fae39",
+    "bf16-projection-nvidia.bin": "f677c2a3f20ef244e990e1f07ec9fc40cddcd952419ddc34cf5dee248d99031d",
+    "scoped-bf16-projection-final-check.log": "ace61e2a981ee4fc39e261570c0b8f28f9c275638a7a72ccb27022ace2aa6bfb",
+    "bf16-bit-range-diagnostic.log": "0f6ed6f4ef5057b426451354d52ff815585a65c390894fe0299d5d5d1ef3f42e",
+    "native-bf16-projection-final.spv": "ac21534d7594ce802a36c1e4e3f4d9ca6d35fde4ff58867e50455312c3b61724"
+  }
+}
