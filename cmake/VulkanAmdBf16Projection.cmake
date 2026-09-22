@@ -159,6 +159,10 @@ laya_vk_shader_replace("            if(largest>0.0) scale=exp2(float(clamp(15-(i
   "            if(largest>0.0) scale_exponent=clamp(15-(int(floatBitsToUint(largest)>>23)-127),-126,126);\n            scale=exp2(float(scale_exponent));" laya_amd_bf16_projection)
 laya_vk_shader_replace("                float value=bf16_to_fp32(data_b_scalar[base+k]);\n                exact=exact && float(float16_t(value*scale))/scale==value;"
   "                exact=exact && layaBf16ScaledFitsHalf(uint(data_b_scalar[base+k]),scale_exponent);" laya_amd_bf16_projection)
+laya_vk_shader_replace("shared uint b_exact[BN];"
+  "shared uint b_exact[BN];\nlayout(binding=3) buffer LayaRangeStatus { uint laya_range_failed; };" laya_amd_bf16_projection)
+laya_vk_shader_replace("            b_exact[column]=exact ? 1u : 0u;"
+  "            b_exact[column]=exact ? 1u : 0u;\n            if (!exact) atomicOr(laya_range_failed,1u);" laya_amd_bf16_projection)
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/laya_amd_projection_bf16.comp" CONTENT "${laya_amd_bf16_projection}")
 file(READ "${laya_amd_shader_dir}/mul_mm_funcs.glsl" laya_amd_bf16_funcs)
 laya_vk_shader_replace([=[    if (ALIGNED != 0) {

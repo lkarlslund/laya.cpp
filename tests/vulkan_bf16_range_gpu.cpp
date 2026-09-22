@@ -2,6 +2,7 @@
 #include "ggml-backend.h"
 #include "ggml-alloc.h"
 #include "ggml-vulkan.h"
+#include "vulkan_status.hpp"
 #include <vector>
 #include <cmath>
 #include <iostream>
@@ -16,9 +17,19 @@ int main() {
  auto graph=ggml_new_graph(ctx);ggml_build_forward_expand(graph,y);auto alloc=ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));if(!ggml_gallocr_alloc_graph(alloc,graph))return 2;
  std::vector<ggml_bf16_t> weights(768*64,ggml_fp32_to_bf16(1.f));std::vector<float> input(768*8,1.f),output(64*8);input[0]=std::ldexp(1.f,-100);
  ggml_backend_tensor_set(a,weights.data(),0,ggml_nbytes(a));ggml_backend_tensor_set(b,input.data(),0,ggml_nbytes(b));
+ laya_vk_bf16_status_reset(backend);
  if(ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS)return 3;
  ggml_backend_tensor_get(y,output.data(),0,ggml_nbytes(y));
  for(int i=0;i<64*8;++i)if(i<64 ? !std::isnan(output[i]) : output[i]!=768.f)return 4;
- std::cout<<"Unrepresentable BF16 column signals NaN; all other columns remain exact\n";
+ // Clearing the floating-point outputs must not clear the independent status.
+ std::fill(output.begin(),output.end(),0.f);ggml_backend_tensor_set(y,output.data(),0,ggml_nbytes(y));
+ if(!laya_vk_bf16_status_failed(backend))return 5;
+ laya_vk_bf16_status_reset(backend);
+ input[0]=1.f;ggml_backend_tensor_set(b,input.data(),0,ggml_nbytes(b));
+ if(ggml_backend_graph_compute(backend,graph)!=GGML_STATUS_SUCCESS)return 6;
+ if(laya_vk_bf16_status_failed(backend))return 7;
+ ggml_backend_tensor_get(y,output.data(),0,ggml_nbytes(y));
+ for(float value:output)if(value!=768.f)return 8;
+ std::cout<<"BF16 range status survives output changes and resets between requests\n";
  ggml_gallocr_free(alloc);ggml_free(ctx);ggml_backend_free(backend);
 }

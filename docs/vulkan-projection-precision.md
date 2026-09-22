@@ -246,3 +246,11 @@ round-trip check failed that diagnostic and has been replaced. All 864,492,800
 BF16-rounded projection weights across the three checkpoints are exactly
 FP16-representable. Runtime weight checks and explicit rejection of activation
 range failures are still required before BF16 activation.
+
+
+BF16 conversion failures now also set an independent integer status per Vulkan
+backend. A GPU test confirms the status survives clearing the floating-point
+outputs and resets between requests. This avoids depending on NaN propagation
+through later arithmetic. The guarded BF16 runtime preflight exposed a valid
+model case with an unrepresentable activation column; BF16 activation therefore
+requires a correction path for the conversion residual, not just rejection.
