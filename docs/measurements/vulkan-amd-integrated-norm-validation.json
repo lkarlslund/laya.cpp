@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "scope": "Integrated AMD normalization only; not full model acceptance",
+  "nvidia_shader_unchanged": true,
+  "operator_tests": [
+    "AMD Radeon 8060S Graphics",
+    "NVIDIA RTX PRO 6000 Blackwell Workstation Edition"
+  ],
+  "replay": {
+    "values": 46080,
+    "numerical_differences": 0
+  },
+  "spirv_validation": "vulkan1.2",
+  "artifacts": {
+    "integrated-norm-preserved.spv": "37fa2dbd109470f8a414334be7b6f8b8e17ddfa49de3506fd562939093e05267",
+    "amd-multilingual-norm-replay.npz": "009bc7cbd4bec1424f6a5852b4c0fe36c4c0bdcb1915439c678143f50181e034",
+    "norm-integration-checks.log": "7fc1d9c75230fdf8c31f8d13002967ba9c81b64ce3d7b3451e8fbc805d0fbbf3"
+  }
+}

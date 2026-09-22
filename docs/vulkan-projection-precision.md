@@ -190,3 +190,11 @@ preserves all eleven explicit FMA instructions through SPIR-V `NoContraction`.
 Changing the mean ordering alone was insufficient. Projection profiling also now
 covers all 327,680 shape/precision cases through 8,192 columns. The combined
 experimental build is undergoing a fresh full three-model, two-precision gate.
+
+
+The AMD normalization fix is now integrated into the native Vulkan backend. Its
+separate shader preserves explicit FMA instructions through the C++ SPIR-V helper;
+the NVIDIA shader remains byte-for-byte identical. Operator tests pass on both
+GPUs, and all 46,080 outputs in the multilingual normalization replay match Python
+exactly. This integrates normalization only; the remaining experimental AMD
+projection and attention changes still need production integration and validation.

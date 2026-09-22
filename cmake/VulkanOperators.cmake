@@ -3,21 +3,28 @@ add_custom_command(OUTPUT "${laya_norm_header}"
   COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O -mfmt=c
     "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/norm.comp" -o "${laya_norm_header}"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/norm.comp" "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/rounding.glsl" VERBATIM)
+set(laya_amd_norm_header "${CMAKE_CURRENT_BINARY_DIR}/laya_amd_norm.spv.h")
+add_custom_command(OUTPUT "${laya_amd_norm_header}"
+  COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O -mfmt=c -DLAYA_AMD_NORM=1
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/norm.comp" -o "${laya_amd_norm_header}"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/norm.comp" "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/rounding.glsl" VERBATIM)
 set(laya_activation_header "${CMAKE_CURRENT_BINARY_DIR}/laya_activation.spv.h")
 add_custom_command(OUTPUT "${laya_activation_header}"
   COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O -mfmt=c
     "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/activation.comp" -o "${laya_activation_header}"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/activation.comp" "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/rounding.glsl" VERBATIM)
-add_custom_target(laya-vulkan-shaders DEPENDS "${laya_norm_header}" "${laya_activation_header}")
+add_custom_target(laya-vulkan-shaders DEPENDS "${laya_norm_header}" "${laya_amd_norm_header}" "${laya_activation_header}")
 add_dependencies(ggml-vulkan laya-vulkan-shaders)
 target_include_directories(ggml-vulkan PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}")
 laya_vk_replace("#include \"ggml-vulkan-shaders.hpp\""
   "#include \"ggml-vulkan-shaders.hpp\"\nstatic const uint32_t laya_norm_spv[] =\n#include \"laya_norm.spv.h\"\n;")
+laya_vk_replace("#include \"ggml-vulkan-shaders.hpp\""
+  "#include \"ggml-vulkan-shaders.hpp\"\n#include \"vulkan/strict_spirv.hpp\"\nstatic const uint32_t laya_amd_norm_spv[] =\n#include \"laya_amd_norm.spv.h\"\n;")
 laya_vk_replace("    vk_pipeline pipeline_norm_f32;"
   "    vk_pipeline pipeline_norm_f32;\n    vk_pipeline pipeline_laya_norm;")
 laya_vk_replace(
   "    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,"
-  "    ggml_vk_create_pipeline(device, device->pipeline_laya_norm, \"laya_norm\", sizeof(laya_norm_spv), laya_norm_spv, \"main\", 4, 16, {1,1,1}, {device->vendor_id == VK_VENDOR_ID_AMD ? 256u : 128u}, 1);\n    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,")
+  "    {\n        const bool amd = device->vendor_id == VK_VENDOR_ID_AMD;\n        static const auto strict_norm = laya::vulkan_precision::preserve_spirv_fma(laya_amd_norm_spv, sizeof(laya_amd_norm_spv)/sizeof(uint32_t));\n        ggml_vk_create_pipeline(device, device->pipeline_laya_norm, \"laya_norm\", amd ? strict_norm.size()*sizeof(uint32_t) : sizeof(laya_norm_spv), amd ? strict_norm.data() : laya_norm_spv, \"main\", 4, 16, {1,1,1}, {amd ? 256u : 128u}, 1);\n    }\n    ggml_vk_create_pipeline(device, device->pipeline_norm_f32,")
 laya_vk_replace(
   "// Returns true if node has enqueued work into the queue, false otherwise"
   "#include \"vulkan_dispatch.hpp\"\n// Returns true if node has enqueued work into the queue, false otherwise")

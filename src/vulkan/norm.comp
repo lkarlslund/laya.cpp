@@ -23,7 +23,12 @@ vec3 combine(vec3 left,vec3 right) {
     float reciprocal=1.0/count;
     float a=right.z*reciprocal, b=left.z*reciprocal;
     float delta=left.x-right.x;
+#ifdef LAYA_AMD_NORM
+    // Match the weighted-mean operand order of the 256-thread reduction.
+    return vec3(fma(b,left.x,a*right.x),fma(delta*delta*right.z,b,right.y+left.y),count);
+#else
     return vec3(fma(a,right.x,b*left.x),fma(delta*delta*right.z,b,right.y+left.y),count);
+#endif
 }
 void main() {
     uint row=gl_WorkGroupID.x, tid=gl_LocalInvocationID.x;
