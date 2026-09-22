@@ -198,3 +198,10 @@ the NVIDIA shader remains byte-for-byte identical. Operator tests pass on both
 GPUs, and all 46,080 outputs in the multilingual normalization replay match Python
 exactly. This integrates normalization only; the remaining experimental AMD
 projection and attention changes still need production integration and validation.
+
+
+The remaining multilingual BF16 batch-1 failures all exceed 512 tokens. Softmax
+used corrected division for cached columns but reciprocal multiplication for the
+uncached tail. Applying corrected division to the tail makes all 194 comparable
+tensors and the public answer exact for the 706-token expense diagnostic. The
+full three-model, two-precision corpus gate is pending on this experimental fix.

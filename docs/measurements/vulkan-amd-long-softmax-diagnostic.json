@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "scope": "Experimental AMD BF16 long-sequence softmax diagnostic; full corpus acceptance pending",
+  "model": "multilingual",
+  "precision": "bf16",
+  "gpu": "AMD Radeon 8060S Graphics",
+  "torch": "2.11.0+rocm7.13.0",
+  "case": "expense-02",
+  "input_tokens": 706,
+  "comparable_tensors": 194,
+  "differing_tensors": 0,
+  "public_answer_exact": true,
+  "change": "Use corrected division for uncached softmax columns beyond 512 as well as cached columns",
+  "artifacts": {
+    "amd-bf16-multilingual-expense02-long-softmax-comparison.log": "d6678343aa22310968b215e549fbc8e55b62c8873ef23dca1f31fe229527817f",
+    "oracle-detail.npz": "49ca0bc5ad64b6c26033f9799f6082841bb121b9cb4bbd892073a4a9d89ecda8",
+    "response.json": "ef488bbff08ef763bfe6df1e8be5f171954ec27939410273a0c2782fb89dbc5c",
+    "soft_f32.spv.h": "2e651578ef77f8e8b823f3a387bae67edb95926df222918a9fa91733d752cba0",
+    "soft_f32_f16.spv.h": "70306088f5eec02d7d8eb6e4f6d09757fccd4dcb56a411eedc271a6cb594e97a"
+  }
+}
