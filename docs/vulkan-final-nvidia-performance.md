@@ -26,6 +26,10 @@ Rates are questions/second. Only completed, passing runs appear below.
 | english | BF16 | 2 | 264.9 | 248.8 | 0.94× |
 | english | BF16 | 4 | 453.9 | 398.6 | 0.88× |
 | english | BF16 | 8 | 660.1 | 515.9 | 0.78× |
+| multilingual | BF16 | 1 | 176.9 | 180.2 | 1.02× |
+| multilingual | BF16 | 2 | 316.8 | 314.5 | 0.99× |
+| multilingual | BF16 | 4 | 543.7 | 482.4 | 0.89× |
+| multilingual | BF16 | 8 | 826.4 | 615.3 | 0.74× |
 
 See [measurement identities](measurements/vulkan-final-nvidia-python-performance.json)
 and [production acceptance](measurements/vulkan-pad16-16bit-validation.json).
