@@ -115,3 +115,12 @@ An earlier experimental build passed all 6,000 AMD FP16/BF16 comparisons
 floating-point conversion guard failed a separate range diagnostic, so that
 record alone does not validate the corrected production BF16 path. Production
 acceptance and performance are measured separately.
+
+The AMD BF16 column-scaling scan now distributes adjacent K values across a
+subgroup. Maximum and integer range reductions preserve the scaling decision
+without changing matrix accumulation order. Seven projection geometries remain
+bitwise identical, and residual/failure-status checks pass. Four paired English
+request-group probes show 1.29–1.67× throughput improvement over the serial-scan
+build ([probe record](measurements/vulkan-amd-bf16-parallel-scan-probe.json)).
+These probes are not full-corpus performance results; full model acceptance of
+this optimization is running separately.

@@ -1,5 +1,5 @@
 # Exact per-column scaling keeps representable BF16 inputs in FP16 cooperative matrices.
-# Unrepresentable input vectors produce NaN and must be rejected by the runtime.
+# Finite conversion losses are restored through the residual correction path.
 file(READ "${laya_amd_shader_dir}/mul_mm.comp" laya_amd_bf16_projection)
 laya_vk_shader_replace([=[
 #if defined(DATA_A_BF16) && defined(COOPMAT)
@@ -170,6 +170,64 @@ laya_vk_shader_replace("                exact=exact && layaBf16ScaledFitsHalf(ui
 laya_vk_shader_replace("            b_exact[column]=exact ? 1u : 0u;\n            if (!exact) atomicOr(laya_range_failed,1u);"
   "            b_exact[column]=finite ? (exact ? 1u : 0u) : 2u;\n            if (!finite) atomicOr(laya_range_failed,1u);" laya_amd_bf16_projection)
 laya_vk_shader_replace("(b_exact[dc + cm_col * TN + col + store_c - ic * BN]!=0u ? D_TYPE(coopmat_stage[warp_i * TM * TN + (col + store_c) * TM + store_r])/b_scale[dc + cm_col * TN + col + store_c - ic * BN] : uintBitsToFloat(0x7fc00000u))" "layaBf16Correct(D_TYPE(coopmat_stage[warp_i * TM * TN + (col + store_c) * TM + store_r])/b_scale[dc + cm_col * TN + col + store_c - ic * BN],b_exact[dc + cm_col * TN + col + store_c - ic * BN],dr + cm_row * TM + store_r,dc + cm_col * TN + col + store_c,batch_idx_a,batch_idx,b_scale[dc + cm_col * TN + col + store_c - ic * BN])" laya_amd_bf16_projection)
+# Share each column scan across a subgroup for coalesced input reads.
+laya_vk_shader_replace("#extension GL_KHR_shader_subgroup_basic : enable"
+  "#extension GL_KHR_shader_subgroup_basic : enable\n#extension GL_KHR_shader_subgroup_arithmetic : require" laya_amd_bf16_projection)
+laya_vk_shader_replace([=[
+    for(uint column=gl_LocalInvocationID.x;column<BN;column+=gl_WorkGroupSize.x) {
+        b_exact[column]=1u;
+        float scale=1.0;
+        int scale_exponent=0;
+        if(ic*BN+column<p.N) {
+            uint base=pos_b*LOAD_VEC_B_EFF+column*p.stride_b;
+            float largest=0.0;
+            for(uint k=0;k<p.K;++k) largest=max(largest,abs(bf16_to_fp32(data_b_scalar[base+k])));
+            if(largest>0.0) scale_exponent=clamp(15-(int(floatBitsToUint(largest)>>23)-127),-126,126);
+            scale=exp2(float(scale_exponent));
+            bool exact=true;
+            bool finite=true;
+            for(uint k=0;k<p.K;++k) {
+                uint bits=uint(data_b_scalar[base+k]);
+                finite=finite && (bits&0x7fffu)<0x7f80u;
+                exact=exact && layaBf16ScaledFitsHalf(bits,scale_exponent);
+            }
+            b_exact[column]=finite ? (exact ? 1u : 0u) : 2u;
+            if (!finite) atomicOr(laya_range_failed,1u);
+        }
+        b_scale[column]=scale;
+    }
+]=] [=[
+    // Neighboring lanes scan neighboring K values; reductions preserve the
+    // exact maximum and integer range predicates without changing dot order.
+    for(uint column=gl_SubgroupID;column<BN;column+=gl_NumSubgroups) {
+        float scale=1.0;
+        uint state=1u;
+        if(ic*BN+column<p.N) {
+            uint base=pos_b*LOAD_VEC_B_EFF+column*p.stride_b;
+            float largest=0.0;
+            for(uint k=gl_SubgroupInvocationID;k<p.K;k+=gl_SubgroupSize)
+                largest=max(largest,abs(bf16_to_fp32(data_b_scalar[base+k])));
+            largest=subgroupMax(largest);
+            int scale_exponent=0;
+            if(largest>0.0) scale_exponent=clamp(15-(int(floatBitsToUint(largest)>>23)-127),-126,126);
+            scale=exp2(float(scale_exponent));
+            uint exact=1u, finite=1u;
+            for(uint k=gl_SubgroupInvocationID;k<p.K;k+=gl_SubgroupSize) {
+                uint bits=uint(data_b_scalar[base+k]);
+                finite &= uint((bits&0x7fffu)<0x7f80u);
+                exact &= uint(layaBf16ScaledFitsHalf(bits,scale_exponent));
+            }
+            exact=subgroupMin(exact);
+            finite=subgroupMin(finite);
+            state=finite!=0u ? exact : 2u;
+            if (gl_SubgroupInvocationID==0u && finite==0u) atomicOr(laya_range_failed,1u);
+        }
+        if(gl_SubgroupInvocationID==0u) {
+            b_scale[column]=scale;
+            b_exact[column]=state;
+        }
+    }
+]=] laya_amd_bf16_projection)
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/laya_amd_projection_bf16.comp" CONTENT "${laya_amd_bf16_projection}")
 file(READ "${laya_amd_shader_dir}/mul_mm_funcs.glsl" laya_amd_bf16_funcs)
 laya_vk_shader_replace([=[    if (ALIGNED != 0) {

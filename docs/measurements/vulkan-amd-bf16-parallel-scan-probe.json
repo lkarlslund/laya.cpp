@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "scope": "AMD BF16 subgroup column-scan optimization. Seven projection geometries are bitwise identical before/after; finite residual and sticky nonfinite status tests pass. Four English request-group probes only; full 250-question acceptance and timings remain pending.",
+  "before_sha256": "d4ced9396eacd9f04d9045c77fad85239db9e6ac3213d108e0972323080bc557",
+  "after_sha256": "1e6277ea1a0ad6f10764da031452b5117d660564698943847a66659afd9d24bc",
+  "warmup": 3,
+  "iterations": 10,
+  "rows": [
+    {
+      "batch": 1,
+      "group": "first",
+      "before_ms": 50.187273000000005,
+      "after_ms": 38.978494999999995,
+      "speedup": 1.2893568187898161
+    },
+    {
+      "batch": 1,
+      "group": "long",
+      "before_ms": 217.834808,
+      "after_ms": 169.1225645,
+      "speedup": 1.2863570398063149
+    },
+    {
+      "batch": 8,
+      "group": "first",
+      "before_ms": 279.522086,
+      "after_ms": 183.5158045,
+      "speedup": 1.5306147411894406
+    },
+    {
+      "batch": 8,
+      "group": "long",
+      "before_ms": 1417.764706,
+      "after_ms": 849.2282574999999,
+      "speedup": 1.6699492785951158
+    }
+  ],
+  "projection_output_sha256": "084dd2fa3e8623a03db81bf019d96b4d84fdf6b7fdf6288dc7dd587366a1c521"
+}
