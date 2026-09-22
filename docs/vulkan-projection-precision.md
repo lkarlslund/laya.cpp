@@ -152,3 +152,8 @@ The remaining FP16 batch-2 `accessibility-05` failure is isolated to one value i
 the final scalar scoring projection. All other common trace tensors match. A CPU
 replay with sequential FP32 accumulation matches all ten stored FP16 scores in
 that request pair. A corresponding GPU implementation still requires validation.
+
+The first remaining batch-4 attention difference is confined to padded query
+positions: 137–511 and 138–511 in sequences with 73 and 74 valid tokens. No valid
+query position differs in that tensor. Later tensors are not covered by this
+observation; the full public-answer gate remains the acceptance criterion.

@@ -239,6 +239,33 @@
         "response_sha256": "1e8247c1502629049a943fe75bbfa03c345e324cba5112e0a1295c9215acaa7d",
         "trace_comparison_sha256": "0561e091faa04a7bc4687145b588a707b9f0f5f40db3bfcc302c6ffa191f889c"
       }
+    },
+    "first_attention_difference_locations": {
+      "tensor": "encoder.layers.1.attn.Wo.input",
+      "applies_to_precisions": [
+        "bf16",
+        "fp16"
+      ],
+      "sequence_lengths": [
+        73,
+        74,
+        512,
+        512
+      ],
+      "differing_query_ranges_inclusive": [
+        [
+          137,
+          511
+        ],
+        [
+          138,
+          511
+        ],
+        null,
+        null
+      ],
+      "differing_valid_query_positions": 0,
+      "scope": "Only the first differing attention tensor was checked by query position; later trace differences still require separate interpretation."
     }
   },
   "accessibility_batched_scalar_diagnostic": {
