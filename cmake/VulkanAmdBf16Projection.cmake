@@ -163,6 +163,13 @@ laya_vk_shader_replace("shared uint b_exact[BN];"
   "shared uint b_exact[BN];\nlayout(binding=3) buffer LayaRangeStatus { uint laya_range_failed; };" laya_amd_bf16_projection)
 laya_vk_shader_replace("            b_exact[column]=exact ? 1u : 0u;"
   "            b_exact[column]=exact ? 1u : 0u;\n            if (!exact) atomicOr(laya_range_failed,1u);" laya_amd_bf16_projection)
+laya_vk_shader_replace("#include \"laya_amd_bf16_mul_mm_funcs.glsl\"" "#include \"laya_amd_bf16_mul_mm_funcs.glsl\"\n#include \"bf16_residual.glsl\"" laya_amd_bf16_projection)
+laya_vk_shader_replace("            bool exact=true;" "            bool exact=true;\n            bool finite=true;" laya_amd_bf16_projection)
+laya_vk_shader_replace("                exact=exact && layaBf16ScaledFitsHalf(uint(data_b_scalar[base+k]),scale_exponent);"
+  "                uint bits=uint(data_b_scalar[base+k]);\n                finite=finite && (bits&0x7fffu)<0x7f80u;\n                exact=exact && layaBf16ScaledFitsHalf(bits,scale_exponent);" laya_amd_bf16_projection)
+laya_vk_shader_replace("            b_exact[column]=exact ? 1u : 0u;\n            if (!exact) atomicOr(laya_range_failed,1u);"
+  "            b_exact[column]=finite ? (exact ? 1u : 0u) : 2u;\n            if (!finite) atomicOr(laya_range_failed,1u);" laya_amd_bf16_projection)
+laya_vk_shader_replace("(b_exact[dc + cm_col * TN + col + store_c - ic * BN]!=0u ? D_TYPE(coopmat_stage[warp_i * TM * TN + (col + store_c) * TM + store_r])/b_scale[dc + cm_col * TN + col + store_c - ic * BN] : uintBitsToFloat(0x7fc00000u))" "layaBf16Correct(D_TYPE(coopmat_stage[warp_i * TM * TN + (col + store_c) * TM + store_r])/b_scale[dc + cm_col * TN + col + store_c - ic * BN],b_exact[dc + cm_col * TN + col + store_c - ic * BN],dr + cm_row * TM + store_r,dc + cm_col * TN + col + store_c,batch_idx_a,batch_idx,b_scale[dc + cm_col * TN + col + store_c - ic * BN])" laya_amd_bf16_projection)
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/laya_amd_projection_bf16.comp" CONTENT "${laya_amd_bf16_projection}")
 file(READ "${laya_amd_shader_dir}/mul_mm_funcs.glsl" laya_amd_bf16_funcs)
 laya_vk_shader_replace([=[    if (ALIGNED != 0) {
@@ -271,6 +278,8 @@ add_custom_command(OUTPUT "${laya_amd_bf16_projection_header}"
     "${CMAKE_CURRENT_BINARY_DIR}/laya_amd_bf16_mul_mm_funcs.glsl"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/amd_projection_policy.glsl"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/bf16_range.glsl"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/bf16_residual.glsl"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/vulkan/rounding.glsl"
     "${laya_amd_shader_dir}/types.glsl" VERBATIM)
 add_custom_target(laya-vulkan-amd-bf16-projection DEPENDS "${laya_amd_bf16_projection_header}")
 add_dependencies(ggml-vulkan laya-vulkan-amd-bf16-projection)

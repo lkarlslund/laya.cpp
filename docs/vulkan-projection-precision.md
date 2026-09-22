@@ -254,3 +254,16 @@ outputs and resets between requests. This avoids depending on NaN propagation
 through later arithmetic. The guarded BF16 runtime preflight exposed a valid
 model case with an unrepresentable activation column; BF16 activation therefore
 requires a correction path for the conversion residual, not just rejection.
+
+AMD BF16 projection range correction retains the cooperative matrix result for
+exactly representable columns. For finite columns with a wider dynamic range,
+a separate FP32 residual dot product adds back the BF16 values lost during scaled
+FP16 conversion. Integer round-to-nearest-even encoding identifies that residual
+without relying on a compiler-preserved floating-point narrowing round trip.
+Nonfinite input sets the independent per-backend failure flag.
+
+The GPU range test preserves a selected `2^-100` activation exactly in a column
+whose other values are one, verifies failure status survives output overwrites,
+and verifies reset before a valid request. The seven projection geometries also
+pass their numerical checks. These operator checks do not replace full model
+acceptance or establish performance for the correction path.
