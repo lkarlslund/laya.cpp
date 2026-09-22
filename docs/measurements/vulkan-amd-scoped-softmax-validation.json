@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "scope": "Dedicated AMD low-precision attention softmax pipeline; full runtime activation pending",
+  "gpu": "AMD Radeon 8060S Graphics",
+  "torch": "2.11.0+rocm7.13.0",
+  "matching_values": 26235,
+  "ordinary_fp32_values_unchanged": true,
+  "operator_tests": [
+    "AMD Radeon 8060S Graphics",
+    "NVIDIA RTX PRO 6000 Blackwell Workstation Edition"
+  ],
+  "cases": [
+    {
+      "width": 32,
+      "mask_type": 0,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 32,
+      "mask_type": 1,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 32,
+      "mask_type": 2,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 128,
+      "mask_type": 0,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 128,
+      "mask_type": 1,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 128,
+      "mask_type": 2,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 512,
+      "mask_type": 0,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 512,
+      "mask_type": 1,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 512,
+      "mask_type": 2,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 513,
+      "mask_type": 0,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 513,
+      "mask_type": 1,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 513,
+      "mask_type": 2,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 706,
+      "mask_type": 0,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 706,
+      "mask_type": 1,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 706,
+      "mask_type": 2,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 1024,
+      "mask_type": 0,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 1024,
+      "mask_type": 1,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    },
+    {
+      "width": 1024,
+      "mask_type": 2,
+      "ordinary_changed": 0,
+      "matching_python_differences": 0,
+      "max_error": 0.0
+    }
+  ],
+  "artifacts": {
+    "softmax-amd.bin": "e5e4139ff38cdaa9dc512e36f94b3e1799f3390b81fd183eded25c5f2b01ee99",
+    "softmax-amd-baseline.bin": "39be639e3000e1500374755c907943ae2f8aa87e5689549c5bb0d562e71ae5a4",
+    "softmax-nvidia.bin": "20bcddc15af82ea785a0f13c9692c2aa35062ba67d85552e00349492625ad7fc",
+    "softmax-python-fixture.npz": "c670c934ae1adde9ef0a9b9e4bf06687097870dd442c575b4989768449d2118f",
+    "scoped-softmax-check.json": "07bfe68841a3ceae085b2cfa99ac102df0401d1df3198e991f31c32955fb0cf9"
+  }
+}

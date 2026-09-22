@@ -205,3 +205,11 @@ used corrected division for cached columns but reciprocal multiplication for the
 uncached tail. Applying corrected division to the tail makes all 194 comparable
 tensors and the public answer exact for the 706-token expense diagnostic. The
 full three-model, two-precision corpus gate is pending on this experimental fix.
+
+
+Dedicated AMD low-precision softmax pipelines are now available in the native
+backend, selected by an explicit attention-node tag. Tests cover 32, 128, 512,
+513, 706 and 1,024 columns with no mask, FP32 masks and FP16 masks. All 26,235
+outputs match same-device Python exactly; ordinary FP32 outputs remain bitwise
+unchanged. Mathematical operator tests also pass on NVIDIA. Runtime activation
+awaits integration of the remaining AMD projection and attention kernels.
