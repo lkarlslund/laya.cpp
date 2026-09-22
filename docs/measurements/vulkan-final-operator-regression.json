@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "source_revision": "a7f2ad388f195f24bf35696ce117a772abc045c8",
+  "scope": "Current integrated native Vulkan operator and host tests on both GPUs; supplements model-level acceptance of preserved builds.",
+  "runs": [
+    {
+      "device": "nvidia",
+      "tests": 13,
+      "failures": 0,
+      "disabled": 0,
+      "report_sha256": "e482e2fa7533172f511f3613c159a72f3f79697fca0fdb48351fc14b219f1a17",
+      "cases": [
+        {
+          "name": "vulkan-spirv",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-bf16-range",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-bf16-range-gpu",
+          "status": "notrun",
+          "skipped": true
+        },
+        {
+          "name": "vulkan-bf16-projection",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-projection",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-attention",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-softmax",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-precision",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "http",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "decision",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "tokenizer",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "tokenizer-multilingual",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "tokenizer-typed-decisions",
+          "status": "run",
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "device": "amd",
+      "tests": 13,
+      "failures": 0,
+      "disabled": 0,
+      "report_sha256": "3cd34ccfc99a03a4e289e703dfa4becf3f3adabd1abb30f6299e50a3a7266950",
+      "cases": [
+        {
+          "name": "vulkan-spirv",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-bf16-range",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-bf16-range-gpu",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-bf16-projection",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-projection",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-attention",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-softmax",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "vulkan-precision",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "http",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "decision",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "tokenizer",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "tokenizer-multilingual",
+          "status": "run",
+          "skipped": false
+        },
+        {
+          "name": "tokenizer-typed-decisions",
+          "status": "run",
+          "skipped": false
+        }
+      ]
+    }
+  ]
+}
