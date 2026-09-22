@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "scope": "Projection traversal policy helper; pipeline integration pending",
+  "device": "AMD Radeon 8060S Graphics (gfx1151)",
+  "measured_rows_verified": 327680,
+  "geometries": 40,
+  "columns": [
+    1,
+    8192
+  ],
+  "policy_sha256": "689ab1deeddf61ca620a25fe8192591e5fa894a8b1638208ef730c542474fda0",
+  "shader_helper_sha256": "9496f2c467ad9b852ea60953c67fcb797508fb0c1bc6b3220357a2fc3d51887e"
+}
