@@ -14,6 +14,10 @@ Rates are questions/second.
 
 | Model | Precision | Batch | Before | Bit-preserving padding | Speedup |
 |---|---|---:|---:|---:|---:|
+| english | FP16 | 1 | 134.3 | 139.3 | 1.04× |
+| english | FP16 | 2 | 243.7 | 248.5 | 1.02× |
+| english | FP16 | 4 | 384.8 | 390.7 | 1.02× |
+| english | FP16 | 8 | 514.1 | 515.5 | 1.00× |
 | english | BF16 | 1 | 138.0 | 144.3 | 1.05× |
 | english | BF16 | 2 | 245.3 | 252.5 | 1.03× |
 | english | BF16 | 4 | 392.4 | 400.0 | 1.02× |
