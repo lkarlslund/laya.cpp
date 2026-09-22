@@ -125,6 +125,9 @@ build ([probe record](measurements/vulkan-amd-bf16-parallel-scan-probe.json)).
 These probes are not full-corpus performance results. The subsequent
 [full model acceptance](measurements/vulkan-amd-bf16-parallel-scan-validation.json)
 passes all 3,000 comparisons with zero raw-output differences.
+[Full-corpus Python ROCm comparisons](vulkan-amd-bf16-parallel-scan-performance.md)
+subsequently measure all three models at batches 1/2/4/8: optimized BF16 reaches
+49–92% of Python throughput, with all public-answer checks passing.
 
 A bounded shared-memory residual cache was also tested and rejected. It left
 batch-1 probe throughput unchanged, improved one batch-8 group by about 5%, and

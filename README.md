@@ -98,10 +98,11 @@ The performance table above measures CUDA. [Paired Vulkan FP32 measurements](doc
 compare plain and compensated FP32 with same-GPU Python for all three models
 on RTX PRO 6000 Blackwell capped at 450 W and Radeon 8060S. All 48 measured
 model, mode, GPU and batch combinations pass the correctness checks.
-[AMD FP16/BF16 measurements](docs/vulkan-amd-16bit-performance.md) cover all three
-models at batches 1/2/4/8 against same-GPU Python ROCm. FP16 reaches 72–125%
-of Python throughput; BF16 reaches 30–55%. All measured answer checks pass;
-the AMD BF16 path remains a performance optimization target.
+[AMD FP16 measurements](docs/vulkan-amd-16bit-performance.md) and
+[optimized BF16 measurements](docs/vulkan-amd-bf16-parallel-scan-performance.md)
+cover all three models at batches 1/2/4/8 against same-GPU Python ROCm.
+FP16 reaches 72–125% of Python throughput; optimized BF16 reaches 49–92%.
+All measured answer checks pass. BF16 remains slower than Python on AMD.
 [Updated RTX 16-bit measurements](docs/vulkan-final-nvidia-performance.md) compare
 FP16 and BF16 Vulkan with matching-precision Python for all three models at 450 W.
 The optimized build reaches 64–102% of Python throughput across batches 1/2/4/8.

@@ -245,8 +245,18 @@ Use `--vulkan --fp16` or `--vulkan --bf16` after selecting the AMD device.
 
 The AMD path uses separate tagged projection, attention and softmax pipelines.
 Its reduction and rounding rules are measured for the recorded GPU and ROCm
-version. [Paired AMD 16-bit Python timings](vulkan-amd-16bit-performance.md)
+version. [Paired AMD FP16 timings](vulkan-amd-16bit-performance.md) and
+[optimized BF16 timings](vulkan-amd-bf16-parallel-scan-performance.md)
 cover all three models at batches 1/2/4/8. FP16 reaches 72–125% of Python
-throughput; BF16 reaches 30–55%. All answer checks pass. BF16 remains a
-performance optimization target. The [precision notes](vulkan-projection-precision.md) explain
-the BF16 conversion-residual correction and current validation scope.
+throughput; optimized BF16 reaches 49–92%. All answer checks pass. The subgroup
+scan optimization also passes all 3,000 matching-precision comparisons with
+zero raw-output differences ([acceptance record](measurements/vulkan-amd-bf16-parallel-scan-validation.json)).
+BF16 remains slower than Python on AMD. The
+[precision notes](vulkan-projection-precision.md) explain the conversion-residual
+correction and tested optimization tradeoffs.
+
+The [final operator regression](measurements/vulkan-post-scan-operator-regression.json)
+records the integrated build on both GPUs: 13 registered tests per GPU, no failures,
+and one intentionally skipped AMD-only test on NVIDIA. Full-model acceptance
+and timings above identify their separately preserved builds; operator tests
+supplement those model-level checks.
