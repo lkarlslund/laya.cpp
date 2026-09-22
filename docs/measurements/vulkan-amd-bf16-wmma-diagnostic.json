@@ -138,5 +138,19 @@
       "research/amd-bf16-scaled-probe/mul_mm_funcs.glsl": "2fc0c6a59efc4230c9e79799e38ba47bebe5725e76a641b0c939ac2a7278e9f5",
       "research/amd-bf16-scaled-probe/libggml-vulkan.so.0": "a055e6214f95d5b0eb617a00b5dbea5d3eef6ad9d526ec418d74eb891ab9f596"
     }
+  },
+  "vulkan_dynamic_scale_probe": {
+    "scope": "First encoder QKV with exact dynamic per-vector scaling",
+    "elements": 165888,
+    "differences": 0,
+    "max_error": 0.0,
+    "conversion": "Choose maximum finite FP16 power-of-two scale independently per input vector and verify every conversion; nonrepresentable vectors produce nonfinite diagnostic outputs.",
+    "full_model_accepted": false,
+    "artifact_sha256": {
+      "research/build_amd_bf16_dynamic_probe.py": "691d4cd694cdc58925cc1fc1d57a640d7fc760f35f5cbb8b8ba6120ec9b8b4a8",
+      "research/amd-bf16-dynamic-probe/scaled.comp": "a3333b1de7b1d98cb8f7024388e81aac0649314859a62ba9cc2202f576c87686",
+      "research/amd-bf16-dynamic-probe/mul_mm_funcs.glsl": "ac02cc928a84fe8a295bd7301641dc7e69b6b6a13dd3bb9559019c8facd7bc1e",
+      "research/amd-bf16-dynamic-probe/libggml-vulkan.so.0": "572c66b5fb281c6bda164a5cffc77046d3ae682c9314701150266a14fd1c96a9"
+    }
   }
 }

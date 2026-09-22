@@ -87,7 +87,8 @@ A subsequent scorer diagnostic uses the matrix pipeline instead of the small
 vector path for low-precision products with multiple input columns and at least
 64 output rows. This resolves the batch-1 `accessibility-05` discrepancy: all
 captured tensors, including the four scorer stages, match at their storage
-boundaries. Full-corpus validation of this additional change remains pending.
+boundaries. Its full-corpus result is 0, 1, 30 and 45 public-answer failures at
+batches 1, 2, 4 and 8, respectively; the prototype is still not accepted.
 
 An AMD BF16 hardware diagnostic now reproduces all 165,888 stored values of the
 first English encoder QKV projection for `billing-01`. GPU and CPU BF16 input
@@ -109,3 +110,8 @@ that first projection. It decodes BF16 buffers into scaled FP16 cooperative-matr
 operands and removes the scale from the FP32 result. This establishes the path
 without requiring Vulkan BF16 cooperative-matrix support. The fixed-scale
 prototype is not enabled in the runtime and is not a general inference solution.
+
+The Vulkan prototype also reproduces that first QKV with a scale chosen and
+verified independently for each input vector. Nonrepresentable conversions are
+rejected through nonfinite diagnostic outputs. The full-model answer still fails
+the acceptance tolerance, so this remains an isolated arithmetic result.

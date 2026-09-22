@@ -81,5 +81,32 @@
     "change": "Use the matrix pipeline for low-precision AMD products with more than one input column and at least 64 output rows.",
     "backend_sha256": "11a0e8b8471be639ad82d82bb0d41f3e4dc692068f149636b247e0fedaa6403c",
     "runtime_sha256": "9cd48f34a07d5bd82e885ab52976f19a90241abd6d508021bd869acb40149ba0"
+  },
+  "scorer_full_gate": {
+    "report_sha256": "f9138f20e8c94f18a58a4995df2ed2a4afa596cc33663214a83dd6a9e5a85008",
+    "native_build_sha256": "69878fc13394bce7e088501509c0534dbc00c7aef1cc208ffc4da08d57c90195",
+    "passed": false,
+    "batches": [
+      {
+        "batch_size": 1,
+        "questions": 250,
+        "answer_failures": 0
+      },
+      {
+        "batch_size": 2,
+        "questions": 250,
+        "answer_failures": 1
+      },
+      {
+        "batch_size": 4,
+        "questions": 250,
+        "answer_failures": 30
+      },
+      {
+        "batch_size": 8,
+        "questions": 250,
+        "answer_failures": 45
+      }
+    ]
   }
 }
