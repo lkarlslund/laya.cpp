@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "scope": "Native runtime FP16 preflight only; full 250-question corpus gates pending",
+  "gpu": "AMD Radeon 8060S Graphics",
+  "torch": "2.11.0+rocm7.13.0",
+  "runs": [
+    {
+      "model": "english",
+      "native_build_sha256": "2394855bae651293ef2658f6f648aabc6f88fcc4bd4ef2015b225238966031e4",
+      "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+      "cases_sha256": "ef41c11d9b066cf578089aa2c86dca4d087561f432511e878a3e3ccb5c200286",
+      "report_sha256": "5b67aa0d282d2ed01bc4a396bf968e6b29ce6c92a9376a6cc75b84386118b444",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 8,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 8,
+          "questions": 8,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        }
+      ]
+    },
+    {
+      "model": "multilingual",
+      "native_build_sha256": "2394855bae651293ef2658f6f648aabc6f88fcc4bd4ef2015b225238966031e4",
+      "weights_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+      "cases_sha256": "ef41c11d9b066cf578089aa2c86dca4d087561f432511e878a3e3ccb5c200286",
+      "report_sha256": "05786d3cdc98ffa4c94a4458ea5dc5251d5637c5d61b9e60f358546e036cbac1",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 8,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 8,
+          "questions": 8,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        }
+      ]
+    },
+    {
+      "model": "typed-decisions",
+      "native_build_sha256": "2394855bae651293ef2658f6f648aabc6f88fcc4bd4ef2015b225238966031e4",
+      "weights_sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e",
+      "cases_sha256": "ef41c11d9b066cf578089aa2c86dca4d087561f432511e878a3e3ccb5c200286",
+      "report_sha256": "355603c09072ec1c281d89d084cb7609487f2300cb22f6ec5e54564b1b1b3f50",
+      "batches": [
+        {
+          "batch_size": 1,
+          "questions": 8,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        },
+        {
+          "batch_size": 8,
+          "questions": 8,
+          "answer_failures": 0,
+          "max_logit_error": 0.0,
+          "max_action_error": 0.0
+        }
+      ]
+    }
+  ]
+}
