@@ -245,5 +245,8 @@ Use `--vulkan --fp16` or `--vulkan --bf16` after selecting the AMD device.
 
 The AMD path uses separate tagged projection, attention and softmax pipelines.
 Its reduction and rounding rules are measured for the recorded GPU and ROCm
-version. Paired AMD 16-bit Python timings are in progress. The [precision notes](vulkan-projection-precision.md) explain
+version. [Paired AMD 16-bit Python timings](vulkan-amd-16bit-performance.md)
+cover all three models at batches 1/2/4/8. FP16 reaches 72–125% of Python
+throughput; BF16 reaches 30–55%. All answer checks pass. BF16 remains a
+performance optimization target. The [precision notes](vulkan-projection-precision.md) explain
 the BF16 conversion-residual correction and current validation scope.
