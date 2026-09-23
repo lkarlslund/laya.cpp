@@ -92,6 +92,7 @@ def validate(cases, output, *, variant, model, source, executable, threads, iden
                '--baseline-commit', identity['baseline_commit'],
                '--candidate-commit', identity['candidate_commit']]
     log = output.with_suffix('.log')
+    log.parent.mkdir(parents=True, exist_ok=True)
     print(f'validating: {variant} t{threads} {cases.name}', flush=True)
     with log.open('w') as stream:
         result = subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, env=env)
