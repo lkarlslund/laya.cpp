@@ -12,8 +12,8 @@ QUESTIONS_PER_STRATUM = 640
 
 def source_notes():
     notes = json.loads((ROOT / 'source-notes.json').read_text(encoding='utf-8'))['notes']
-    if len(notes) != 64 or len(set(notes)) != 64:
-        raise ValueError('Expected 64 distinct committed source notes')
+    if len(notes) < 512 or len(set(notes)) != len(notes):
+        raise ValueError('Expected at least 512 distinct committed source notes')
     return notes
 
 

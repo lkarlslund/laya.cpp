@@ -31,7 +31,7 @@ file and SHA-256 in the manifest. Choice, score, and noul tasks rotate through
 each stratum; multi-question requests contain output-type combinations. This
 is a separate workload from the acceptance corpus.
 
-Its 64 source contexts were generated once with the local text model and
+Its 512 source contexts were generated once with the local text model and
 committed in [`source-notes.json`](../benchmarks/cases/performance-v1/source-notes.json)
 with the model identifier, prompts, sampling settings, and seeds. The corpus
 generator reads those committed texts; benchmark runs never call a text model.

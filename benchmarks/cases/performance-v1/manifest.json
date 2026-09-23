@@ -1,12 +1,12 @@
 {
   "corpus_id": "performance-v1",
-  "source_notes_sha256": "2ef5d93762a558786173c21ae74245d00d458bbf75a97edc1a1f4e7cb44f0776",
+  "source_notes_sha256": "d62d08fc6239ffa285fa2bd704c41f0970b629d281affc1dbcf0201830f96b59",
   "questions": 10240,
   "requests": 4800,
   "strata": [
     {
       "file": "short-q1.json",
-      "sha256": "90e053c417eb3b29f3bee89967f7549f3deece32c8584f5ee88e9c15302fff5c",
+      "sha256": "6e2e1f902ce05c1fc271f94635b68e60ec91eb328f5233a572326dcced4fca09",
       "requests": 640,
       "questions": 640,
       "length_band": "short",
@@ -14,7 +14,7 @@
     },
     {
       "file": "short-q2.json",
-      "sha256": "f30d46109be97ef047fea37e38b691ac793e832937b6bfdfda34926ad9b33903",
+      "sha256": "55a2de26eba3875073d583c70caa6f1ef588e5aa17bfd167f2442c4315265e37",
       "requests": 320,
       "questions": 640,
       "length_band": "short",
@@ -22,7 +22,7 @@
     },
     {
       "file": "short-q4.json",
-      "sha256": "0814c2dc2d405307786f569d4d477ed0e905ab3212af671fd8e227939b934eab",
+      "sha256": "0e3b6e75192ee7b5702c36936d2e1452fa8cebeda7a72b0e4159a8e43406ff76",
       "requests": 160,
       "questions": 640,
       "length_band": "short",
@@ -30,7 +30,7 @@
     },
     {
       "file": "short-q8.json",
-      "sha256": "2bbaa0164f86c7e554605d17d02db7679b1cbf8bf2adf4a329352fb648a3d339",
+      "sha256": "17ec757e3501515aa0a60d4efa8be1993f74764fd84418b26213395d39307b97",
       "requests": 80,
       "questions": 640,
       "length_band": "short",
@@ -38,7 +38,7 @@
     },
     {
       "file": "medium-q1.json",
-      "sha256": "547613f383ded3ac2bf872e5bf112dc7cb6226bffc18643f06759e62bcc88981",
+      "sha256": "26bf9fd29fc9a4d9d5642833f3ed26c11671dc1efd08cfd5f761d4b681e57e3c",
       "requests": 640,
       "questions": 640,
       "length_band": "medium",
@@ -46,7 +46,7 @@
     },
     {
       "file": "medium-q2.json",
-      "sha256": "950b6c5f4c58a13c333e05bff718304c8382feb5b709eb58aa501ee9512f836f",
+      "sha256": "15ecaf3aa49901272fa9741ec62a9189cf686a2438c5e1e937d36df1da8405bd",
       "requests": 320,
       "questions": 640,
       "length_band": "medium",
@@ -54,7 +54,7 @@
     },
     {
       "file": "medium-q4.json",
-      "sha256": "60b6303d002fae466079d588fb2ce928a7b5423b65d1c13f48e873bb9a54cd0a",
+      "sha256": "90e84330f35e632cb2c39b780835533741d8574e87fe5f1284ccb0412f62890a",
       "requests": 160,
       "questions": 640,
       "length_band": "medium",
@@ -62,7 +62,7 @@
     },
     {
       "file": "medium-q8.json",
-      "sha256": "e768cd057f84439be1c8fa35929f2c101dfdc8d032aab53bf9fe33d9985c3049",
+      "sha256": "d7f3363b6150fae7f31552c5d5e0240918b3c6619f1b843b903450007806a8c7",
       "requests": 80,
       "questions": 640,
       "length_band": "medium",
@@ -70,7 +70,7 @@
     },
     {
       "file": "long-q1.json",
-      "sha256": "20e888c508a0075c651426043b53cc3316086354ed26c652fd373ea2bcb1df72",
+      "sha256": "b848ea8c4b621bd188f12e32c4b18f9d06c33c50847a928f87cbf7e105eeb195",
       "requests": 640,
       "questions": 640,
       "length_band": "long",
@@ -78,7 +78,7 @@
     },
     {
       "file": "long-q2.json",
-      "sha256": "32aa0a2f92672f066a546e033e52d58ac8ee04a6766dccb3d2d0ea4a55e92976",
+      "sha256": "c1b5723982c7d60a3e911e85e6f86881d7c4f630b78bd259100311686efce17b",
       "requests": 320,
       "questions": 640,
       "length_band": "long",
@@ -86,7 +86,7 @@
     },
     {
       "file": "long-q4.json",
-      "sha256": "5f1af46f9750fd1b7f371c1d50dbbc6b7987dcc768fb7add39ba98db2c2cfcd9",
+      "sha256": "295a224f36604c57cb511308c7cb88f9bb4d972665ea3c34b4e6503a03c432d3",
       "requests": 160,
       "questions": 640,
       "length_band": "long",
@@ -94,7 +94,7 @@
     },
     {
       "file": "long-q8.json",
-      "sha256": "3c0d6d0d3652d47939c469c7313e4d71ed990305df547796f6d7b9b7b7ab8463",
+      "sha256": "0f91a1de5a6680af9ef386eafa5686188889fe647c9baa611f68c613d8223001",
       "requests": 80,
       "questions": 640,
       "length_band": "long",
@@ -102,7 +102,7 @@
     },
     {
       "file": "limit-q1.json",
-      "sha256": "fbbc66aaba548be8114e495bed2242380320ad53193599149f4a92c7e66752ce",
+      "sha256": "28ff35ac5f3cf365cbe6ad878e9a8a781d9605cefeb0f6e4a46782986b792862",
       "requests": 640,
       "questions": 640,
       "length_band": "limit",
@@ -110,7 +110,7 @@
     },
     {
       "file": "limit-q2.json",
-      "sha256": "ff18d0f9e5944fca977453687c571abf932bfac5fc4f25756bfeaf455e4f43f9",
+      "sha256": "2280ea9d51eb55e3679867fde7f2d52f8c070b3e2c59d3990bb74e2e0455ef2d",
       "requests": 320,
       "questions": 640,
       "length_band": "limit",
@@ -118,7 +118,7 @@
     },
     {
       "file": "limit-q4.json",
-      "sha256": "d104432e4d98b15f7d3d4a1995ecde570c0eebca50b97c4402c470af5dfc7872",
+      "sha256": "2e36118001477a3f5b42ea846fccaedb8c65af7b1837a49e35215bd49693d85e",
       "requests": 160,
       "questions": 640,
       "length_band": "limit",
@@ -126,7 +126,7 @@
     },
     {
       "file": "limit-q8.json",
-      "sha256": "1bf02d2fc6e8080108b621e8b8cd0b84fbd8f57e834b286d506770a28b21d0ec",
+      "sha256": "a6e7413a92db1bd93cfc3d3fb07cc0bb6528d9b12c9e11fd335c29cd856368be",
       "requests": 80,
       "questions": 640,
       "length_band": "limit",

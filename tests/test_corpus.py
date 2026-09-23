@@ -33,6 +33,9 @@ class CorpusTests(unittest.TestCase):
         sys.path.insert(0, str(ROOT / 'benchmarks'))
         from make_performance_corpus import build, manifest, render
         directory = ROOT / 'benchmarks/cases/performance-v1'
+        notes = json.loads((directory / 'source-notes.json').read_text())['notes']
+        self.assertGreaterEqual(len(notes), 512)
+        self.assertEqual(len(set(notes)), len(notes))
         files = build()
         expected_manifest = manifest(files)
         self.assertEqual(expected_manifest['questions'], 10240)
