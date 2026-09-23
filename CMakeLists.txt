@@ -83,6 +83,7 @@ if(LAYA_CUDA)
   # BF16 operator boundaries depend on strict device math. Keep this target
   # separate from the dependency's --use_fast_math compilation flags.
   add_library(laya-cuda-bf16 OBJECT src/bf16.cu)
+  target_compile_features(laya-cuda-bf16 PRIVATE cuda_std_17)
   get_target_property(bf16_architectures ggml-cuda CUDA_ARCHITECTURES)
   list(FILTER bf16_architectures EXCLUDE REGEX "^[567][0-9]")
   if(NOT bf16_architectures)
