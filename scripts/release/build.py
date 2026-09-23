@@ -33,6 +33,8 @@ def configure():
 def notices(output):
     sources = [ROOT / 'LICENSE', ROOT / 'third_party/ggml/LICENSE',
                ROOT / 'third_party/cpp-httplib/LICENSE']
+    if BACKEND == 'vulkan':
+        sources += sorted((ROOT / 'scripts/release/licenses').glob('*.txt'))
     if WINDOWS:
         sources += [ROOT / f'release-vcpkg/installed/x64-windows-static/share/{name}/copyright'
                     for name in ('icu', 'nlohmann-json')]
