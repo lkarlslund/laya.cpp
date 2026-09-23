@@ -15,8 +15,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: rolling-release
-  cancel-in-progress: false
+  group: rolling-release-${{ inputs.mode == 'validate' && 'validation' || 'publication' }}
+  cancel-in-progress: ${{ inputs.mode == 'validate' }}
 
 jobs:
   gate:
