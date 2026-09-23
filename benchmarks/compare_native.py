@@ -47,6 +47,7 @@ def main():
     weights_hash=file_hash(Path(a.model)/'model.safetensors')
     if (validation.get('backend','cuda')!=a.after_backend or not validation['passed'] or validation['native_build_sha256']!=after_hash or
         validation['cases_sha256']!=corpus_hash or validation['weights_sha256']!=weights_hash or
+        validation.get('allow_truncation') is not True or
         validation['gpu']!=torch.cuda.get_device_name() or validation['torch']!=torch.__version__ or
         validation['precision']!=precision_name or
         validation['answer_atol']>0.0001 or
@@ -58,9 +59,9 @@ def main():
     before_tensor = not low_precision and (a.before_backend=='cuda' or a.before_tensor_core_fp32)
     after_flash = validation['fused_attention']
     after_tensor = validation['tensor_core_fp32']
-    report=dict(before_backend=a.before_backend,after_backend=a.after_backend,before_fused_attention=before_flash,after_fused_attention=after_flash,before_tensor_core_fp32=before_tensor,after_tensor_core_fp32=after_tensor,before_sha256=native_hash(a.before,env=before_env),after_sha256=after_hash,weights_sha256=weights_hash,
+    report=dict(before_backend=a.before_backend,after_backend=a.after_backend,before_fused_attention=before_flash,after_fused_attention=after_flash,before_tensor_core_fp32=before_tensor,after_tensor_core_fp32=after_tensor,before_request_policy='legacy truncation built into the preserved executable',after_request_policy='legacy truncation enabled with --allow-truncation',before_allow_truncation_flag=False,after_allow_truncation_flag=True,before_sha256=native_hash(a.before,env=before_env),after_sha256=after_hash,weights_sha256=weights_hash,
                 cases_sha256=corpus_hash,gpu=torch.cuda.get_device_name(),torch=torch.__version__,iterations=a.iterations,warmup=a.warmup,precision=precision_name,rows=[],passed=True)
-    with Native(a.before,a.model,fp32=not low_precision,fp16=a.fp16,flash=before_flash,tensor_core=before_tensor,backend=a.before_backend,env=before_env) as before, Native(a.after,a.model,fp32=not low_precision,fp16=a.fp16,flash=after_flash,tensor_core=after_tensor,backend=a.after_backend,env=after_env) as after:
+    with Native(a.before,a.model,fp32=not low_precision,fp16=a.fp16,flash=before_flash,tensor_core=before_tensor,backend=a.before_backend,env=before_env) as before, Native(a.after,a.model,allow_truncation=True,fp32=not low_precision,fp16=a.fp16,flash=after_flash,tensor_core=after_tensor,backend=a.after_backend,env=after_env) as after:
         report['before_device']=matching_device(before.call(cases[:1]),a.before_backend,report['gpu'])
         report['after_device']=matching_device(after.call(cases[:1]),a.after_backend,report['gpu'])
         if a.after_backend=='vulkan' and report['after_device']!=validation.get('native_device'):

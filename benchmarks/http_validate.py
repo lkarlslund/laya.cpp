@@ -39,7 +39,7 @@ def validate(args, variant, cases):
     groups = {size: [cases[i:i+size] for i in range(0, len(cases), size)] for size in (1, 2, 4, 8)}
     expected = {}
     # Do not keep a second checkpoint resident while testing the server.
-    with Native(args.executable, model, fp32=not args.bf16, flash=args.backend == 'cuda', tensor_core=not args.bf16 and (args.backend == 'cuda' or args.tensor_core_fp32), backend=args.backend) as native:
+    with Native(args.executable, model, allow_truncation=args.allow_truncation, fp32=not args.bf16, flash=args.backend == 'cuda', tensor_core=not args.bf16 and (args.backend == 'cuda' or args.tensor_core_fp32), backend=args.backend) as native:
         for size, batches in groups.items():
             expected[size] = [native.call(batch)['results'] for batch in batches]
     with socket.socket() as sock:
@@ -48,9 +48,11 @@ def validate(args, variant, cases):
     command = [str(Path(args.executable).resolve()), '--model', args.model_root,
                '--variant', variant, '--server', '--port', str(port),
                '--tensor-core-fp32', '--flash-fp32']
+    if args.allow_truncation: command.append('--allow-truncation')
     if args.direct_model_path:
         command = [str(Path(args.executable).resolve()), '--model', str(model),
                    '--server', '--port', str(port), '--tensor-core-fp32', '--flash-fp32']
+        if args.allow_truncation: command.append('--allow-truncation')
     if args.backend == 'vulkan':
         command = [arg for arg in command if arg not in ('--tensor-core-fp32', '--flash-fp32')] + ['--vulkan']
         if args.tensor_core_fp32: command.append('--tensor-core-fp32')
@@ -122,7 +124,7 @@ def validate(args, variant, cases):
         if [item[0] for item in items] != list(range(len(items))):
             raise AssertionError('Missing or duplicated batch offsets')
         replay.append(([item[1] for item in items], [item[2] for item in items]))
-    with Native(args.executable, model, fp32=not args.bf16, flash=args.backend == 'cuda', tensor_core=not args.bf16 and (args.backend == 'cuda' or args.tensor_core_fp32), backend=args.backend) as native:
+    with Native(args.executable, model, allow_truncation=args.allow_truncation, fp32=not args.bf16, flash=args.backend == 'cuda', tensor_core=not args.bf16 and (args.backend == 'cuda' or args.tensor_core_fp32), backend=args.backend) as native:
         for requests, observed in replay:
             wanted = native.call(requests)['results']
             wanted = [{**item, 'model': canonical} for item in wanted]
@@ -154,6 +156,8 @@ def main():
     parser.add_argument('--no-batching', action='store_true')
     parser.add_argument('--backend', choices=['cuda', 'vulkan'], default='cuda')
     parser.add_argument('--bf16', action='store_true')
+    parser.add_argument('--allow-truncation', action='store_true',
+                        help='Use legacy truncation for the fixed corpus on CLI and HTTP')
     parser.add_argument('--tensor-core-fp32', action='store_true', help='Use compensated projections for Vulkan HTTP and CLI comparisons')
     parser.add_argument('--source', default='research/laya')
     parser.add_argument('--model-root', default='models/laya')
@@ -171,6 +175,7 @@ def main():
     report = {'backend': args.backend, 'complete': False, 'variants': [], 'native_sha256': native_hash(args.executable),
               'cases_sha256': file_hash(args.cases), 'direct_model_path': args.direct_model_path,
               'precision': 'bf16' if args.bf16 else 'fp32',
+              'allow_truncation': args.allow_truncation,
               'tensor_core_fp32': not args.bf16 and (args.backend == 'cuda' or args.tensor_core_fp32), 'batching': not args.no_batching}
     output.write_text(json.dumps(report, indent=2) + '\n')
     for variant in args.variants:

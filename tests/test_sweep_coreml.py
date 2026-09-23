@@ -39,6 +39,7 @@ class CoreMLSweepTests(unittest.TestCase):
             model.mkdir()
             validation = {
                 'schema_version': 2, 'backend': 'coreml', 'passed': True, 'complete': True,
+                'allow_truncation': True,
                 'cases_sha256': 'cases', 'native_build_sha256': 'build',
                 'variants': [{
                     'variant': 'english', 'model': str(model.resolve()),
@@ -61,6 +62,20 @@ class CoreMLSweepTests(unittest.TestCase):
                     model=model, model_revision='revision', precision='fp32',
                     weights_hash='weights', manifest_hash='manifest',
                     batch_sizes=[1, 2])
+
+            for policy in (False, None):
+                invalid_policy = dict(validation)
+                if policy is None:
+                    invalid_policy.pop('allow_truncation')
+                else:
+                    invalid_policy['allow_truncation'] = policy
+                invalid_policy['native_build_sha256'] = 'build'
+                with self.subTest(allow_truncation=policy), self.assertRaisesRegex(
+                        ValueError, 'must use legacy truncation'):
+                    sweep_coreml.validated_variant(
+                        invalid_policy, variant='english', cases_hash='cases', build_hash='build',
+                        model=model, model_revision='revision', precision='fp32',
+                        weights_hash='weights', manifest_hash='manifest', batch_sizes=[1, 2])
 
     def test_cli_defaults_to_the_full_acceptance_corpus(self):
         args = sweep_coreml.arguments([])

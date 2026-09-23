@@ -31,15 +31,15 @@ def main():
         v = json.loads(path.read_text())
         if (not v['passed'] or any(v.get(k) != value for k, value in identity.items()) or
                 v['precision'] != mode or not v['fused_attention'] or
-                v['tensor_core_fp32'] != (mode == 'fp32') or v['answer_atol'] > .0001 or
+                v['tensor_core_fp32'] != (mode == 'fp32') or v.get('allow_truncation') is not True or v['answer_atol'] > .0001 or
                 not set(a.batch_sizes).issubset({b['batch_size'] for b in v['batches']})):
             p.error(f'A matching passing {mode} validation report is required')
     cases = json.loads(a.cases.read_text())
     questions = sum(len(c['questions']) for c in cases)
-    report = dict(**identity, warmup=a.warmup, iterations=a.iterations, rows=[], complete=False,
+    report = dict(**identity, allow_truncation=True, warmup=a.warmup, iterations=a.iterations, rows=[], complete=False,
                   comparison='native optimized FP32 versus native BF16; separately accepted at matching precision')
-    with Native(a.executable, a.model, flash=True, tensor_core=True) as fp32, \
-            Native(a.executable, a.model, fp32=False, flash=True) as bf16:
+    with Native(a.executable, a.model, allow_truncation=True, flash=True, tensor_core=True) as fp32, \
+            Native(a.executable, a.model, allow_truncation=True, fp32=False, flash=True) as bf16:
         clients = [fp32, bf16]
         for batch in a.batch_sizes:
             times = [[], []]

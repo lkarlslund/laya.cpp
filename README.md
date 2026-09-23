@@ -86,6 +86,9 @@ build-cuda/bin/laya-cli --model models/laya --variant english \
 ```
 
 Choose `--variant multilingual` or `--variant typed-decisions` for another model.
+Requests that exceed the selected checkpoint's token budgets are rejected by
+default. Pass `--allow-truncation` to retain the older behavior for clients that
+depend on silently shortened input.
 For Vulkan, use `build-vulkan/bin/laya-cli --vulkan` and omit `--flash-fp32`.
 Strict FP32 is the default; `--tensor-core-fp32` enables compensated FP32
 projections. Both GPU backends support `--bf16`; Vulkan also supports `--fp16`.

@@ -28,12 +28,12 @@ std::string clean(std::string text, const std::string& mask) {
 bool empty(const json& x) { return x.is_null() || (x.is_string() && x.get<std::string>().empty()); }
 double rounded(double x) { return std::nearbyint(x*10000.0)/10000.0; }
 }
-agent::agent(const std::filesystem::path& directory, bool cuda, bool bf16, bool flash, bool tensor_core)
-    : agent(directory, cuda ? backend_type::cuda : backend_type::cpu, bf16, flash, tensor_core) {}
-agent::agent(const std::filesystem::path& directory, backend_type backend, bool bf16, bool flash, bool tensor_core)
-    : agent(directory,backend,bf16 ? precision_type::bf16 : precision_type::fp32,flash,tensor_core) {}
-agent::agent(const std::filesystem::path& directory, backend_type backend, precision_type precision, bool flash, bool tensor_core)
-    : model(directory, backend, precision, flash, tensor_core), tok(directory / "tokenizer/tokenizer.json") {
+agent::agent(const std::filesystem::path& directory, bool cuda, bool bf16, bool flash, bool tensor_core, bool allow_truncation)
+    : agent(directory, cuda ? backend_type::cuda : backend_type::cpu, bf16, flash, tensor_core, allow_truncation) {}
+agent::agent(const std::filesystem::path& directory, backend_type backend, bool bf16, bool flash, bool tensor_core, bool allow_truncation)
+    : agent(directory,backend,bf16 ? precision_type::bf16 : precision_type::fp32,flash,tensor_core,allow_truncation) {}
+agent::agent(const std::filesystem::path& directory, backend_type backend, precision_type precision, bool flash, bool tensor_core, bool allow_truncation)
+    : model(directory, backend, precision, flash, tensor_core), tok(directory / "tokenizer/tokenizer.json"), allow_truncation(allow_truncation) {
     std::ifstream f(directory / "tokenizer/tokenizer_config.json"); settings = json::parse(f);
 }
 std::string agent::backend_name() const { return model.backend_name(); }
@@ -88,16 +88,30 @@ batch agent::prepare(const json& requests, json& metadata) const {
             int used = 0;
             for (auto& option : options) {
                 auto ids = encode(" " + option);
-                if (ids.size() > 48) ids.resize(48);
+                if (ids.size() > 48) {
+                    if (!allow_truncation) throw std::invalid_argument("Question '" + id + "' exceeds option token limit (48)");
+                    ids.resize(48);
+                }
                 ids.insert(ids.begin(), mask_id); used += ids.size(); encoded.push_back(std::move(ids));
             }
             int remaining = budget - used;
             if (remaining < 16) {
-                int per = std::max(4, (budget-16)/int(options.size())); used = 0;
+                int per = std::max(4, (budget-16)/int(options.size()));
+                if (!allow_truncation) {
+                    for (const auto& ids : encoded)
+                        if (int(ids.size()) > per) throw std::invalid_argument("Question '" + id + "' exceeds option token budget (" + std::to_string(per) + " tokens per option)");
+                }
+                used = 0;
                 for (auto& ids : encoded) { if (int(ids.size()) > per) ids.resize(per); used += ids.size(); }
                 remaining = budget-used;
             }
-            if (int(heading.size()) > std::max(8, remaining)) heading.resize(std::max(8, remaining));
+            int heading_limit = std::max(8, remaining);
+            if (int(heading.size()) > heading_limit) {
+                if (!allow_truncation) throw std::invalid_argument("Question '" + id + "' exceeds heading token budget (" + std::to_string(heading_limit) + " tokens)");
+                heading.resize(heading_limit);
+            }
+            if (!allow_truncation && used + int(heading.size()) > budget)
+                throw std::invalid_argument("Question '" + id + "' exceeds question head token budget (" + std::to_string(budget) + " tokens)");
             std::vector<int32_t> ids{cls_id}, markers;
             ids.insert(ids.end(), heading.begin(), heading.end()); ids.push_back(sep_id);
             for (auto& option : encoded) {
@@ -105,9 +119,14 @@ batch agent::prepare(const json& requests, json& metadata) const {
             }
             ids.push_back(sep_id);
             int room = std::max(0, limit-int(ids.size())-1);
+            if (!allow_truncation && state.size() > static_cast<size_t>(room))
+                throw std::invalid_argument("Question '" + id + "' exceeds state context limit (" + std::to_string(room) + " tokens)");
             ids.insert(ids.end(), state.begin(), state.begin()+std::min(size_t(room), state.size())); ids.push_back(sep_id);
-            if (int(ids.size()) > limit) ids.resize(limit);
-            if (markers.back() >= limit) throw std::invalid_argument("Question options exceed the sequence limit");
+            if (int(ids.size()) > limit) {
+                if (!allow_truncation) throw std::invalid_argument("Question '" + id + "' exceeds final sequence limit (" + std::to_string(limit) + " tokens)");
+                ids.resize(limit);
+            }
+            if (markers.back() >= limit) throw std::invalid_argument("Question '" + id + "' exceeds final sequence limit (" + std::to_string(limit) + " tokens)");
             result.length = std::max(result.length, int(ids.size()));
             result.options = std::max(result.options, int(markers.size()));
             result.lengths.push_back(ids.size()); result.counts.push_back(markers.size()); result.types.push_back(qtype);

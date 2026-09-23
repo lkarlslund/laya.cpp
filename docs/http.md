@@ -71,8 +71,12 @@ This is a local extension for batching; `/v1/systemone` accepts one object.
 The default limit is eight total questions per HTTP call, across all requests.
 Change it with `--max-questions N`, allowing for GPU memory use at larger batches
 and sequence lengths. Eight has been validated across all three checkpoints.
-Bodies are limited to 1 MiB. Existing model context and option-budget limits still
-apply; long state is truncated by the model's preprocessing.
+Bodies are limited to 1 MiB. Requests exceeding a model's option, instruction,
+or context token budgets are rejected with HTTP 422 by default, before inference.
+The error identifies the question and exceeded limit without echoing submitted
+content. This applies to both `/predict` and `/v1/systemone`. Start the server
+with `--allow-truncation` to restore legacy shortening for existing clients that
+depend on it.
 
 Concurrent requests to both prediction routes enter a bounded FIFO queue. One
 inference worker combines whole HTTP calls into a GPU batch and routes each
@@ -148,8 +152,13 @@ batching, overload, error isolation, response offsets and shutdown.
 The same tests run in a CPU-only build.
 
 ```sh
-python benchmarks/http_validate.py
+python benchmarks/http_validate.py --allow-truncation
 ```
+
+The fixed acceptance corpus intentionally contains over-budget examples to check
+legacy preprocessing parity. The command above opts into truncation for its CLI
+reference process and test server. Omit the flag when validating the default
+rejection behavior.
 
 The transport validation compares all 250 fixed questions against CLI answers
 on each checkpoint at batch sizes 1, 2, 4 and 8, then exercises the JEV endpoint

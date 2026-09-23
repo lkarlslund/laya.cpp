@@ -16,6 +16,7 @@ int main(int argc, char** argv) {
         laya::backend_type backend = laya::backend_type::cuda;
         laya::precision_type precision = laya::precision_type::fp32;
         bool flash = false, tensor_core = false, raw = false, prepare = false;
+        bool allow_truncation = false;
         bool server = false, http_option = false;
         laya::http_options http;
         auto number = [](const std::string& value, int maximum, int minimum = 1) {
@@ -50,8 +51,10 @@ int main(int argc, char** argv) {
             else if (arg == "--no-flash") flash = false;
             else if (arg == "--raw") raw = true;
             else if (arg == "--prepare") prepare = true;
+            else if (arg == "--allow-truncation") allow_truncation = true;
             else if (arg == "--help") {
-                std::cout << "laya-cli [--model DIR] [--variant english|multilingual|typed-decisions] [--input JSON] [--raw|--prepare] [--fp32|--fp16|--bf16] [--cpu|--cuda|--vulkan|--coreml]\n"
+                std::cout << "laya-cli [--model DIR] [--variant english|multilingual|typed-decisions] [--input JSON] [--raw|--prepare] [--allow-truncation] [--fp32|--fp16|--bf16] [--cpu|--cuda|--vulkan|--coreml]\n"
+                             "Requests that exceed model token budgets are rejected by default; --allow-truncation restores legacy truncation.\n"
                              "--tensor-core-fp32 --flash-fp32 enables the optimized CUDA path.\n"
                              "--bf16 enables mixed BF16 on CUDA or Vulkan; --fp16 currently requires Vulkan.\n--experimental-bf16 is a compatibility alias. See docs/precision.md and docs/vulkan.md for validated hardware and toolchains.\n"
                              "--coreml requires a -DLAYA_COREML=ON Apple Silicon build and compiled coreml/ buckets; precision is selected during export. See docs/coreml.md.\n"
@@ -69,7 +72,7 @@ int main(int argc, char** argv) {
             throw std::invalid_argument("--server cannot be combined with --input, --raw or --prepare");
         if (http_option && !server) throw std::invalid_argument("HTTP options require --server");
         if (variant!="english") model=(std::filesystem::path(model)/variant).string();
-        laya::agent agent(model, backend, precision, flash, tensor_core);
+        laya::agent agent(model, backend, precision, flash, tensor_core, allow_truncation);
         std::cerr << "Ready: " << agent.backend_name() << " (" << agent.device_name() << ")\n";
         if (server) {
             // A direct --model checkpoint path must identify its actual variant too.
