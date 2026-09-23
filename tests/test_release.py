@@ -93,14 +93,15 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'notices'):
                 release.verify(path, 'r0001', 'abc')
 
-    def test_gate_skips_unchanged_but_allows_validation(self):
+    def test_gate_skips_nonrelease_changes_but_allows_validation(self):
+        changed = ''
         def fake_run(*args):
             if args[:3] == ('git', 'rev-parse', 'HEAD'):
                 return 'abc'
             if args[:3] == ('gh', 'release', 'list'):
                 return json.dumps([dict(tagName='r0010', isDraft=False), dict(tagName='r0011', isDraft=True)])
-            if args[:2] == ('git', 'rev-list'):
-                return 'abc'
+            if args[:3] == ('git', 'diff', '--name-only'):
+                return changed
             if args[:2] == ('git', 'tag'):
                 return 'r0009\nr0010\nr0011'
             raise AssertionError(args)
@@ -111,6 +112,15 @@ class ReleaseTests(unittest.TestCase):
                 self.assertIn('build=false\n', output.read_text())
                 self.assertIn('tag=r0012\n', output.read_text())
                 output.write_text('')
+                changed = '.github/workflows/build.yml\ndocs/benchmarking.md\nbenchmarks/cases/performance-v1/manifest.json'
+                release.gate('release')
+                self.assertIn('build=false\n', output.read_text())
+                output.write_text('')
+                changed = 'src/runtime.cpp'
+                release.gate('release')
+                self.assertIn('build=true\n', output.read_text())
+                output.write_text('')
+                changed = 'docs/benchmarking.md'
                 release.gate('validate')
                 self.assertIn('build=true\n', output.read_text())
                 self.assertIn('tag=r0000\n', output.read_text())

@@ -19,10 +19,20 @@ SYSTEM_DLLS = {
 }
 SYSTEM_SOS = {'libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0', 'librt.so.1',
               'ld-linux-x86-64.so.2'}
+RELEASE_FILES = {
+    'CMakeLists.txt', 'LICENSE', 'docs/releases.md',
+    '.github/workflows/binary-build.yml', '.github/workflows/rolling-release.yml',
+    'scripts/release/build.py', 'scripts/release/package.py',
+}
+RELEASE_PREFIXES = ('cmake/', 'include/', 'src/', 'third_party/', 'scripts/release/licenses/')
 
 
 def run(*args):
     return subprocess.check_output(args, text=True).strip()
+
+
+def release_relevant(path):
+    return path in RELEASE_FILES or path.startswith(RELEASE_PREFIXES)
 
 
 def digest(path):
@@ -84,17 +94,18 @@ def gate(mode):
     releases = json.loads(run('gh', 'release', 'list', '--limit', '100', '--json', 'tagName,isDraft'))
     published = [r['tagName'] for r in releases if not r['isDraft'] and re.fullmatch(r'r\d+', r['tagName'])]
     latest = max(published, key=lambda s: int(s[1:]), default='')
-    unchanged = bool(latest and run('git', 'rev-list', '-n', '1', latest) == sha)
+    changed = run('git', 'diff', '--name-only', f'{latest}..{sha}').splitlines() if latest else []
+    needs_release = not latest or any(release_relevant(path) for path in changed)
     tags = [t for t in run('git', 'tag', '--list', 'r*').splitlines() if re.fullmatch(r'r\d+', t)]
     # Reserve no tag until the complete build set is ready to publish.
     numbers = [int(t[1:]) for t in tags] + [int(r['tagName'][1:]) for r in releases if re.fullmatch(r'r\d+', r['tagName'])]
     tag = f'r{max(numbers, default=0) + 1:04d}' if mode == 'release' else 'r0000'
-    outputs = {'build': str(mode == 'validate' or not unchanged).lower(), 'tag': tag,
+    outputs = {'build': str(mode == 'validate' or needs_release).lower(), 'tag': tag,
                'commit': sha, 'previous': latest}
     with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as stream:
         for key, value in outputs.items():
             stream.write(f'{key}={value}\n')
-    print(json.dumps(outputs))
+    print(json.dumps({**outputs, 'changed_paths': changed, 'release_needed': needs_release}))
 
 
 def package(args):
