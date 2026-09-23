@@ -116,12 +116,27 @@ jobs:
           cuda: '13.0.2'
           linux-local-args: '["--toolkit"]'
           log-file-suffix: '${{ matrix.system }}-cuda.txt'
-      - name: Vulkan SDK
-        if: matrix.backend == 'vulkan'
+      - name: Linux Vulkan SDK
+        if: matrix.backend == 'vulkan' && runner.os == 'Linux'
         uses: humbletim/install-vulkan-sdk@e7d6e7b937bde4503c7ba5c9584c9dc68f44c4b8
         with:
           version: ${{ matrix.sdk }}
           cache: true
+      - name: Windows Vulkan SDK
+        if: matrix.backend == 'vulkan' && runner.os == 'Windows'
+        shell: pwsh
+        env:
+          SDK_VERSION: ${{ matrix.sdk }}
+        run: |
+          $installer = "$env:RUNNER_TEMP/VulkanSDK-Installer.exe"
+          curl.exe --fail --location --output $installer "https://sdk.lunarg.com/sdk/download/$env:SDK_VERSION/windows/vulkansdk-windows-X64-$env:SDK_VERSION.exe"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLower() -ne '81f474711e9042f4cd22b31b2f7a8870db2e428b21586fb43dd80150be97310d') { throw 'Vulkan SDK checksum mismatch' }
+          & $installer --accept-licenses --default-answer --confirm-command install
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          "VULKAN_SDK=C:\VulkanSDK\$env:SDK_VERSION" >> $env:GITHUB_ENV
+          "C:\VulkanSDK\$env:SDK_VERSION\Bin" >> $env:GITHUB_PATH
+          if (!(Test-Path "C:\VulkanSDK\$env:SDK_VERSION\Include\vulkan\vulkan.h")) { throw 'Vulkan headers not installed' }
       - name: Configure
         env:
           RELEASE_BACKEND: ${{ matrix.backend }}
