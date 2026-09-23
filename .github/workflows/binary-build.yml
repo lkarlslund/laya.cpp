@@ -52,7 +52,9 @@ jobs:
         id: executable-cache
         uses: actions/cache/restore@v4
         with:
-          path: build-release/bin/laya-cli${{ runner.os == 'Windows' && '.exe' || '' }}
+          path: |
+            build-release/bin/laya-cli${{ runner.os == 'Windows' && '.exe' || '' }}
+            build-release/cuda-eula.txt
           key: portable-v1-${{ inputs.target }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'include/**', 'third_party/**', 'scripts/release/build.py') }}
       - name: Linux dependencies
         if: runner.os == 'Linux'
@@ -60,7 +62,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build libicu-dev nlohmann-json3-dev libvulkan-dev
       - name: macOS dependencies
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && steps.executable-cache.outputs.cache-hit != 'true'
         run: |
           brew install cmake ninja icu4c@78 nlohmann-json
           if test -d /Applications/Xcode.app/Contents/Developer; then
@@ -87,7 +89,7 @@ jobs:
           path: release-vcpkg/installed
           key: release-vcpkg-static-398e9a716997ec84676dc7c7afdd51afcede2269-windows-2022
       - name: Build Windows static dependencies
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && (steps.executable-cache.outputs.cache-hit != 'true' || steps.dependencies-cache.outputs.cache-hit != 'true')
         shell: pwsh
         run: |
           ./release-vcpkg/bootstrap-vcpkg.bat -disableMetrics
@@ -101,12 +103,15 @@ jobs:
           path: release-vcpkg/installed
           key: release-vcpkg-static-398e9a716997ec84676dc7c7afdd51afcede2269-windows-2022
       - name: CUDA toolkit
-        if: endsWith(inputs.target, 'cuda')
+        if: endsWith(inputs.target, 'cuda') && steps.executable-cache.outputs.cache-hit != 'true'
         uses: Jimver/cuda-toolkit@b8bf9c6c28f8a92fbb04dcfcaee872e60c57462d
         with:
           cuda: '13.0.2'
           linux-local-args: '["--toolkit"]'
           log-file-suffix: '${{ inputs.target }}-cuda.txt'
+      - name: Cache CUDA redistribution notice
+        if: endsWith(inputs.target, 'cuda') && steps.executable-cache.outputs.cache-hit != 'true'
+        run: python scripts/release/package.py cache-cuda-license
       - name: Linux Vulkan SDK
         if: endsWith(inputs.target, 'vulkan') && runner.os == 'Linux'
         uses: humbletim/install-vulkan-sdk@e7d6e7b937bde4503c7ba5c9584c9dc68f44c4b8
@@ -143,7 +148,9 @@ jobs:
         if: steps.executable-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: build-release/bin/laya-cli${{ runner.os == 'Windows' && '.exe' || '' }}
+          path: |
+            build-release/bin/laya-cli${{ runner.os == 'Windows' && '.exe' || '' }}
+            build-release/cuda-eula.txt
           key: portable-v1-${{ inputs.target }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'include/**', 'third_party/**', 'scripts/release/build.py') }}
       - name: Python release tests
         run: python -m unittest discover -s tests -p test_release.py
@@ -152,7 +159,7 @@ jobs:
           RELEASE_BACKEND: ${{ inputs.target == 'macos-coreml' && 'coreml' || endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
           RELEASE_SYSTEM: ${{ inputs.target == 'macos-coreml' && 'macos' || startsWith(inputs.target, 'linux') && 'linux' || 'windows' }}
           RELEASE_SDK: ${{ inputs.target == 'linux-vulkan' && '1.4.357.1' || inputs.target == 'windows-vulkan' && '1.4.357.0' || '' }}
-        run: python scripts/release/package.py
+        run: python scripts/release/package.py package
       - uses: actions/upload-artifact@v4
         with:
           name: binary-${{ inputs.target }}
