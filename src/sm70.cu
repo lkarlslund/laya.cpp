@@ -303,15 +303,21 @@ bool laya_cuda_sm70_attention(ggml_backend_cuda_context& context, ggml_tensor* o
 
 namespace {
 // Compensated projections as FP16 x FP16 -> FP32 products with FP32
-// accumulation. On the first eager execution of each (M, K, column bucket),
-// the default cuBLAS algorithm, the explicit Volta tensor-op algorithms and
-// the cuBLASLt heuristic candidates are timed and the fastest is pinned, so
-// CUDA graph capture and replay reuse it. cuBLASLt's heuristics omit the
-// large-tile kernels that win at wide batches, and the default cuBLAS choice
-// is weak for narrow ones. Each timed run starts from a flushed L2: every
-// weight is read once from DRAM per forward pass, and warm-cache timing
-// favours split-K variants that are slower in the model. Only deterministic
-// reduction schemes are considered.
+// accumulation. By default the algorithm is a fixed function of the shape, so
+// every process (CLI, HTTP server, validation) produces identical results:
+// at 2048+ columns the default cuBLAS choice has large regressions on V100
+// that CUBLAS_GEMM_ALGO3_TENSOR_OP avoids, except for the widest (M > 4096)
+// projection, where the default is faster.
+//
+// LAYA_SM70_GEMM_TUNE=1 instead times, on the first eager execution of each
+// (M, K, column bucket), the default algorithm, the explicit tensor-op
+// algorithms and the cuBLASLt heuristic candidates, then pins the fastest
+// before CUDA graph capture. Timing noise can pin different algorithms in
+// different processes, so results are then reproducible only within one
+// process. Each timed run starts from a flushed L2: every weight is read once
+// from DRAM per forward pass, and warm-cache timing favours split-K variants
+// that are slower in the model. Only deterministic reduction schemes are
+// considered. LAYA_SM70_GEMM_TUNE=0 always uses the default algorithm.
 constexpr size_t gemm_workspace = size_t(32) << 20, cache_flush = size_t(32) << 20;
 constexpr int timed_runs = 3;
 
@@ -375,6 +381,13 @@ void sm70_matmul(ggml_backend_cuda_context& context, ggml_tensor* output) {
                               output->data, problem->c, output->data, problem->c, &plan.lt_algorithm,
                               workspace.get(), gemm_workspace, stream);
     };
+    const char* tune = std::getenv("LAYA_SM70_GEMM_TUNE");
+    if (!tune || std::strcmp(tune, "1")) {
+        gemm_plan plan;
+        if (!(tune && !std::strcmp(tune, "0")) && n >= 2048 && m <= 4096) plan.algorithm = CUBLAS_GEMM_ALGO3_TENSOR_OP;
+        if (run(plan) != CUBLAS_STATUS_SUCCESS) CUBLAS_CHECK(run(gemm_plan{}));
+        return;
+    }
     const auto key = std::make_tuple(context.device, m, k, column_bucket(n));
     if (auto found = plans.find(key); found != plans.end()) {
         // A pinned algorithm tuned at another width in this bucket may not apply.
@@ -384,8 +397,7 @@ void sm70_matmul(ggml_backend_cuda_context& context, ggml_tensor* output) {
     }
     cudaStreamCaptureStatus capture;
     CUDA_CHECK(cudaStreamIsCapturing(stream, &capture));
-    const char* tune = std::getenv("LAYA_SM70_GEMM_TUNE");
-    if (capture != cudaStreamCaptureStatusNone || (tune && !std::strcmp(tune, "0"))) {
+    if (capture != cudaStreamCaptureStatusNone) {
         // Untuned plans are not retained, so a later eager execution can tune.
         CUBLAS_CHECK(run(gemm_plan{}));
         return;

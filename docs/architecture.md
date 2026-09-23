@@ -70,11 +70,12 @@ an FP32 online softmax, compensating both operands of each product (three
 products per tile) and visiting only the key tiles inside the local window.
 Projection products stay unmerged until their consumer: the rotary packing,
 residual addition and LayerNorm split read the paired product directly.
-Encoder projections run through a tuned FP16 product with FP32 accumulation:
-the first eager execution of each matrix shape and column bucket times the
-default cuBLAS algorithm, the explicit tensor-op algorithms and the cuBLASLt
-heuristic candidates from a flushed L2 cache, then pins the fastest before
-CUDA graph capture. `LAYA_SM70_GEMM_TUNE=0` keeps the default algorithm. Set
+Encoder projections use an FP16 product with FP32 accumulation whose cuBLAS
+algorithm is a fixed function of the matrix shape, so every process produces
+identical results. `LAYA_SM70_GEMM_TUNE=1` instead times candidate cuBLAS and
+cuBLASLt algorithms per shape on first use and pins the fastest; results are
+then reproducible only within one process. `LAYA_SM70_GEMM_TUNE=0` always uses
+the default algorithm. Set
 `LAYA_SM70=0` to use the general path or `LAYA_SM70=1` to select these kernels
 on another architecture. Nonfinite results are rejected by
 acceptance testing. Native mixed BF16 is selected with `--bf16` and uses dedicated
