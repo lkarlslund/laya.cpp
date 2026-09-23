@@ -90,7 +90,8 @@ jobs:
           path: release-vcpkg
       - name: Cache Windows static dependencies
         if: runner.os == 'Windows'
-        uses: actions/cache@v4
+        id: dependencies-cache
+        uses: actions/cache/restore@v4
         with:
           path: release-vcpkg/installed
           key: release-vcpkg-static-398e9a716997ec84676dc7c7afdd51afcede2269-windows-2022
@@ -102,6 +103,12 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           ./release-vcpkg/vcpkg.exe install icu:x64-windows-static nlohmann-json:x64-windows-static
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Save successful dependency build
+        if: runner.os == 'Windows' && steps.dependencies-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: release-vcpkg/installed
+          key: release-vcpkg-static-398e9a716997ec84676dc7c7afdd51afcede2269-windows-2022
       - name: CUDA toolkit
         if: matrix.backend == 'cuda'
         uses: Jimver/cuda-toolkit@b8bf9c6c28f8a92fbb04dcfcaee872e60c57462d
