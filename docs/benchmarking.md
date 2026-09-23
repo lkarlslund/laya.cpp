@@ -1,5 +1,9 @@
 # Validation and performance
 
+The proposed versioned corpus and JSON report contract for issue #7 is in
+[benchmark contract](benchmark-contract.md). The commands below describe the
+existing harness and report format until that proposal is implemented.
+
 `benchmarks/cases/acceptance-250.json` is a fixed, committed corpus containing
 100 choice, 75 ordinal score, and 75 boolean questions across 25 scenarios.
 Every question has a distinct instruction. Cases include 2–12 options, long

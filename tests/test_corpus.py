@@ -1,4 +1,5 @@
 import collections
+import hashlib
 import json
 from pathlib import Path
 import unittest
@@ -26,5 +27,39 @@ class CorpusTests(unittest.TestCase):
         from make_corpus import build
         actual = (ROOT / 'benchmarks/cases/acceptance-250.json').read_text()
         self.assertEqual(actual, json.dumps(build(), ensure_ascii=False, indent=2) + '\n')
+
+    def test_performance_corpus_is_distinct_reproducible_and_stratified(self):
+        import sys
+        sys.path.insert(0, str(ROOT / 'benchmarks'))
+        from make_performance_corpus import build, manifest, render
+        directory = ROOT / 'benchmarks/cases/performance-v1'
+        files = build()
+        expected_manifest = manifest(files)
+        self.assertEqual(expected_manifest['questions'], 10240)
+        self.assertEqual(expected_manifest['requests'], 4800)
+        self.assertEqual(len(files), 16)
+        self.assertEqual(json.loads((directory / 'manifest.json').read_text()), expected_manifest)
+        ids = set()
+        question_ids = set()
+        for entry in expected_manifest['strata']:
+            payload = (directory / entry['file']).read_bytes()
+            self.assertEqual(payload, render(files[entry['file']]).encode())
+            self.assertEqual(hashlib.sha256(payload).hexdigest(), entry['sha256'])
+            cases = files[entry['file']]
+            self.assertEqual(sum(len(c['questions']) for c in cases), 640)
+            self.assertEqual({len(c['questions']) for c in cases}, {entry['questions_per_request']})
+            self.assertEqual({len(c['state']) for c in cases}, {{
+                'short': 160, 'medium': 480, 'long': 1500, 'limit': 3300
+            }[entry['length_band']]})
+            self.assertTrue(all(c['id'] not in ids for c in cases))
+            ids.update(c['id'] for c in cases)
+            for case in cases:
+                self.assertFalse(set(case['questions']) & question_ids)
+                question_ids.update(case['questions'])
+                if entry['questions_per_request'] >= 4:
+                    self.assertEqual({q['type'] for q in case['questions'].values()}, {'choice', 'score', 'noul'})
+            types = collections.Counter(q['type'] for c in cases for q in c['questions'].values())
+            self.assertEqual(set(types), {'choice', 'score', 'noul'})
+        self.assertEqual(len(question_ids), 10240)
 
 if __name__ == '__main__': unittest.main()

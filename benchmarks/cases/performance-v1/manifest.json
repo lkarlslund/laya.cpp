@@ -1,0 +1,136 @@
+{
+  "corpus_id": "performance-v1",
+  "source_notes_sha256": "2ef5d93762a558786173c21ae74245d00d458bbf75a97edc1a1f4e7cb44f0776",
+  "questions": 10240,
+  "requests": 4800,
+  "strata": [
+    {
+      "file": "short-q1.json",
+      "sha256": "90e053c417eb3b29f3bee89967f7549f3deece32c8584f5ee88e9c15302fff5c",
+      "requests": 640,
+      "questions": 640,
+      "length_band": "short",
+      "questions_per_request": 1
+    },
+    {
+      "file": "short-q2.json",
+      "sha256": "f30d46109be97ef047fea37e38b691ac793e832937b6bfdfda34926ad9b33903",
+      "requests": 320,
+      "questions": 640,
+      "length_band": "short",
+      "questions_per_request": 2
+    },
+    {
+      "file": "short-q4.json",
+      "sha256": "0814c2dc2d405307786f569d4d477ed0e905ab3212af671fd8e227939b934eab",
+      "requests": 160,
+      "questions": 640,
+      "length_band": "short",
+      "questions_per_request": 4
+    },
+    {
+      "file": "short-q8.json",
+      "sha256": "2bbaa0164f86c7e554605d17d02db7679b1cbf8bf2adf4a329352fb648a3d339",
+      "requests": 80,
+      "questions": 640,
+      "length_band": "short",
+      "questions_per_request": 8
+    },
+    {
+      "file": "medium-q1.json",
+      "sha256": "547613f383ded3ac2bf872e5bf112dc7cb6226bffc18643f06759e62bcc88981",
+      "requests": 640,
+      "questions": 640,
+      "length_band": "medium",
+      "questions_per_request": 1
+    },
+    {
+      "file": "medium-q2.json",
+      "sha256": "950b6c5f4c58a13c333e05bff718304c8382feb5b709eb58aa501ee9512f836f",
+      "requests": 320,
+      "questions": 640,
+      "length_band": "medium",
+      "questions_per_request": 2
+    },
+    {
+      "file": "medium-q4.json",
+      "sha256": "60b6303d002fae466079d588fb2ce928a7b5423b65d1c13f48e873bb9a54cd0a",
+      "requests": 160,
+      "questions": 640,
+      "length_band": "medium",
+      "questions_per_request": 4
+    },
+    {
+      "file": "medium-q8.json",
+      "sha256": "e768cd057f84439be1c8fa35929f2c101dfdc8d032aab53bf9fe33d9985c3049",
+      "requests": 80,
+      "questions": 640,
+      "length_band": "medium",
+      "questions_per_request": 8
+    },
+    {
+      "file": "long-q1.json",
+      "sha256": "20e888c508a0075c651426043b53cc3316086354ed26c652fd373ea2bcb1df72",
+      "requests": 640,
+      "questions": 640,
+      "length_band": "long",
+      "questions_per_request": 1
+    },
+    {
+      "file": "long-q2.json",
+      "sha256": "32aa0a2f92672f066a546e033e52d58ac8ee04a6766dccb3d2d0ea4a55e92976",
+      "requests": 320,
+      "questions": 640,
+      "length_band": "long",
+      "questions_per_request": 2
+    },
+    {
+      "file": "long-q4.json",
+      "sha256": "5f1af46f9750fd1b7f371c1d50dbbc6b7987dcc768fb7add39ba98db2c2cfcd9",
+      "requests": 160,
+      "questions": 640,
+      "length_band": "long",
+      "questions_per_request": 4
+    },
+    {
+      "file": "long-q8.json",
+      "sha256": "3c0d6d0d3652d47939c469c7313e4d71ed990305df547796f6d7b9b7b7ab8463",
+      "requests": 80,
+      "questions": 640,
+      "length_band": "long",
+      "questions_per_request": 8
+    },
+    {
+      "file": "limit-q1.json",
+      "sha256": "fbbc66aaba548be8114e495bed2242380320ad53193599149f4a92c7e66752ce",
+      "requests": 640,
+      "questions": 640,
+      "length_band": "limit",
+      "questions_per_request": 1
+    },
+    {
+      "file": "limit-q2.json",
+      "sha256": "ff18d0f9e5944fca977453687c571abf932bfac5fc4f25756bfeaf455e4f43f9",
+      "requests": 320,
+      "questions": 640,
+      "length_band": "limit",
+      "questions_per_request": 2
+    },
+    {
+      "file": "limit-q4.json",
+      "sha256": "d104432e4d98b15f7d3d4a1995ecde570c0eebca50b97c4402c470af5dfc7872",
+      "requests": 160,
+      "questions": 640,
+      "length_band": "limit",
+      "questions_per_request": 4
+    },
+    {
+      "file": "limit-q8.json",
+      "sha256": "1bf02d2fc6e8080108b621e8b8cd0b84fbd8f57e834b286d506770a28b21d0ec",
+      "requests": 80,
+      "questions": 640,
+      "length_band": "limit",
+      "questions_per_request": 8
+    }
+  ]
+}
