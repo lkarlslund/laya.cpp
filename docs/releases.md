@@ -12,8 +12,8 @@ library bundle:
 | `laya-rNNNN-macos-arm64-coreml` | Apple Core ML |
 
 Each release includes SHA-256 checksums, dependency/build manifests, and license
-notices. Models and tokenizers remain separate downloads. The Linux files need
-`chmod +x` after downloading. Use `--vulkan` with the Vulkan executable; CUDA is
+notices. Models and tokenizers remain separate downloads. The Linux and macOS files
+need `chmod +x` after downloading. Use `--vulkan` with the Vulkan executable; CUDA is
 the default backend on CUDA builds. Use `--coreml` with the macOS executable.
 Both the CLI and HTTP server are included in each executable.
 
