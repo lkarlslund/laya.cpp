@@ -150,6 +150,10 @@ target_link_libraries(laya-http PUBLIC nlohmann_json::nlohmann_json Threads::Thr
 target_link_libraries(laya-cli PRIVATE laya laya-http)
 include(CTest)
 if(BUILD_TESTING)
+  # Tests include native C++20 helpers directly; ggml's private language level
+  # does not propagate to these executables (MSVC otherwise defaults to C++14).
+  set(CMAKE_CXX_STANDARD 20)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
   if(LAYA_VULKAN)
     add_executable(test-vulkan-spirv tests/vulkan_spirv.cpp)
     target_include_directories(test-vulkan-spirv PRIVATE src)
@@ -181,7 +185,6 @@ if(BUILD_TESTING)
     add_test(NAME vulkan-softmax COMMAND test-vulkan-softmax)
     set_tests_properties(vulkan-softmax PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(test-vulkan-precision tests/vulkan_precision.cpp)
-    target_compile_features(test-vulkan-precision PRIVATE cxx_std_20)
     target_link_libraries(test-vulkan-precision PRIVATE ggml ggml-vulkan)
     target_include_directories(test-vulkan-precision PRIVATE src)
     add_test(NAME vulkan-precision COMMAND test-vulkan-precision)
