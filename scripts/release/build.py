@@ -53,8 +53,8 @@ def notices(output):
         sources.append(source)
     sections = []
     for source in sources:
-        sections.append(f'===== {source.parent.name}/{source.name} =====\n' + source.read_text(errors='replace'))
-    output.write_text('\n\n'.join(sections))
+        sections.append(f'===== {source.parent.name}/{source.name} =====\n' + source.read_text(encoding='utf-8', errors='replace'))
+    output.write_text('\n\n'.join(sections), encoding='utf-8')
 
 
 def package():

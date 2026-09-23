@@ -68,7 +68,7 @@ def gate(mode):
     tag = f'r{max(numbers, default=0) + 1:04d}' if mode == 'release' else 'r0000'
     outputs = {'build': str(mode == 'validate' or not unchanged).lower(), 'tag': tag,
                'commit': sha, 'previous': latest}
-    with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
+    with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as stream:
         for key, value in outputs.items():
             stream.write(f'{key}={value}\n')
     print(json.dumps(outputs))
@@ -90,12 +90,12 @@ def package(args):
                 'cuda_toolkit': '13.0.2' if args.backend == 'cuda' else None,
                 'cublas': '13.1.0.3' if args.backend == 'cuda' else None,
                 'vulkan_sdk': args.sdk if args.backend == 'vulkan' else None}
-    (args.output / (name + '.json')).write_text(json.dumps(manifest, indent=2) + '\n')
+    (args.output / (name + '.json')).write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(manifest, indent=2))
 
 
 def verify(directory, tag, commit):
-    manifests = [json.loads(p.read_text()) for p in directory.glob('laya-*.json')]
+    manifests = [json.loads(p.read_text(encoding='utf-8')) for p in directory.glob('laya-*.json')]
     seen = set()
     for item in manifests:
         pair = (item['system'], item['backend'])
@@ -124,14 +124,14 @@ def publish(args):
     # The manifest and third-party notices travel alongside the raw executables.
     files = sorted(p for p in args.output.iterdir() if p.is_file())
     checksums = args.output / 'SHA256SUMS'
-    checksums.write_text(''.join(f'{digest(p)}  {p.name}\n' for p in files))
+    checksums.write_text(''.join(f'{digest(p)}  {p.name}\n' for p in files), encoding='utf-8')
     notes = args.output.parent / 'release-notes.md'
     history = run('git', 'log', '--no-merges', '--format=- %s (%h)',
                   f'{args.previous}..{args.commit}' if args.previous else args.commit, '-n', '50')
     notes.write_text(f'Raw Linux and Windows x64 binaries; no installer.\n\nCommit: `{args.commit}`\n\n'
                      'Choose CUDA or Vulkan. See RUNTIME-REQUIREMENTS.md for external libraries.\n'
                      'Automated build/host tests passed; these rolling prereleases are not GPU correctness certifications.\n\n'
-                     f'## Changes\n\n{history}\n')
+                     f'## Changes\n\n{history}\n', encoding='utf-8')
     subprocess.run(['gh', 'release', 'create', args.tag, '--target', args.commit,
                     '--title', f'laya.cpp {args.tag}', '--draft', '--prerelease',
                     '--notes-file', str(notes), *map(str, files), str(checksums)], check=True)
