@@ -41,6 +41,9 @@ def notices(output):
     else:
         sources += [Path('/usr/share/doc') / name / 'copyright'
                     for name in ('libicu-dev', 'nlohmann-json3-dev', 'libstdc++-13-dev')]
+        # The GCC copyright file includes the Runtime Library Exception and
+        # references this system license text; ship the text it references too.
+        sources.append(Path('/usr/share/common-licenses/GPL-3'))
     if BACKEND == 'cuda':
         toolkit = Path(os.environ['CUDA_PATH'])
         candidates = [toolkit / 'EULA.txt', toolkit / 'LICENSE', toolkit / 'doc/EULA.txt']
