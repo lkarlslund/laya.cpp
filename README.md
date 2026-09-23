@@ -5,6 +5,10 @@ Vulkan and Apple Core ML backends. Tokenization, inference and JSON output run w
 Supports the `english`, `multilingual` and `typed-decisions` models, plus a
 JEV-compatible HTTP server with automatic request batching.
 
+[Binary releases](https://github.com/lkarlslund/laya.cpp/releases) provide Windows
+and Linux x64 CUDA/Vulkan executables. See [runtime requirements](docs/releases.md)
+for the required drivers and Windows CUDA DLLs.
+
 ## Performance
 
 Latest paired comparisons against matching-precision Python, using 250 fixed

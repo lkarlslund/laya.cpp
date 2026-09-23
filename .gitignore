@@ -2,6 +2,9 @@
 /models/
 /build*/
 /results/
+/dist/
+/release-vcpkg/
+/VULKAN_SDK/
 /.venv/
 __pycache__/
 *.py[cod]
