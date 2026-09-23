@@ -58,6 +58,13 @@ external-dependency audits succeed. Assets are uploaded to a draft before the
 release becomes visible. Incomplete matrices and mixed-commit artifacts fail
 publication. A failed draft is retained for diagnosis and is not a public release.
 
+Each target also has a standalone build workflow. For example,
+`gh workflow run binary-build.yml -f target=windows-cuda` checks only Windows CUDA
+and uploads a validation artifact tagged `r0000`; it does not publish a release.
+The release workflow calls those four builds independently, then combines their
+artifacts. Successful builds cache their tested executable by source and build
+configuration, so changes to packaging or release checks reuse the compiled code.
+
 Hosted runners perform compilation, host tests and dependency checks. They do
 **not** run the full GPU acceptance corpus. Rolling releases are therefore marked
 as prereleases, and their manifests explicitly record the absence of GPU

@@ -1,0 +1,152 @@
+name: Build binary
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        type: string
+        required: true
+      commit:
+        type: string
+        required: true
+      tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Build and validate one platform binary
+        type: choice
+        required: true
+        options: [linux-cuda, linux-vulkan, windows-cuda, windows-vulkan]
+      commit:
+        description: Source commit; empty uses main
+        type: string
+        default: ''
+      tag:
+        description: Artifact tag; r0000 is for standalone validation
+        type: string
+        default: r0000
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ startsWith(inputs.target, 'linux') && 'ubuntu-24.04' || 'windows-2022' }}
+    timeout-minutes: 120
+    env:
+      RELEASE_TAG: ${{ inputs.tag || 'r0000' }}
+      RELEASE_COMMIT: ${{ inputs.commit || github.sha }}
+      RELEASE_BACKEND: ${{ endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
+      RELEASE_SYSTEM: ${{ startsWith(inputs.target, 'linux') && 'linux' || 'windows' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit || github.sha }}
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore compiled executable
+        id: executable-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: build-release/bin/laya-cli${{ runner.os == 'Windows' && '.exe' || '' }}
+          key: portable-v1-${{ inputs.target }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'include/**', 'third_party/**', 'scripts/release/build.py') }}
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libicu-dev nlohmann-json3-dev libvulkan-dev
+      - name: Windows compiler
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@a102174a2b586eec2ea151a69e6fd14404a8ce7c
+      - name: Pinned Windows dependencies
+        if: runner.os == 'Windows'
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          ref: 398e9a716997ec84676dc7c7afdd51afcede2269
+          path: release-vcpkg
+      - name: Cache Windows static dependencies
+        if: runner.os == 'Windows'
+        id: dependencies-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: release-vcpkg/installed
+          key: release-vcpkg-static-398e9a716997ec84676dc7c7afdd51afcede2269-windows-2022
+      - name: Build Windows static dependencies
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./release-vcpkg/bootstrap-vcpkg.bat -disableMetrics
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ./release-vcpkg/vcpkg.exe install icu:x64-windows-static nlohmann-json:x64-windows-static
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Save successful dependency build
+        if: runner.os == 'Windows' && steps.dependencies-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: release-vcpkg/installed
+          key: release-vcpkg-static-398e9a716997ec84676dc7c7afdd51afcede2269-windows-2022
+      - name: CUDA toolkit
+        if: endsWith(inputs.target, 'cuda')
+        uses: Jimver/cuda-toolkit@b8bf9c6c28f8a92fbb04dcfcaee872e60c57462d
+        with:
+          cuda: '13.0.2'
+          linux-local-args: '["--toolkit"]'
+          log-file-suffix: '${{ inputs.target }}-cuda.txt'
+      - name: Linux Vulkan SDK
+        if: endsWith(inputs.target, 'vulkan') && runner.os == 'Linux'
+        uses: humbletim/install-vulkan-sdk@e7d6e7b937bde4503c7ba5c9584c9dc68f44c4b8
+        with:
+          version: ${{ inputs.target == 'linux-vulkan' && '1.4.357.1' || '1.4.357.0' }}
+          cache: true
+      - name: Windows Vulkan SDK
+        if: endsWith(inputs.target, 'vulkan') && runner.os == 'Windows'
+        shell: pwsh
+        env:
+          SDK_VERSION: ${{ inputs.target == 'linux-vulkan' && '1.4.357.1' || '1.4.357.0' }}
+        run: |
+          $installer = "$env:RUNNER_TEMP/VulkanSDK-Installer.exe"
+          curl.exe --fail --location --output $installer "https://sdk.lunarg.com/sdk/download/$env:SDK_VERSION/windows/vulkansdk-windows-X64-$env:SDK_VERSION.exe"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLower() -ne '81f474711e9042f4cd22b31b2f7a8870db2e428b21586fb43dd80150be97310d') { throw 'Vulkan SDK checksum mismatch' }
+          & $installer --accept-licenses --default-answer --confirm-command install
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          "VULKAN_SDK=C:\VulkanSDK\$env:SDK_VERSION" >> $env:GITHUB_ENV
+          "C:\VulkanSDK\$env:SDK_VERSION\Bin" >> $env:GITHUB_PATH
+          if (!(Test-Path "C:\VulkanSDK\$env:SDK_VERSION\Include\vulkan\vulkan.h")) { throw 'Vulkan headers not installed' }
+      - name: Configure
+        if: steps.executable-cache.outputs.cache-hit != 'true'
+        env:
+          RELEASE_BACKEND: ${{ endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
+        run: python scripts/release/build.py configure
+      - name: Build
+        if: steps.executable-cache.outputs.cache-hit != 'true'
+        run: cmake --build build-release --config Release --parallel 3
+      - name: Host tests
+        if: steps.executable-cache.outputs.cache-hit != 'true'
+        run: ctest --test-dir build-release -C Release --output-on-failure --no-tests=error -R "^(decision|http|vulkan-spirv|vulkan-bf16-range)$"
+      - name: Cache tested executable
+        if: steps.executable-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build-release/bin/laya-cli${{ runner.os == 'Windows' && '.exe' || '' }}
+          key: portable-v1-${{ inputs.target }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'include/**', 'third_party/**', 'scripts/release/build.py') }}
+      - name: Python release tests
+        run: python -m unittest discover -s tests -p test_release.py
+      - name: Audit and stage raw binary
+        env:
+          RELEASE_BACKEND: ${{ endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
+          RELEASE_SYSTEM: ${{ startsWith(inputs.target, 'linux') && 'linux' || 'windows' }}
+          RELEASE_SDK: ${{ inputs.target == 'linux-vulkan' && '1.4.357.1' || '1.4.357.0' }}
+        run: python scripts/release/package.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ inputs.target }}
+          path: dist/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14

@@ -39,131 +39,45 @@ jobs:
           RELEASE_MODE: ${{ inputs.mode || 'release' }}
         run: python scripts/release/automation.py gate --mode "$RELEASE_MODE"
 
-  build:
+  linux_cuda:
     needs: gate
     if: needs.gate.outputs.build == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-24.04
-            system: linux
-            backend: cuda
-          - os: ubuntu-24.04
-            system: linux
-            backend: vulkan
-            sdk: '1.4.357.1'
-          - os: windows-2022
-            system: windows
-            backend: cuda
-          - os: windows-2022
-            system: windows
-            backend: vulkan
-            sdk: '1.4.357.0'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
-    env:
-      RELEASE_TAG: ${{ needs.gate.outputs.tag }}
-      RELEASE_COMMIT: ${{ needs.gate.outputs.commit }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.gate.outputs.commit }}
-          submodules: recursive
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build libicu-dev nlohmann-json3-dev libvulkan-dev
-      - name: Windows compiler
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@a102174a2b586eec2ea151a69e6fd14404a8ce7c
-      - name: Pinned Windows dependencies
-        if: runner.os == 'Windows'
-        uses: actions/checkout@v4
-        with:
-          repository: microsoft/vcpkg
-          ref: 398e9a716997ec84676dc7c7afdd51afcede2269
-          path: release-vcpkg
-      - name: Cache Windows static dependencies
-        if: runner.os == 'Windows'
-        id: dependencies-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: release-vcpkg/installed
-          key: release-vcpkg-static-398e9a716997ec84676dc7c7afdd51afcede2269-windows-2022
-      - name: Build Windows static dependencies
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          ./release-vcpkg/bootstrap-vcpkg.bat -disableMetrics
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          ./release-vcpkg/vcpkg.exe install icu:x64-windows-static nlohmann-json:x64-windows-static
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-      - name: Save successful dependency build
-        if: runner.os == 'Windows' && steps.dependencies-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: release-vcpkg/installed
-          key: release-vcpkg-static-398e9a716997ec84676dc7c7afdd51afcede2269-windows-2022
-      - name: CUDA toolkit
-        if: matrix.backend == 'cuda'
-        uses: Jimver/cuda-toolkit@b8bf9c6c28f8a92fbb04dcfcaee872e60c57462d
-        with:
-          cuda: '13.0.2'
-          linux-local-args: '["--toolkit"]'
-          log-file-suffix: '${{ matrix.system }}-cuda.txt'
-      - name: Linux Vulkan SDK
-        if: matrix.backend == 'vulkan' && runner.os == 'Linux'
-        uses: humbletim/install-vulkan-sdk@e7d6e7b937bde4503c7ba5c9584c9dc68f44c4b8
-        with:
-          version: ${{ matrix.sdk }}
-          cache: true
-      - name: Windows Vulkan SDK
-        if: matrix.backend == 'vulkan' && runner.os == 'Windows'
-        shell: pwsh
-        env:
-          SDK_VERSION: ${{ matrix.sdk }}
-        run: |
-          $installer = "$env:RUNNER_TEMP/VulkanSDK-Installer.exe"
-          curl.exe --fail --location --output $installer "https://sdk.lunarg.com/sdk/download/$env:SDK_VERSION/windows/vulkansdk-windows-X64-$env:SDK_VERSION.exe"
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLower() -ne '81f474711e9042f4cd22b31b2f7a8870db2e428b21586fb43dd80150be97310d') { throw 'Vulkan SDK checksum mismatch' }
-          & $installer --accept-licenses --default-answer --confirm-command install
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          "VULKAN_SDK=C:\VulkanSDK\$env:SDK_VERSION" >> $env:GITHUB_ENV
-          "C:\VulkanSDK\$env:SDK_VERSION\Bin" >> $env:GITHUB_PATH
-          if (!(Test-Path "C:\VulkanSDK\$env:SDK_VERSION\Include\vulkan\vulkan.h")) { throw 'Vulkan headers not installed' }
-      - name: Configure
-        env:
-          RELEASE_BACKEND: ${{ matrix.backend }}
-        run: python scripts/release/build.py configure
-      - name: Build
-        run: cmake --build build-release --config Release --parallel 3
-      - name: Host tests
-        run: ctest --test-dir build-release -C Release --output-on-failure --no-tests=error -R "^(decision|http|vulkan-spirv|vulkan-bf16-range)$"
-      - name: Python release tests
-        run: python -m unittest discover -s tests -p test_release.py
-      - name: Audit and stage raw binary
-        env:
-          RELEASE_BACKEND: ${{ matrix.backend }}
-          RELEASE_SYSTEM: ${{ matrix.system }}
-          RELEASE_SDK: ${{ matrix.sdk }}
-        run: python scripts/release/build.py package
-      - uses: actions/upload-artifact@v4
-        with:
-          name: binary-${{ matrix.system }}-${{ matrix.backend }}
-          path: dist/*
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 7
+    uses: ./.github/workflows/binary-build.yml
+    with:
+      target: linux-cuda
+      commit: ${{ needs.gate.outputs.commit }}
+      tag: ${{ needs.gate.outputs.tag }}
+
+  linux_vulkan:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    uses: ./.github/workflows/binary-build.yml
+    with:
+      target: linux-vulkan
+      commit: ${{ needs.gate.outputs.commit }}
+      tag: ${{ needs.gate.outputs.tag }}
+
+  windows_cuda:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    uses: ./.github/workflows/binary-build.yml
+    with:
+      target: windows-cuda
+      commit: ${{ needs.gate.outputs.commit }}
+      tag: ${{ needs.gate.outputs.tag }}
+
+  windows_vulkan:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    uses: ./.github/workflows/binary-build.yml
+    with:
+      target: windows-vulkan
+      commit: ${{ needs.gate.outputs.commit }}
+      tag: ${{ needs.gate.outputs.tag }}
 
   publish:
-    needs: [gate, build]
-    if: needs.build.result == 'success' && (github.event_name == 'schedule' || inputs.mode == 'release')
+    needs: [gate, linux_cuda, linux_vulkan, windows_cuda, windows_vulkan]
+    if: needs.linux_cuda.result == 'success' && needs.linux_vulkan.result == 'success' && needs.windows_cuda.result == 'success' && needs.windows_vulkan.result == 'success' && (github.event_name == 'schedule' || inputs.mode == 'release')
     runs-on: ubuntu-24.04
     permissions:
       contents: write
