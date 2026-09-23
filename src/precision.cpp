@@ -144,4 +144,44 @@ ggml_tensor* merge_f16(ggml_context* ctx, ggml_tensor* input) {
     ggml_set_name(result,"laya.merge-f16");
     return result;
 }
+ggml_tensor* merge_add_f16(ggml_context* ctx, ggml_tensor* input, ggml_tensor* residual) {
+    if (!ggml_is_contiguous(input) || input->type!=GGML_TYPE_F32 || input->ne[1]%2 || input->ne[2]!=1 || input->ne[3]!=1 ||
+        !ggml_is_contiguous(residual) || residual->type!=GGML_TYPE_F32 || residual->ne[0]!=input->ne[0] || residual->ne[1]!=input->ne[1]/2)
+        throw std::invalid_argument("Residual merge requires a paired FP32 product and matching residual");
+    ggml_tensor* args[]{input,residual};
+    auto result=ggml_custom_4d(ctx,GGML_TYPE_F32,input->ne[0],input->ne[1]/2,1,1,args,2,
+        [](ggml_tensor*,int,int,void*) { throw std::runtime_error("Residual merge requires CUDA"); },1,nullptr);
+    ggml_set_name(result,"laya.merge-add");
+    return result;
+}
+ggml_tensor* norm_split_f16(ggml_context* ctx, ggml_tensor* input, ggml_tensor* weight, float eps) {
+    if (!ggml_is_contiguous(input) || input->type!=GGML_TYPE_F32 || input->ne[0]%128 || input->ne[0]>1024 ||
+        input->ne[2]!=1 || input->ne[3]!=1 || weight->type!=GGML_TYPE_F32 || ggml_nelements(weight)!=input->ne[0])
+        throw std::invalid_argument("Normalization split requires contiguous FP32 rows up to 1024 wide");
+    ggml_tensor* args[]{input,weight};
+    auto result=ggml_custom_4d(ctx,GGML_TYPE_F16,input->ne[0],2*input->ne[1],1,1,args,2,
+        [](ggml_tensor*,int,int,void*) { throw std::runtime_error("Normalization split requires CUDA"); },1,nullptr);
+    std::memcpy(result->op_params,&eps,sizeof(eps));
+    ggml_set_name(result,"laya.norm-split");
+    return result;
+}
+ggml_tensor* pack_qkv_merged(ggml_context* ctx, ggml_tensor* input, ggml_tensor* cosine, ggml_tensor* sine, int length, int batch) {
+    if (!ggml_is_contiguous(input) || input->type!=GGML_TYPE_F32 || input->ne[0]%192!=0 || input->ne[1]!=2*int64_t(length)*batch)
+        throw std::invalid_argument("Merged QKV packing requires a paired contiguous product with 64-wide heads");
+    ggml_tensor* args[]{input,cosine,sine};
+    auto result=ggml_custom_4d(ctx,GGML_TYPE_F32,64,length,input->ne[0]/192,3*batch,args,cosine ? 3 : 1,
+        [](ggml_tensor*,int,int,void*) { throw std::runtime_error("Merged QKV packing requires CUDA"); },1,nullptr);
+    ggml_set_name(result,"laya.pack-qkv-merged");
+    return result;
+}
+ggml_tensor* matmul_f16(ggml_context* ctx, ggml_tensor* weight, ggml_tensor* input) {
+    if (!ggml_is_contiguous(weight) || !ggml_is_contiguous(input) || weight->type!=GGML_TYPE_F16 || input->type!=GGML_TYPE_F16 ||
+        weight->ne[0]!=input->ne[0] || weight->ne[0]%8 || weight->ne[2]!=1 || weight->ne[3]!=1 || input->ne[2]!=1 || input->ne[3]!=1)
+        throw std::invalid_argument("Half projection requires contiguous FP16 matrices with 8-aligned rows");
+    ggml_tensor* args[]{weight,input};
+    auto result=ggml_custom_4d(ctx,GGML_TYPE_F32,weight->ne[1],input->ne[1],1,1,args,2,
+        [](ggml_tensor*,int,int,void*) { throw std::runtime_error("Half projection requires CUDA"); },1,nullptr);
+    ggml_set_name(result,"laya.matmul-sm70");
+    return result;
+}
 }

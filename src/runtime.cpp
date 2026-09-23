@@ -12,6 +12,7 @@
 #ifdef LAYA_CUDA
 #include "ggml-cuda.h"
 const char* laya_cuda_bf16_compatibility_error();
+bool laya_cuda_sm70_default();
 #endif
 #ifdef LAYA_VULKAN
 #include "ggml-vulkan.h"
@@ -62,6 +63,8 @@ struct runtime::impl {
     std::set<std::string> compensated_weights;
     std::unique_ptr<graph_state> main_graph, action_graph;
     bool low_precision, flash, tensor_core;
+    // Volta kernels for compensated FP32 with fused attention (SM7x by default).
+    bool sm70 = false;
     bool vulkan_nvidia=false, vulkan_amd=false;
     ggml_type low_type = GGML_TYPE_BF16;
     bool vulkan = false;
@@ -119,6 +122,11 @@ struct runtime::impl {
             backend = ggml_backend_cuda_init(0);
             if (backend && low_precision)
                 if (auto error=laya_cuda_bf16_compatibility_error()) throw std::runtime_error(error);
+            if (backend && tensor_core && flash && !low_precision) {
+                // LAYA_SM70=0 disables and LAYA_SM70=1 forces the Volta kernels.
+                auto selected=std::getenv("LAYA_SM70");
+                sm70=selected && *selected ? std::strcmp(selected,"0")!=0 : laya_cuda_sm70_default();
+            }
         }
 #else
         if (cuda) throw std::runtime_error("This build has no CUDA backend");
@@ -372,7 +380,12 @@ struct runtime::impl {
         trace_tensor(s,prefix+".k",split[1]);
         auto mask = head || layer % 3 == 0 ? s.global_mask : s.local_mask;
         tensor* value;
-        if (flash && !amd_matching() && (low_precision || s.length <= 128)) {
+        if (sm70) {
+            value = ggml_flash_attn_ext(ctx, split[0], split[1], split[2], mask, 1.0f / 8.0f, 0, 0);
+            ggml_set_name(value, !head && layer%3 ? "laya.attn-sm70-local" : "laya.attn-sm70-global");
+            ggml_prec_set_acc(value, GGML_PREC_F32);
+            value = ggml_reshape_2d(ctx, value, width, s.length * s.batch);
+        } else if (flash && !amd_matching() && (low_precision || s.length <= 128)) {
             if (vulkan && low_precision && !head && !s.padding && (layer%3==0 || s.length<64)) mask=nullptr;
             auto k = split[1];
             auto v = split[2];
@@ -459,7 +472,28 @@ struct runtime::impl {
             }
             auto h = norm(ctx, ggml_get_rows(ctx, w("encoder.embeddings.tok_embeddings.weight"), s.ids), "encoder.embeddings.norm", false, false);
             trace("embedding", h);
-            for (int layer = 0; layer < layers; ++layer) {
+            for (int layer = 0; layer < layers && sm70; ++layer) {
+                // Fused compensated layer: products stay unmerged until their
+                // consumer, and normalization emits the next projection's split.
+                auto prefix = "encoder.layers." + std::to_string(layer);
+                auto input = layer == 0 ? split_f16(ctx, h) : norm_split_f16(ctx, h, w(prefix+".attn_norm.weight"), 1e-5f);
+                auto qkv = matmul_f16(ctx, w(prefix+".attn.Wqkv.weight"), input);
+                const int kind = layer%3 == 0 ? 0 : 1;
+                auto packed = pack_qkv_merged(ctx, qkv, s.cosine[kind], s.sine[kind], s.length, s.batch);
+                tensor* split[3];
+                for (int i = 0; i < 3; ++i)
+                    split[i] = ggml_view_4d(ctx, packed, 64, s.length, heads, s.batch,
+                        packed->nb[1], packed->nb[2], packed->nb[3], i*s.batch*packed->nb[3]);
+                auto value = ggml_flash_attn_ext(ctx, split[0], split[1], split[2], kind ? s.local_mask : s.global_mask, 1.0f / 8.0f, 0, 0);
+                ggml_set_name(value, kind ? "laya.attn-sm70-local" : "laya.attn-sm70-global");
+                ggml_prec_set_acc(value, GGML_PREC_F32);
+                value = ggml_reshape_2d(ctx, value, width, tokens);
+                h = merge_add_f16(ctx, matmul_f16(ctx, w(prefix+".attn.Wo.weight"), split_f16(ctx, value)), h);
+                auto products = matmul_f16(ctx, w(prefix+".mlp.Wi.weight"), norm_split_f16(ctx, h, w(prefix+".mlp_norm.weight"), 1e-5f));
+                h = merge_add_f16(ctx, matmul_f16(ctx, w(prefix+".mlp.Wo.weight"), mlp_split_f16(ctx, products)), h);
+                trace("encoder-" + std::to_string(layer), h);
+            }
+            for (int layer = 0; layer < layers && !sm70; ++layer) {
                 auto prefix = "encoder.layers." + std::to_string(layer);
                 auto attended = attention(s, layer == 0 ? h : norm(ctx, h, prefix + ".attn_norm"), prefix, layer, false, low_precision ? h : nullptr);
                 h = low_precision ? attended : ggml_add(ctx, h, attended);

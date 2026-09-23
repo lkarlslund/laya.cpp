@@ -45,6 +45,8 @@ cmake --build build-cuda --parallel 8
 ```
 
 Architecture 120 targets RTX Blackwell; select the architecture for your GPU.
+Tesla V100 (architecture 70) requires CUDA 12.x, since CUDA 13 removed SM70;
+several architectures can share one build, for example `"70;120"`.
 For Vulkan, install the Vulkan loader/headers, `glslc` and SPIR-V headers, then:
 
 ```sh

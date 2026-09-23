@@ -7,6 +7,7 @@
 
 // Retain the ggml dispatcher for reduced-precision/other tensor layouts.
 void ggml_cuda_flash_attn_ext_upstream(ggml_backend_cuda_context&, ggml_tensor*);
+bool laya_cuda_sm70_attention(ggml_backend_cuda_context&, ggml_tensor*);
 
 namespace {
 
@@ -72,6 +73,7 @@ __global__ void attention_f32_d64(const float* q, const float* k, const float* v
 }
 
 void ggml_cuda_flash_attn_ext(ggml_backend_cuda_context& context, ggml_tensor* output) {
+    if (laya_cuda_sm70_attention(context, output)) return;
     const auto q = output->src[0], k = output->src[1], v = output->src[2], mask = output->src[3];
     float parameters[3];
     std::memcpy(parameters, output->op_params, sizeof(parameters));
