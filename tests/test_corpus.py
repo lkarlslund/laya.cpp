@@ -74,4 +74,33 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(question_ids), 30720)
         self.assertTrue(all(variants == set(range(16)) for variants in variants_by_story.values()))
 
+    def test_issue7_subset_covers_every_story_twice(self):
+        import sys
+        sys.path.insert(0, str(ROOT / 'benchmarks'))
+        from make_issue7_corpus import build, manifest
+        from make_performance_corpus import render
+        directory = ROOT / 'benchmarks/cases/performance-issue7-v1'
+        files, parent = build()
+        expected = manifest(files, parent)
+        self.assertEqual((expected['requests'], expected['questions']), (1024, 3840))
+        self.assertEqual(json.loads((directory / 'manifest.json').read_text()), expected)
+        self.assertEqual(len(files), 16)
+        stories = collections.Counter()
+        ids = set()
+        for stratum in expected['strata']:
+            name = stratum['file']
+            cases = files[name]
+            self.assertEqual(len(cases), 64)
+            self.assertEqual((directory / name).read_text(), render(cases))
+            self.assertEqual(hashlib.sha256(render(cases).encode()).hexdigest(), stratum['sha256'])
+            parent_cases = {case['id']: case for case in json.loads(
+                (ROOT / 'benchmarks/cases/performance-v1' / name).read_text())}
+            for case in cases:
+                self.assertEqual(case, parent_cases[case['id']])
+                self.assertNotIn(case['id'], ids)
+                ids.add(case['id'])
+                stories[int(case['id'].rsplit('-', 1)[1])] += 1
+        self.assertEqual(len(ids), 1024)
+        self.assertEqual(stories, collections.Counter({row: 2 for row in range(512)}))
+
 if __name__ == '__main__': unittest.main()
