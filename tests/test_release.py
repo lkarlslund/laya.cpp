@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -43,6 +44,7 @@ class ReleaseTests(unittest.TestCase):
             data = dict(name=name, tag='r0001', commit='abc', system=system, backend=backend,
                         external_libraries=deps, sha256=release.digest(directory / name))
             (directory / (name + '.json')).write_text(json.dumps(data))
+            (directory / f'NOTICES-{system}-{backend}.txt').write_text('Fixture notices')
 
     def test_complete_matrix_and_hashes(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -61,6 +63,35 @@ class ReleaseTests(unittest.TestCase):
             next(path.glob('*.json')).unlink()
             with self.assertRaisesRegex(ValueError, 'complete'):
                 release.verify(path, 'r0001', 'abc')
+
+    def test_missing_notices(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp); self.fixture(path)
+            next(path.glob('NOTICES-*.txt')).unlink()
+            with self.assertRaisesRegex(ValueError, 'notices'):
+                release.verify(path, 'r0001', 'abc')
+
+    def test_gate_skips_unchanged_but_allows_validation(self):
+        def fake_run(*args):
+            if args[:3] == ('git', 'rev-parse', 'HEAD'):
+                return 'abc'
+            if args[:3] == ('gh', 'release', 'list'):
+                return json.dumps([dict(tagName='r0010', isDraft=False), dict(tagName='r0011', isDraft=True)])
+            if args[:2] == ('git', 'rev-list'):
+                return 'abc'
+            if args[:2] == ('git', 'tag'):
+                return 'r0009\nr0010\nr0011'
+            raise AssertionError(args)
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / 'outputs'
+            with patch.dict(os.environ, GITHUB_OUTPUT=str(output)), patch.object(release, 'run', side_effect=fake_run):
+                release.gate('release')
+                self.assertIn('build=false\n', output.read_text())
+                self.assertIn('tag=r0012\n', output.read_text())
+                output.write_text('')
+                release.gate('validate')
+                self.assertIn('build=true\n', output.read_text())
+                self.assertIn('tag=r0000\n', output.read_text())
 
 
 if __name__ == '__main__':

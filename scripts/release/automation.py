@@ -88,6 +88,7 @@ def package(args):
                 'system': args.system, 'backend': args.backend, 'sha256': digest(target),
                 'external_libraries': deps, 'gpu_validation': 'Not performed on hosted build runners',
                 'cuda_toolkit': '13.0.2' if args.backend == 'cuda' else None,
+                'cublas': '13.1.0.3' if args.backend == 'cuda' else None,
                 'vulkan_sdk': args.sdk if args.backend == 'vulkan' else None}
     (args.output / (name + '.json')).write_text(json.dumps(manifest, indent=2) + '\n')
     print(json.dumps(manifest, indent=2))
@@ -107,6 +108,9 @@ def verify(directory, tag, commit):
             raise ValueError('Mixed release identities')
         if digest(directory / name) != item['sha256']:
             raise ValueError('Binary checksum mismatch')
+        notices = directory / f'NOTICES-{item["system"]}-{item["backend"]}.txt'
+        if not notices.is_file() or not notices.stat().st_size:
+            raise ValueError('Missing third-party notices')
         audit(item['external_libraries'], *pair)
     if seen != TARGETS:
         raise ValueError('The complete Windows/Linux CUDA/Vulkan matrix is required')
