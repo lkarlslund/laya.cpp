@@ -1,8 +1,9 @@
 # Validation and performance
 
-The proposed versioned corpus and JSON report contract for issue #7 is in
+The versioned corpus and JSON report contract for issue #7 is in
 [benchmark contract](benchmark-contract.md). The commands below describe the
-existing harness and report format until that proposal is implemented.
+current runners. They still write their historical summary JSON, and can also
+produce the versioned reports.
 
 `benchmarks/cases/acceptance-250.json` is a fixed, committed corpus containing
 100 choice, 75 ordinal score, and 75 boolean questions across 25 scenarios.
@@ -86,6 +87,51 @@ operating points and must not be presented as interchangeable.
 The smaller `smoke.json` corpus and `benchmarks/run.py` remain useful for quick
 single-request baseline measurements. Detailed reports are stored in ignored
 `results/`.
+
+## Versioned local reports
+
+Run `validate.py` with `--v1-output` to preserve the complete expected and
+actual public answer for every request and batch size. It validates the output
+against `benchmarks/schema/validation-v1.schema.json`. Run it once on the fixed
+acceptance corpus and again on each performance stratum. The acceptance report
+must contain 250 requests at each of batch sizes 1, 2, 4, and 8. The workload
+parity report must cover every batch size to be timed.
+
+```sh
+python benchmarks/validate.py --backend cpu --executable build-cpu/bin/laya-cli \
+  --model models/laya --threads 4 --batch-sizes 1 2 4 8 \
+  --output results/cpu-acceptance.json \
+  --v1-output results/cpu-acceptance-v1.json
+```
+
+CPU validation and timing use the CPU baseline and set the same explicit thread
+budget in PyTorch and the native process through `LAYA_CPU_THREADS`. `sweep.py`
+rejects a validation report from a different thread budget. For a full CPU
+comparison, repeat acceptance and timing with `--threads 1` and a stated
+physical-core count. GPU runs omit `--threads`.
+
+For each performance stratum, use its path from
+`benchmarks/cases/performance-v1/manifest.json` with `--cases` in both
+`validate.py` and `sweep.py`. Then convert the passing sweep and its two parity
+reports to the benchmark-v1 JSON:
+
+```sh
+python benchmarks/format_benchmark_v1.py \
+  --sweep results/cpu-short-q1-sweep.json \
+  --acceptance results/cpu-acceptance-v1.json \
+  --workload results/cpu-short-q1-validation-v1.json \
+  --manifest benchmarks/cases/performance-v1/manifest.json \
+  --stratum short-q1.json --executable build-cpu/bin/laya-cli \
+  --output results/cpu-short-q1-benchmark-v1.json
+```
+
+The converter checks corpus and build hashes, all acceptance cases, workload
+parity, batch coverage, warmup and timed-pass counts, and the number of raw
+samples. It validates the result against `benchmark-v1.schema.json`. The
+current sweep does not measure startup time or peak process RSS, so those fields
+are `null` with a reason. Record those separately before presenting a complete
+hardware comparison. Reports from a small local sample are format checks and
+must not be presented as results for the fixed 10,240-question corpus.
 
 ## Apple Core ML sweep
 

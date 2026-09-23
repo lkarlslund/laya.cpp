@@ -4,3 +4,4 @@ transformers==5.7.0
 huggingface-hub>=0.20,<2
 safetensors>=0.4,<1
 numpy>=1.26,<3
+jsonschema>=4.20,<5

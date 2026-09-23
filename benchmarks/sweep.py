@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 import statistics
 import subprocess
 import time
@@ -25,6 +26,7 @@ def main():
     p.add_argument('--batch-sizes', type=int, nargs='+', default=[1,2,4,8])
     p.add_argument('--iterations', type=int, default=5)
     p.add_argument('--warmup', type=int, default=3)
+    p.add_argument('--threads', type=int, help='CPU thread budget for both runtimes (default: 4)')
     precision = p.add_mutually_exclusive_group()
     precision.add_argument('--fp32', action='store_true', default=True)
     precision.add_argument('--bf16', '--experimental-bf16', dest='fp32', action='store_false')
@@ -41,30 +43,41 @@ def main():
         if a.backend == 'cpu' and not a.fp32: p.error('CPU requires FP32')
         if a.backend == 'cpu' and a.tensor_core_fp32: p.error('CPU requires plain FP32')
         if a.fp32: a.no_flash = True
+    if a.backend == 'cpu':
+        a.threads = a.threads or 4
+        if not 1 <= a.threads <= 256: p.error('CPU threads must be from 1 to 256')
+        torch.set_num_threads(a.threads)
+        torch.set_num_interop_threads(1)
+    elif a.threads is not None:
+        p.error('--threads applies only to CPU')
     if a.iterations < 1 or a.warmup < 0 or any(x < 1 for x in a.batch_sizes): p.error('Invalid iteration or batch count')
     cases = json.loads(a.cases.read_text())
+    native_env = {**os.environ, 'LAYA_CPU_THREADS': str(a.threads)} if a.backend == 'cpu' else None
     validation = json.loads(a.validation.read_text())
     binary_hash = native_hash(a.executable)
     weights_hash = file_hash(Path(a.model)/'model.safetensors')
+    baseline_device = 'CPU' if a.backend == 'cpu' else torch.cuda.get_device_name()
     if (validation.get('backend', 'cuda') != a.backend or not validation['passed'] or validation['cases_sha256'] != hashlib.sha256(a.cases.read_bytes()).hexdigest()
             or validation['native_build_sha256'] != binary_hash or validation['weights_sha256'] != weights_hash
-            or validation['gpu'] != torch.cuda.get_device_name() or validation['torch'] != torch.__version__
+            or validation['gpu'] != baseline_device or validation['torch'] != torch.__version__
             or validation['fused_attention'] != (not a.no_flash) or validation['tensor_core_fp32'] != a.tensor_core_fp32
             or validation['precision'] != ('fp32' if a.fp32 else 'fp16' if a.fp16 else 'bf16')
+            or validation.get('threads') != a.threads
             or not set(a.batch_sizes).issubset({b['batch_size'] for b in validation['batches']})):
         p.error('A passing validation report for this corpus, binary, weights, precision and batch sizes is required')
-    oracle = Oracle(a.source, a.model, a.fp32, a.fp16)
+    oracle = Oracle(a.source, a.model, a.fp32, a.fp16, device='cpu' if a.backend == 'cpu' else 'cuda')
     report = dict(schema_version=2, backend=a.backend, cases_sha256=hashlib.sha256(a.cases.read_bytes()).hexdigest(),
-                  model_revision=(Path(a.model)/'REVISION').read_text().strip(), gpu=torch.cuda.get_device_name(),
+                  model_revision=(Path(a.model)/'REVISION').read_text().strip(), gpu=baseline_device,
                   torch=torch.__version__, precision='fp32' if a.fp32 else 'fp16' if a.fp16 else 'bf16', iterations=a.iterations,
-                  python_runtime='rocm' if torch.version.hip else 'cuda',
-                  python_runtime_version=torch.version.hip or torch.version.cuda,
+                  python_runtime='cpu' if a.backend == 'cpu' else 'rocm' if torch.version.hip else 'cuda',
+                  python_runtime_version=None if a.backend == 'cpu' else torch.version.hip or torch.version.cuda,
                   fused_attention=not a.no_flash, tensor_core_fp32=a.tensor_core_fp32,
+                  threads=a.threads,
                   native_build_sha256=binary_hash, weights_sha256=weights_hash,
                   warmup=a.warmup, batch_sizes=a.batch_sizes, rows=[], passed=True)
     for label,path in [('project_revision','.'),('ggml_revision','third_party/ggml'),('baseline_revision',a.source)]:
         report[label] = subprocess.check_output(['git','-C',path,'rev-parse','HEAD'],text=True).strip()
-    with Native(a.executable, a.model, fp32=a.fp32, fp16=a.fp16, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
+    with Native(a.executable, a.model, fp32=a.fp32, fp16=a.fp16, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend, env=native_env) as native:
         report['native_device'] = matching_device(native.call(cases[:1]), a.backend, report['gpu'])
         if (a.backend == 'vulkan' and not report['native_device']) or report['native_device'] != validation.get('native_device'):
             p.error('Validation must identify the same native GPU used for timing')
@@ -79,7 +92,7 @@ def main():
                     raise RuntimeError('Batch formatter differs from public API')
                 # Release unused tensors from previous shapes before native allocation.
                 # Warmups repopulate the allocator; this is outside measured intervals.
-                torch.cuda.empty_cache()
+                if a.backend != 'cpu': torch.cuda.empty_cache()
                 actual = native.call(requests)['results']
                 if len(actual) != len(expected): raise RuntimeError('Native result count differs')
                 for case, left, right in zip(requests, expected, actual):
@@ -87,13 +100,15 @@ def main():
                     except ValueError as exc: failures.append(dict(id=case['id'],error=str(exc)))
                 for _ in range(a.warmup):
                     oracle.predict_batch(requests); native.call(requests)
-                torch.cuda.synchronize()
+                if a.backend != 'cpu': torch.cuda.synchronize()
                 for iteration in range(a.iterations):
                     # Alternate order to reduce systematic clock/thermal bias.
                     for backend in (('baseline','native') if iteration % 2 == 0 else ('native','baseline')):
                         if backend == 'baseline':
-                            torch.cuda.synchronize(); before=time.perf_counter()
-                            oracle.predict_batch(requests); torch.cuda.synchronize()
+                            if a.backend != 'cpu': torch.cuda.synchronize()
+                            before=time.perf_counter()
+                            oracle.predict_batch(requests)
+                            if a.backend != 'cpu': torch.cuda.synchronize()
                             base_times.append((time.perf_counter()-before)*1000)
                         else: native_times.append(native.call(requests)['elapsed_ms'])
             def stats(times):

@@ -27,7 +27,9 @@
         "baseline_device": {"type": "string", "minLength": 1},
         "candidate_device": {"type": "string", "minLength": 1},
         "baseline_flags": {"type": "array", "items": {"type": "string"}},
-        "candidate_flags": {"type": "array", "items": {"type": "string"}}
+        "candidate_flags": {"type": "array", "items": {"type": "string"}},
+        "baseline_threads": {"type": ["integer", "null"], "minimum": 1},
+        "candidate_threads": {"type": ["integer", "null"], "minimum": 1}
       }
     },
     "acceptance": {
