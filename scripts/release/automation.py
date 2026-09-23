@@ -51,9 +51,16 @@ def audit(deps, system, backend):
                   (system == 'windows' and dep.lower().startswith(('api-ms-win-', 'ext-ms-win-')))]
     if unexpected:
         raise ValueError(f'Unexpected external dependencies: {unexpected}')
-    gpu = ('nvcuda.dll' if backend == 'cuda' else 'vulkan-1.dll') if system == 'windows' else ('libcuda.so.1' if backend == 'cuda' else 'libvulkan.so.1')
-    if gpu not in {d.lower() for d in deps}:
-        raise ValueError(f'Missing expected GPU backend dependency: {gpu}')
+    if system == 'windows' and backend == 'cuda':
+        # CUDA 13's Windows cuda.lib loads nvcuda.dll via LoadLibraryExA;
+        # the driver is required at runtime but need not be a PE import.
+        required = {'cublas64_13.dll', 'cublaslt64_13.dll'}
+    else:
+        required = {'vulkan-1.dll' if system == 'windows' else
+                    ('libcuda.so.1' if backend == 'cuda' else 'libvulkan.so.1')}
+    missing = required - {d.lower() for d in deps}
+    if missing:
+        raise ValueError(f'Missing expected GPU backend dependencies: {sorted(missing)}')
 
 
 def gate(mode):
@@ -78,6 +85,7 @@ def package(args):
     if not re.fullmatch(r'r\d+', args.tag):
         raise ValueError('Invalid release tag')
     deps = dependencies(args.executable, args.system)
+    print('External libraries: ' + json.dumps(deps), flush=True)
     audit(deps, args.system, args.backend)
     args.output.mkdir(parents=True, exist_ok=True)
     suffix = '.exe' if args.system == 'windows' else ''

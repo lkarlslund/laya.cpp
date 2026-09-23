@@ -35,12 +35,21 @@ class ReleaseTests(unittest.TestCase):
         with patch.object(release, 'run', return_value='    KERNEL32.dll\n    cublas64_13.dll\n'):
             self.assertEqual(release.dependencies(Path('binary'), 'windows'), ['KERNEL32.dll', 'cublas64_13.dll'])
 
+    def test_windows_cuda_driver_loaded_at_runtime(self):
+        deps = ['KERNEL32.dll', 'cublas64_13.dll', 'cublasLt64_13.dll']
+        release.audit(deps, 'windows', 'cuda')
+        for missing in ('cublas64_13.dll', 'cublasLt64_13.dll'):
+            with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, 'Missing expected'):
+                release.audit([d for d in deps if d != missing], 'windows', 'cuda')
+        with self.assertRaisesRegex(ValueError, 'Unexpected'):
+            release.audit(deps + ['cudart64_13.dll'], 'windows', 'cuda')
+
     def fixture(self, directory):
         for system, backend in release.TARGETS:
             suffix = '.exe' if system == 'windows' else ''
             name = f'laya-r0001-{system}-amd64-{backend}{suffix}'
             (directory / name).write_bytes(b'fixture executable')
-            deps = (['nvcuda.dll'] if backend == 'cuda' else ['vulkan-1.dll']) if system == 'windows' else (['libcuda.so.1'] if backend == 'cuda' else ['libvulkan.so.1'])
+            deps = (['cublas64_13.dll', 'cublasLt64_13.dll'] if backend == 'cuda' else ['vulkan-1.dll']) if system == 'windows' else (['libcuda.so.1'] if backend == 'cuda' else ['libvulkan.so.1'])
             data = dict(name=name, tag='r0001', commit='abc', system=system, backend=backend,
                         external_libraries=deps, sha256=release.digest(directory / name))
             (directory / (name + '.json')).write_text(json.dumps(data))

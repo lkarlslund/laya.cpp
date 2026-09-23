@@ -33,6 +33,8 @@ Linux links the CUDA runtime and cuBLAS/cuBLASLt statically. Windows links the
 CUDA runtime statically but needs the two math DLLs. These DLLs are not included
 with the NVIDIA display driver. Put both beside the `.exe`, or supply them through
 `PATH` from the matching toolkit.
+CUDA's Windows driver loader opens `nvcuda.dll` at runtime, so it may be absent
+from the manifest's direct-import list; the NVIDIA driver is still required.
 
 The Windows cuBLAS files are available in NVIDIA's
 [cuBLAS 13.1.0.3 redistribution archive](https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-13.1.0.3-archive.zip).
