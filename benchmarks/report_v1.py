@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 import json
 import math
+import os
 from pathlib import Path
 import subprocess
 
@@ -62,6 +63,11 @@ def validation_header(*, args, cases, oracle, candidate_device):
     if args.tensor_core_fp32: candidate_flags.append('--tensor-core-fp32')
     threads = getattr(args, 'threads', None)
     if threads is not None: candidate_flags.append(f'LAYA_CPU_THREADS={threads}')
+    baseline_flags = [precision]
+    if threads is not None:
+        baseline_flags.append(f'torch_threads={threads}')
+        for name in ('OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'NUMEXPR_NUM_THREADS'):
+            baseline_flags.append(f'{name}={os.environ.get(name, "unset")}')
     baseline_device = (oracle.agent.device.type if oracle.device == 'cpu' else
                        __import__('torch').cuda.get_device_name())
     return {
@@ -71,10 +77,11 @@ def validation_header(*, args, cases, oracle, candidate_device):
             'variant': variant, 'precision': precision, 'backend': args.backend,
             'corpus_id': args.cases.stem, 'corpus_sha256': file_hash(args.cases),
             'weights_sha256': file_hash(model / 'model.safetensors'),
-            'baseline_commit': revision(args.source), 'candidate_commit': revision('.'),
+            'baseline_commit': getattr(args, 'baseline_commit', None) or revision(args.source),
+            'candidate_commit': getattr(args, 'candidate_commit', None) or revision('.'),
             'candidate_sha256': native_hash(args.executable),
             'baseline_device': str(baseline_device), 'candidate_device': str(candidate_device),
-            'baseline_flags': [precision] + ([f'torch_threads={threads}'] if threads is not None else []),
+            'baseline_flags': baseline_flags,
             'candidate_flags': candidate_flags,
             'baseline_threads': threads, 'candidate_threads': threads,
         },

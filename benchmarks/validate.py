@@ -36,6 +36,8 @@ def main():
     p.add_argument('--threads', type=int, help='CPU thread budget for both runtimes (default: 4)')
     p.add_argument('--output', type=Path, default=Path('results/validation.json'))
     p.add_argument('--v1-output', type=Path, help='Also write the versioned per-case JSON report')
+    p.add_argument('--candidate-commit', help='Frozen source commit for a multi-run benchmark campaign')
+    p.add_argument('--baseline-commit', help='Frozen baseline commit for a multi-run benchmark campaign')
     a = p.parse_args()
     if a.fp16:
         a.fp32 = False

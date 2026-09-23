@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert a paired sweep and its parity evidence to the proposed v1 JSON format."""
+"""Convert a paired sweep and its parity evidence to benchmark-v1 JSON."""
 import argparse
 from datetime import datetime, timezone
 import json
@@ -121,10 +121,10 @@ def format_report(sweep, acceptance, workload, manifest, stratum, executable):
             raise ValueError('Workload report has missing or duplicate request IDs')
     if sweep['cases_sha256'] != source['sha256']:
         raise ValueError('Sweep workload does not match the manifest stratum')
-    for key in ('variant', 'precision', 'backend', 'weights_sha256', 'candidate_sha256'):
-        left = aid['candidate_sha256'] if key == 'candidate_sha256' else aid[key]
-        right = wid['candidate_sha256'] if key == 'candidate_sha256' else wid[key]
-        if left != right:
+    for key in ('variant', 'precision', 'backend', 'weights_sha256', 'candidate_sha256',
+                'baseline_commit', 'candidate_commit', 'baseline_device', 'candidate_device',
+                'baseline_flags', 'candidate_flags', 'baseline_threads', 'candidate_threads'):
+        if aid.get(key) != wid.get(key):
             raise ValueError(f'Acceptance and workload disagree on {key}')
     if (sweep['backend'] != aid['backend'] or sweep['precision'] != aid['precision'] or
             sweep['weights_sha256'] != aid['weights_sha256'] or

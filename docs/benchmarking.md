@@ -133,6 +133,51 @@ are `null` with a reason. Record those separately before presenting a complete
 hardware comparison. Reports from a small local sample are format checks and
 must not be presented as results for the fixed 8,192-request corpus.
 
+## Issue #7 CPU campaign
+
+The issue #7 runner uses the fixed 1,024-request subset documented in the
+[benchmark contract](benchmark-contract.md). It runs all three FP32 checkpoints
+at one thread and the available physical-core count (16 on the local Ryzen AI
+MAX+ 395). Each checkpoint/thread setting gets full 250-case acceptance,
+per-stratum workload parity, then three warmups and five alternating timed
+passes at batch sizes 1, 2, 4, and 8. Runs are serial, checkpointed after each
+stratum, and may take multiple days. Run on an otherwise idle host.
+
+```sh
+python benchmarks/run_cpu_issue7.py --executable build-cpu/bin/laya-cli \
+  --model-root models/laya --source research/laya \
+  --output results/issue7
+```
+
+The runner requires a clean source tree and freezes the code, harness, binary,
+weights, baseline, and corpus identities in `results/issue7/identity.json`.
+Rerunning the same command resumes only reports whose identities and parity
+still match. `run-index.json` stays `incomplete` until all six
+checkpoint/thread combinations and all 16 strata have passed. `--variants`,
+`--threads`, and `--strata` can narrow development runs, but they cannot make
+the full index pass.
+
+For timing, a persistent CPU baseline worker and the native executable each
+keep one checkpoint resident. Both use the same affinity and explicit PyTorch,
+ggml, OpenMP, MKL, OpenBLAS, and NumExpr thread budget. Each worker measures its
+own inference call internally, excluding JSON serialization, transport, and
+queue time. Process start to readiness and Linux `VmHWM` peak RSS are recorded
+for each worker. Checkpoint weights are read before each process pair starts,
+so startup times are labeled page-cache-warm. CPU frequency and governor are
+sampled where the host exposes them.
+
+After `run-index.json` says `passed`, stage only the verified JSON evidence:
+
+```sh
+python benchmarks/publish_issue7.py --source results/issue7 \
+  --destination docs/measurements/issue7
+```
+
+The staging command rejects missing rows, parity failures, changed hashes,
+missing load or RSS data, and an incomplete matrix. Link the staged index and
+derive human-readable tables from its reports; do not substitute a table for
+the raw samples.
+
 ## Apple Core ML sweep
 
 Core ML uses a dedicated fail-closed validator and sweep because its reference

@@ -56,6 +56,14 @@ create a new version and cannot be merged into older trend lines. The workload
 manifest and its SHA-256 must be published with each report. The corpus and
 strata are fixed for version 1.
 
+The CPU report for issue #7 uses a smaller, separately identified
+[`performance-issue7-v1`](../benchmarks/cases/performance-issue7-v1/manifest.json)
+subset: 1,024 requests and 3,840 questions, with 64 requests in each of the
+16 strata. Every source story appears twice, at different length and output
+shapes. The selected requests are unchanged entries from `performance-v1`;
+the subset manifest records its parent hash and selection rule. CPU report
+numbers must name this subset, not the full 8,192-request corpus.
+
 ## Benchmark matrix
 
 One report covers one host, checkpoint, precision, candidate build, baseline
@@ -125,6 +133,12 @@ those samples and the recorded question count and total measured wall time.
 Missing startup or memory measurements use `null` with a reason. A missing
 timed row makes the report `incomplete`; it must not contain fabricated zero
 samples.
+
+Issue #7 publication is stricter: each CPU report must have measured load time
+and peak RSS for both independent processes. Its inference rows exclude JSON
+transport and server queue time. The subset has 64 requests per stratum, so
+batch sizes 1, 2, 4, and 8 have no partial final group; a batch-call latency
+observation is also the latency experienced by every request in that group.
 
 The schema is independent of a particular backend. A contributor
 can run the same corpus and produce the same JSON shape on a CPU-only machine.

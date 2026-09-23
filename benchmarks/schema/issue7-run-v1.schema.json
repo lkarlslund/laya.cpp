@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lkarlslund/laya.cpp/blob/main/benchmarks/schema/issue7-run-v1.schema.json",
+  "title": "Laya issue #7 CPU report index v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "status", "corpus_id", "corpus_manifest_sha256", "candidate_sha256", "candidate_commit", "baseline_commit", "entries"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "issue7-run-index"},
+    "status": {"enum": ["passed", "incomplete"]},
+    "corpus_id": {"const": "performance-issue7-v1"},
+    "corpus_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "candidate_sha256": {"$ref": "#/$defs/sha256"},
+    "candidate_commit": {"type": "string", "minLength": 1},
+    "baseline_commit": {"type": "string", "minLength": 1},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["variant", "threads", "acceptance_path", "acceptance_sha256", "reports", "complete"],
+        "properties": {
+          "variant": {"enum": ["english", "multilingual", "typed-decisions"]},
+          "threads": {"type": "integer", "minimum": 1},
+          "acceptance_path": {"type": ["string", "null"]},
+          "acceptance_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+          "reports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["stratum", "path", "sha256"],
+              "properties": {
+                "stratum": {"type": "string", "minLength": 1},
+                "path": {"type": "string", "minLength": 1},
+                "sha256": {"$ref": "#/$defs/sha256"}
+              }
+            }
+          },
+          "complete": {"type": "boolean"}
+        }
+      }
+    }
+  },
+  "$defs": {"sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+}
