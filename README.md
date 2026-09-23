@@ -6,8 +6,9 @@ Supports the `english`, `multilingual` and `typed-decisions` models, plus a
 JEV-compatible HTTP server with automatic request batching.
 
 [Binary releases](https://github.com/lkarlslund/laya.cpp/releases) provide Windows
-and Linux x64 CUDA/Vulkan executables. See [runtime requirements](docs/releases.md)
-for the required drivers and Windows CUDA DLLs.
+and Linux x64 CUDA/Vulkan executables plus a macOS arm64 Core ML executable. See
+[runtime requirements](docs/releases.md) for drivers, Windows CUDA DLLs and
+compiled Core ML model buckets.
 
 ## Performance
 
