@@ -1,7 +1,7 @@
 # laya.cpp
 
 Native C++ inference for Laya typed decisions, powered by ggml with CUDA and
-Vulkan backends. Tokenization, inference and JSON output run without Python.
+Vulkan and Apple Core ML backends. Tokenization, inference and JSON output run without Python.
 Supports the `english`, `multilingual` and `typed-decisions` models, plus a
 JEV-compatible HTTP server with automatic request batching.
 
@@ -53,6 +53,23 @@ cmake -S . -B build-vulkan -G Ninja -DCMAKE_BUILD_TYPE=Release \
 cmake --build build-vulkan --parallel 8
 ```
 
+On Apple Silicon, Core ML uses the CPU, GPU and Neural Engine through
+`MLComputeUnitsAll`. The build requires macOS 12 or newer, full Xcode (the
+Command Line Tools alone are not sufficient), and the host dependencies:
+
+```sh
+brew install cmake ninja icu4c nlohmann-json
+scripts/build_coreml.sh
+```
+
+The script selects the standard `/Applications/Xcode.app`, locates the Homebrew
+packages, initializes submodules, configures Release for arm64 and macOS 12, and
+builds `build-coreml/bin/laya-cli`. Pass `--test` to run CTest, or `--fresh` to
+discard a stale CMake cache. Run `--help` for all options.
+
+The checkpoint must first be exported and compiled. See [Core ML](docs/coreml.md)
+for model preparation, manual build commands, bucket choices and M1 validation.
+
 ## Run
 
 Download the models with the optional Python tooling, then run native inference:
@@ -69,6 +86,9 @@ Strict FP32 is the default; `--tensor-core-fp32` enables compensated FP32
 projections. Both GPU backends support `--bf16`; Vulkan also supports `--fp16`.
 See [precision](docs/precision.md) and [Vulkan support](docs/vulkan.md) for tested
 hardware and build requirements.
+
+For Core ML, run `build-coreml/bin/laya-cli --coreml`; model precision is fixed
+at export time, so do not combine it with `--fp16` or `--bf16`.
 
 Without `--input`, the CLI accepts one JSON request or request array per line:
 
@@ -92,6 +112,7 @@ batched automatically. See [HTTP serving](docs/http.md) for examples and setting
 - [Latest performance measurements](docs/performance.md)
 - [Benchmarking and the fixed 250-question corpus](docs/benchmarking.md)
 - [Vulkan support](docs/vulkan.md)
+- [Apple Core ML support](docs/coreml.md)
 - [Architecture](docs/architecture.md)
 
 ## License

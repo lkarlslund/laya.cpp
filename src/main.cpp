@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
             else if (arg == "--cpu") backend = laya::backend_type::cpu;
             else if (arg == "--vulkan") backend = laya::backend_type::vulkan;
             else if (arg == "--cuda") backend = laya::backend_type::cuda;
+            else if (arg == "--coreml") backend = laya::backend_type::coreml;
             else if (arg == "--fp32") { precision = laya::precision_type::fp32; flash = false; }
             else if (arg == "--flash-fp32") { precision = laya::precision_type::fp32; flash = true; }
             else if (arg == "--tensor-core-fp32") { precision = laya::precision_type::fp32; tensor_core = true; }
@@ -50,9 +51,10 @@ int main(int argc, char** argv) {
             else if (arg == "--raw") raw = true;
             else if (arg == "--prepare") prepare = true;
             else if (arg == "--help") {
-                std::cout << "laya-cli [--model DIR] [--variant english|multilingual|typed-decisions] [--input JSON] [--raw|--prepare] [--fp32|--fp16|--bf16] [--cpu|--cuda|--vulkan]\n"
+                std::cout << "laya-cli [--model DIR] [--variant english|multilingual|typed-decisions] [--input JSON] [--raw|--prepare] [--fp32|--fp16|--bf16] [--cpu|--cuda|--vulkan|--coreml]\n"
                              "--tensor-core-fp32 --flash-fp32 enables the optimized CUDA path.\n"
                              "--bf16 enables mixed BF16 on CUDA or Vulkan; --fp16 currently requires Vulkan.\n--experimental-bf16 is a compatibility alias. See docs/precision.md and docs/vulkan.md for validated hardware and toolchains.\n"
+                             "--coreml requires a -DLAYA_COREML=ON Apple Silicon build and compiled coreml/ buckets; precision is selected during export. See docs/coreml.md.\n"
                              "Reads JSON lines from stdin when --input is absent. Each line is a request or request array.\n";
                 std::cout << "--server listens on HTTP: POST /v1/systemone (JEV schema), POST /predict (batch), GET /health, GET /v1/models.\n"
                              "--host ADDRESS (127.0.0.1), --port PORT (8080), --max-questions N (8).\n"

@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace laya {
-enum class backend_type { cuda, cpu, vulkan };
+enum class backend_type { cuda, cpu, vulkan, coreml };
 enum class precision_type { fp32, fp16, bf16 };
 using json = nlohmann::ordered_json;
 struct batch {

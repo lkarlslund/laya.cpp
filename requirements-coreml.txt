@@ -1,0 +1,6 @@
+# Reproducible exporter stack validated with coremltools 9 on Apple Silicon.
+torch==2.7.*
+transformers==5.0.*
+coremltools==9.0.*
+safetensors>=0.4,<1
+numpy>=1.26,<2.6

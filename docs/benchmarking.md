@@ -83,6 +83,25 @@ The smaller `smoke.json` corpus and `benchmarks/run.py` remain useful for quick
 single-request baseline measurements. Detailed reports are stored in ignored
 `results/`.
 
+## Apple Core ML sweep
+
+Core ML uses a dedicated fail-closed validator and sweep because its reference
+backend is PyTorch CPU rather than CUDA. After producing a passing schema-2
+validation report, run:
+
+```sh
+python benchmarks/sweep_coreml.py \
+  --validation results/coreml-validation.json \
+  --cache-root results/coreml-cache \
+  --batch-sizes 1 2 4 8 --warmup 3 --iterations 5 \
+  --output results/coreml-sweep.json
+```
+
+The `rows` use the same `baseline`, `native`, `speedup`, `failures`, p50/p95 and
+questions-per-second fields as `sweep.py`. The report additionally records the
+compiled bucket used by each group and binds timing to the Core ML manifest.
+See [Apple Core ML](coreml.md) for setup, validation and interpretation details.
+
 ## Comparing native builds
 
 Preserve the earlier executable together with its own shared libraries. Ensure
