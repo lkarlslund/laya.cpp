@@ -88,7 +88,12 @@ struct runtime::impl {
         // from cooperative half-precision products on the same device.
         // The CUDA backend enables TF32 in cuBLAS by default. Strict FP32 must
         // disable that permission before CUDA/cuBLAS initialization.
-        if (cuda && !low_precision && setenv("NVIDIA_TF32_OVERRIDE", "0", 1) != 0)
+        if (cuda && !low_precision &&
+#ifdef _WIN32
+            _putenv_s("NVIDIA_TF32_OVERRIDE", "0") != 0)
+#else
+            setenv("NVIDIA_TF32_OVERRIDE", "0", 1) != 0)
+#endif
             throw std::runtime_error("Cannot enforce FP32 CUDA arithmetic");
         config = read_json(directory / "rl_agent_config.json");
         encoder = read_json(directory / "encoder/config.json");
