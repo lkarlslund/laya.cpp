@@ -11,10 +11,12 @@ def notices(output):
                ROOT / 'third_party/cpp-httplib/LICENSE']
     if BACKEND == 'vulkan':
         sources += sorted((ROOT / 'scripts/release/licenses').glob('*.txt'))
+    if BACKEND == 'coreml':
+        sources += sorted((ROOT / 'scripts/release/licenses/macos').glob('*.txt'))
     if WINDOWS:
         sources += [ROOT / f'release-vcpkg/installed/x64-windows-static/share/{name}/copyright'
                     for name in ('icu', 'nlohmann-json')]
-    else:
+    elif sys.platform == 'linux':
         sources += [Path('/usr/share/doc') / name / 'copyright'
                     for name in ('libicu-dev', 'nlohmann-json3-dev', 'libstdc++-13-dev')]
         # The GCC copyright file includes the Runtime Library Exception and
@@ -36,7 +38,7 @@ def notices(output):
 def package():
     executable = BUILD / 'bin' / ('laya-cli.exe' if WINDOWS else 'laya-cli')
     # CUDA hosted runners have no driver. Dependency inspection does not load it.
-    if BACKEND == 'vulkan':
+    if BACKEND in ('vulkan', 'coreml'):
         run(executable, '--help')
     run(sys.executable, ROOT / 'scripts/release/automation.py', 'package',
         '--executable', executable, '--system', os.environ['RELEASE_SYSTEM'],

@@ -75,9 +75,18 @@ jobs:
       commit: ${{ needs.gate.outputs.commit }}
       tag: ${{ needs.gate.outputs.tag }}
 
+  macos_coreml:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    uses: ./.github/workflows/binary-build.yml
+    with:
+      target: macos-coreml
+      commit: ${{ needs.gate.outputs.commit }}
+      tag: ${{ needs.gate.outputs.tag }}
+
   publish:
-    needs: [gate, linux_cuda, linux_vulkan, windows_cuda, windows_vulkan]
-    if: needs.linux_cuda.result == 'success' && needs.linux_vulkan.result == 'success' && needs.windows_cuda.result == 'success' && needs.windows_vulkan.result == 'success' && (github.event_name == 'schedule' || inputs.mode == 'release')
+    needs: [gate, linux_cuda, linux_vulkan, windows_cuda, windows_vulkan, macos_coreml]
+    if: needs.linux_cuda.result == 'success' && needs.linux_vulkan.result == 'success' && needs.windows_cuda.result == 'success' && needs.windows_vulkan.result == 'success' && needs.macos_coreml.result == 'success' && (github.event_name == 'schedule' || inputs.mode == 'release')
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -101,5 +110,5 @@ jobs:
           RELEASE_COMMIT: ${{ needs.gate.outputs.commit }}
           PREVIOUS_TAG: ${{ needs.gate.outputs.previous }}
         run: |
-          chmod +x dist/laya-*-linux-amd64-*
+          chmod +x dist/laya-*-linux-amd64-* dist/laya-*-macos-arm64-*
           python scripts/release/automation.py publish --output dist --tag "$RELEASE_TAG" --commit "$RELEASE_COMMIT" --previous "$PREVIOUS_TAG"

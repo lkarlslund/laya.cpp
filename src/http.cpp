@@ -294,16 +294,24 @@ int serve_http(const http_options& options, http_server::predictor predict) {
     interrupted.store(false, std::memory_order_relaxed);
     const auto old_int = std::signal(SIGINT, interrupt);
     const auto old_term = std::signal(SIGTERM, interrupt);
-    std::jthread monitor([&](std::stop_token stop) {
-        while (!stop.stop_requested()) {
+    struct monitor_thread {
+        std::atomic<bool> stop{false};
+        std::thread worker;
+        ~monitor_thread() {
+            stop.store(true, std::memory_order_relaxed);
+            if (worker.joinable()) worker.join();
+        }
+    } monitor;
+    monitor.worker = std::thread([&] {
+        while (!monitor.stop.load(std::memory_order_relaxed)) {
             if (interrupted.load(std::memory_order_relaxed) && server.running()) { server.stop(); return; }
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     });
     std::cerr << "Listening: http://" << options.host << ':' << port << "/v1/systemone\n";
     const bool success = server.listen();
-    monitor.request_stop();
-    monitor.join();
+    monitor.stop.store(true, std::memory_order_relaxed);
+    monitor.worker.join();
     std::signal(SIGINT, old_int);
     std::signal(SIGTERM, old_term);
     if (!success) throw std::runtime_error("HTTP listener failed");

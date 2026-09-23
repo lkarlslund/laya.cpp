@@ -27,6 +27,12 @@ def configure():
                     '-DCMAKE_CUDA_FLAGS=-t 2']
     if BACKEND == 'vulkan':
         options += [f'-DCMAKE_PREFIX_PATH={os.environ["VULKAN_SDK"]}']
+    if BACKEND == 'coreml':
+        icu = subprocess.check_output(['brew', '--prefix', 'icu4c@78'], text=True).strip()
+        json_prefix = subprocess.check_output(['brew', '--prefix', 'nlohmann-json'], text=True).strip()
+        options += ['-DLAYA_COREML=ON', '-DCMAKE_OSX_ARCHITECTURES=arm64',
+                    '-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
+                    f'-DCMAKE_PREFIX_PATH={icu};{json_prefix}']
     run('cmake', '-S', ROOT, '-B', BUILD, '-G', 'Ninja', *options)
 
 

@@ -15,12 +15,15 @@ class ReleaseTests(unittest.TestCase):
     def test_minimum_dependencies(self):
         release.audit(['libc.so.6', 'libvulkan.so.1'], 'linux', 'vulkan')
         release.audit(['KERNEL32.dll', 'nvcuda.dll', 'cublas64_13.dll', 'cublasLt64_13.dll'], 'windows', 'cuda')
+        release.audit(['/usr/lib/libSystem.B.dylib', '/System/Library/Frameworks/CoreML.framework/Versions/A/CoreML'], 'macos', 'coreml')
         for deps, system, backend in [
             (['libc.so.6', 'libvulkan.so.1', 'libicuuc.so.78'], 'linux', 'vulkan'),
             (['libcuda.so.1', 'libcudart.so.13'], 'linux', 'cuda'),
             (['vulkan-1.dll', 'liblaya.dll'], 'windows', 'vulkan'),
             (['vulkan-1.dll', 'VCRUNTIME140.dll'], 'windows', 'vulkan'),
             (['libc.so.6'], 'linux', 'cuda'),
+            (['/opt/homebrew/opt/icu4c/lib/libicuuc.dylib', '/System/Library/Frameworks/CoreML.framework/Versions/A/CoreML'], 'macos', 'coreml'),
+            (['/usr/lib/libSystem.B.dylib'], 'macos', 'coreml'),
             ([], 'linux', 'vulkan'),
         ]:
             with self.subTest(deps=deps), self.assertRaises(ValueError):
@@ -34,6 +37,13 @@ class ReleaseTests(unittest.TestCase):
                 release.dependencies(Path('binary'), 'linux')
         with patch.object(release, 'run', return_value='    KERNEL32.dll\n    cublas64_13.dll\n'):
             self.assertEqual(release.dependencies(Path('binary'), 'windows'), ['KERNEL32.dll', 'cublas64_13.dll'])
+        def otool(*args):
+            return 'Load command 0\ncmd LC_LOAD_DYLIB' if args[1] == '-l' else 'binary:\n\t/System/Library/Frameworks/CoreML.framework/Versions/A/CoreML (compatibility version 1.0.0, current version 1.0.0)\n'
+        with patch.object(release, 'run', side_effect=otool):
+            self.assertEqual(release.dependencies(Path('binary'), 'macos'), ['/System/Library/Frameworks/CoreML.framework/Versions/A/CoreML'])
+        with patch.object(release, 'run', return_value='cmd LC_RPATH'):
+            with self.assertRaisesRegex(ValueError, 'search path'):
+                release.dependencies(Path('binary'), 'macos')
 
     def test_windows_cuda_driver_loaded_at_runtime(self):
         deps = ['KERNEL32.dll', 'cublas64_13.dll', 'cublasLt64_13.dll']
@@ -47,9 +57,12 @@ class ReleaseTests(unittest.TestCase):
     def fixture(self, directory):
         for system, backend in release.TARGETS:
             suffix = '.exe' if system == 'windows' else ''
-            name = f'laya-r0001-{system}-amd64-{backend}{suffix}'
+            arch = 'arm64' if system == 'macos' else 'amd64'
+            name = f'laya-r0001-{system}-{arch}-{backend}{suffix}'
             (directory / name).write_bytes(b'fixture executable')
-            deps = (['cublas64_13.dll', 'cublasLt64_13.dll'] if backend == 'cuda' else ['vulkan-1.dll']) if system == 'windows' else (['libcuda.so.1'] if backend == 'cuda' else ['libvulkan.so.1'])
+            deps = (['/System/Library/Frameworks/CoreML.framework/Versions/A/CoreML'] if system == 'macos' else
+                    (['cublas64_13.dll', 'cublasLt64_13.dll'] if backend == 'cuda' else ['vulkan-1.dll']) if system == 'windows' else
+                    (['libcuda.so.1'] if backend == 'cuda' else ['libvulkan.so.1']))
             data = dict(name=name, tag='r0001', commit='abc', system=system, backend=backend,
                         external_libraries=deps, sha256=release.digest(directory / name))
             (directory / (name + '.json')).write_text(json.dumps(data))
@@ -58,7 +71,7 @@ class ReleaseTests(unittest.TestCase):
     def test_complete_matrix_and_hashes(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp); self.fixture(path)
-            self.assertEqual(len(release.verify(path, 'r0001', 'abc')), 4)
+            self.assertEqual(len(release.verify(path, 'r0001', 'abc')), 5)
             binary = path / 'laya-r0001-linux-amd64-cuda'
             binary.write_bytes(b'changed')
             with self.assertRaisesRegex(ValueError, 'checksum'):

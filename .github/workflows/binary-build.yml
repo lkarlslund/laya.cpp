@@ -18,7 +18,7 @@ on:
         description: Build and validate one platform binary
         type: choice
         required: true
-        options: [linux-cuda, linux-vulkan, windows-cuda, windows-vulkan]
+        options: [linux-cuda, linux-vulkan, windows-cuda, windows-vulkan, macos-coreml]
       commit:
         description: Source commit; empty uses main
         type: string
@@ -33,13 +33,13 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ startsWith(inputs.target, 'linux') && 'ubuntu-24.04' || 'windows-2022' }}
+    runs-on: ${{ inputs.target == 'macos-coreml' && 'macos-15' || startsWith(inputs.target, 'linux') && 'ubuntu-24.04' || 'windows-2022' }}
     timeout-minutes: 120
     env:
       RELEASE_TAG: ${{ inputs.tag || 'r0000' }}
       RELEASE_COMMIT: ${{ inputs.commit || github.sha }}
-      RELEASE_BACKEND: ${{ endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
-      RELEASE_SYSTEM: ${{ startsWith(inputs.target, 'linux') && 'linux' || 'windows' }}
+      RELEASE_BACKEND: ${{ inputs.target == 'macos-coreml' && 'coreml' || endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
+      RELEASE_SYSTEM: ${{ inputs.target == 'macos-coreml' && 'macos' || startsWith(inputs.target, 'linux') && 'linux' || 'windows' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,6 +59,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libicu-dev nlohmann-json3-dev libvulkan-dev
+      - name: macOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake ninja icu4c@78 nlohmann-json
+          if test -d /Applications/Xcode.app/Contents/Developer; then
+            echo 'DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer' >> "$GITHUB_ENV"
+          else
+            echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
+          fi
+          xcrun --find coremlcompiler
       - name: Windows compiler
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@a102174a2b586eec2ea151a69e6fd14404a8ce7c
@@ -121,7 +131,7 @@ jobs:
       - name: Configure
         if: steps.executable-cache.outputs.cache-hit != 'true'
         env:
-          RELEASE_BACKEND: ${{ endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
+          RELEASE_BACKEND: ${{ inputs.target == 'macos-coreml' && 'coreml' || endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
         run: python scripts/release/build.py configure
       - name: Build
         if: steps.executable-cache.outputs.cache-hit != 'true'
@@ -139,9 +149,9 @@ jobs:
         run: python -m unittest discover -s tests -p test_release.py
       - name: Audit and stage raw binary
         env:
-          RELEASE_BACKEND: ${{ endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
-          RELEASE_SYSTEM: ${{ startsWith(inputs.target, 'linux') && 'linux' || 'windows' }}
-          RELEASE_SDK: ${{ inputs.target == 'linux-vulkan' && '1.4.357.1' || '1.4.357.0' }}
+          RELEASE_BACKEND: ${{ inputs.target == 'macos-coreml' && 'coreml' || endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
+          RELEASE_SYSTEM: ${{ inputs.target == 'macos-coreml' && 'macos' || startsWith(inputs.target, 'linux') && 'linux' || 'windows' }}
+          RELEASE_SDK: ${{ inputs.target == 'linux-vulkan' && '1.4.357.1' || inputs.target == 'windows-vulkan' && '1.4.357.0' || '' }}
         run: python scripts/release/package.py
       - uses: actions/upload-artifact@v4
         with:

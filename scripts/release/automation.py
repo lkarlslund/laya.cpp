@@ -10,6 +10,7 @@ import shutil
 import subprocess
 
 TARGETS = {(system, backend) for system in ('linux', 'windows') for backend in ('cuda', 'vulkan')}
+TARGETS.add(('macos', 'coreml'))
 SYSTEM_DLLS = {
     'kernel32.dll', 'advapi32.dll', 'bcrypt.dll', 'crypt32.dll', 'iphlpapi.dll',
     'ntdll.dll', 'ole32.dll', 'oleaut32.dll', 'secur32.dll', 'shell32.dll',
@@ -30,6 +31,12 @@ def digest(path):
 
 
 def dependencies(executable, system):
+    if system == 'macos':
+        if 'LC_RPATH' in run('otool', '-l', str(executable)):
+            raise ValueError('Release binary must not contain a library search path')
+        output = run('otool', '-L', str(executable))
+        return sorted({line.strip().split(' (', 1)[0] for line in output.splitlines()[1:]
+                       if ' (' in line})
     if system == 'windows':
         output = run('dumpbin', '/DEPENDENTS', str(executable))
         return sorted(set(re.findall(r'^\s+([\w.-]+\.dll)\s*$', output, re.M | re.I)))
@@ -42,6 +49,15 @@ def dependencies(executable, system):
 def audit(deps, system, backend):
     if not deps:
         raise ValueError('Dependency inspection returned no libraries')
+    if system == 'macos':
+        if backend != 'coreml':
+            raise ValueError('Unsupported macOS backend')
+        unexpected = [dep for dep in deps if not dep.startswith(('/usr/lib/', '/System/Library/'))]
+        if unexpected:
+            raise ValueError(f'Unexpected external dependencies: {unexpected}')
+        if not any('/CoreML.framework/' in dep for dep in deps):
+            raise ValueError('Missing Core ML framework dependency')
+        return
     allowed = set(SYSTEM_DLLS if system == 'windows' else SYSTEM_SOS)
     if system == 'windows':
         allowed |= {'nvcuda.dll', 'cublas64_13.dll', 'cublaslt64_13.dll'} if backend == 'cuda' else {'vulkan-1.dll'}
@@ -89,7 +105,8 @@ def package(args):
     audit(deps, args.system, args.backend)
     args.output.mkdir(parents=True, exist_ok=True)
     suffix = '.exe' if args.system == 'windows' else ''
-    name = f'laya-{args.tag}-{args.system}-amd64-{args.backend}{suffix}'
+    arch = 'arm64' if args.system == 'macos' else 'amd64'
+    name = f'laya-{args.tag}-{args.system}-{arch}-{args.backend}{suffix}'
     target = args.output / name
     shutil.copy2(args.executable, target)
     manifest = {'schema_version': 1, 'name': name, 'tag': args.tag, 'commit': args.commit,
@@ -111,7 +128,8 @@ def verify(directory, tag, commit):
             raise ValueError('Duplicate or unknown release target')
         seen.add(pair)
         suffix = '.exe' if item['system'] == 'windows' else ''
-        name = f'laya-{tag}-{item["system"]}-amd64-{item["backend"]}{suffix}'
+        arch = 'arm64' if item['system'] == 'macos' else 'amd64'
+        name = f'laya-{tag}-{item["system"]}-{arch}-{item["backend"]}{suffix}'
         if item['name'] != name or item['tag'] != tag or item['commit'] != commit:
             raise ValueError('Mixed release identities')
         if digest(directory / name) != item['sha256']:
@@ -121,7 +139,7 @@ def verify(directory, tag, commit):
             raise ValueError('Missing third-party notices')
         audit(item['external_libraries'], *pair)
     if seen != TARGETS:
-        raise ValueError('The complete Windows/Linux CUDA/Vulkan matrix is required')
+        raise ValueError('The complete Windows/Linux CUDA/Vulkan and macOS Core ML set is required')
     return manifests
 
 
@@ -136,8 +154,8 @@ def publish(args):
     notes = args.output.parent / 'release-notes.md'
     history = run('git', 'log', '--no-merges', '--format=- %s (%h)',
                   f'{args.previous}..{args.commit}' if args.previous else args.commit, '-n', '50')
-    notes.write_text(f'Raw Linux and Windows x64 binaries; no installer.\n\nCommit: `{args.commit}`\n\n'
-                     'Choose CUDA or Vulkan. See RUNTIME-REQUIREMENTS.md for external libraries.\n'
+    notes.write_text(f'Raw Linux and Windows x64 plus macOS arm64 binaries; no installer.\n\nCommit: `{args.commit}`\n\n'
+                     'Choose CUDA, Vulkan or Core ML. See RUNTIME-REQUIREMENTS.md for external libraries.\n'
                      'Automated build/host tests passed; these rolling prereleases are not GPU correctness certifications.\n\n'
                      f'## Changes\n\n{history}\n', encoding='utf-8')
     subprocess.run(['gh', 'release', 'create', args.tag, '--target', args.commit,
@@ -152,8 +170,8 @@ def main():
     p = commands.add_parser('gate'); p.add_argument('--mode', choices=['validate', 'release'], required=True)
     p = commands.add_parser('package')
     p.add_argument('--executable', type=Path, required=True)
-    p.add_argument('--system', choices=['linux', 'windows'], required=True)
-    p.add_argument('--backend', choices=['cuda', 'vulkan'], required=True)
+    p.add_argument('--system', choices=['linux', 'windows', 'macos'], required=True)
+    p.add_argument('--backend', choices=['cuda', 'vulkan', 'coreml'], required=True)
     p.add_argument('--sdk', default='')
     for p in [p, commands.add_parser('publish')]:
         p.add_argument('--tag', required=True); p.add_argument('--commit', required=True)
