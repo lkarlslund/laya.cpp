@@ -131,7 +131,7 @@ samples. It validates the result against `benchmark-v1.schema.json`. The
 current sweep does not measure startup time or peak process RSS, so those fields
 are `null` with a reason. Record those separately before presenting a complete
 hardware comparison. Reports from a small local sample are format checks and
-must not be presented as results for the fixed 10,240-question corpus.
+must not be presented as results for the fixed 8,192-request corpus.
 
 ## Apple Core ML sweep
 

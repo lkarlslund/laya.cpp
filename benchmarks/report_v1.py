@@ -1,5 +1,6 @@
 """Versioned, per-case public-answer evidence for benchmark reports."""
 from datetime import datetime, timezone
+from decimal import Decimal
 import json
 import math
 from pathlib import Path
@@ -37,9 +38,12 @@ def compare_public(expected, actual, tolerance=0.0001):
             if not math.isfinite(left) or not math.isfinite(right):
                 differences.append(dict(path=path, reason='nonfinite', expected=left, actual=right))
             else:
-                error = abs(left - right)
-                maximum = max(maximum, error)
-                if error > tolerance:
+                # Public values are serialized as decimal JSON numbers. Compare
+                # those values exactly so binary float representation does not
+                # reject a difference of precisely one permitted decimal unit.
+                decimal_error = abs(Decimal(str(left)) - Decimal(str(right)))
+                maximum = max(maximum, float(decimal_error))
+                if decimal_error > Decimal(str(tolerance)):
                     differences.append(dict(path=path, reason='numeric', expected=left, actual=right))
         elif type(left) is not type(right) or left != right:
             reason = 'structure' if type(left) is not type(right) else 'category'

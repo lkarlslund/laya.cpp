@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import shutil
 import subprocess
 
 from identity import file_hash
@@ -53,10 +54,20 @@ def build_flags(executable):
 
 def host(backend, device, build_type):
     driver = None
-    if backend in ('cuda', 'vulkan') and 'NVIDIA' in device:
+    if backend in ('cuda', 'vulkan') and 'NVIDIA' in device and shutil.which('nvidia-smi'):
         result = subprocess.run(['nvidia-smi', '--query-gpu=driver_version', '--format=csv,noheader'],
                                 capture_output=True, text=True)
         if result.returncode == 0: driver = result.stdout.strip().splitlines()[0]
+    if backend == 'vulkan' and driver is None and shutil.which('vulkaninfo'):
+        result = subprocess.run(['vulkaninfo', '--summary'], capture_output=True, text=True)
+        if result.returncode == 0:
+            for block in result.stdout.split('GPU'):
+                if device in block:
+                    for line in block.splitlines():
+                        if line.strip().startswith('driverInfo'):
+                            driver = line.split('=', 1)[1].strip()
+                            break
+                    if driver: break
     ram = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES') if hasattr(os, 'sysconf') else 1
     compiler = subprocess.check_output(['c++', '--version'], text=True).splitlines()[0]
     return dict(cpu_model=cpu_model(), physical_cores=physical_cores(), logical_cpus=os.cpu_count() or 1,
@@ -69,19 +80,45 @@ def format_report(sweep, acceptance, workload, manifest, stratum, executable):
     source = next((item for item in manifest['strata'] if item['file'] == stratum), None)
     if source is None:
         raise ValueError('Stratum is missing from the manifest')
+    acceptance_file = Path(__file__).parent / 'cases/acceptance-250.json'
+    workload_file = Path(manifest['_path']).parent / stratum
+    if file_hash(workload_file) != source['sha256']:
+        raise ValueError('Stratum file does not match its manifest SHA-256')
+    if 'source_notes_sha256' in manifest:
+        notes_file = Path(manifest['_path']).parent / 'source-notes.json'
+        if file_hash(notes_file) != manifest['source_notes_sha256']:
+            raise ValueError('Source stories do not match their manifest SHA-256')
+    acceptance_cases = json.loads(acceptance_file.read_text())
+    workload_cases = json.loads(workload_file.read_text())
+    acceptance_ids = {case['id'] for case in acceptance_cases}
+    workload_ids = {case['id'] for case in workload_cases}
+    if (len(acceptance_ids) != 250 or len(workload_cases) != source['requests'] or
+            len(workload_ids) != source['requests'] or
+            sum(len(case['questions']) for case in workload_cases) != source['questions']):
+        raise ValueError('Corpus request IDs or counts do not match the manifest')
     aid, wid = acceptance['identity'], workload['identity']
     if (acceptance['status'] != 'passed' or aid['corpus_id'] != 'acceptance-250' or
+            aid['corpus_sha256'] != file_hash(acceptance_file) or
             acceptance['acceptance']['request_count'] != 250 or
+            acceptance['acceptance']['question_count'] != 250 or
             set(acceptance['acceptance']['batch_sizes']) != {1, 2, 4, 8} or
             len(acceptance['cases']) != 1000 or
             any(not case['passed'] for case in acceptance['cases'])):
         raise ValueError('A complete passing acceptance-250 report is required')
+    for batch_size in (1, 2, 4, 8):
+        ids = [case['request_id'] for case in acceptance['cases'] if case['batch_size'] == batch_size]
+        if len(ids) != 250 or set(ids) != acceptance_ids:
+            raise ValueError('Acceptance report has missing or duplicate request IDs')
     if (workload['status'] != 'passed' or wid['corpus_sha256'] != source['sha256'] or
             workload['acceptance']['request_count'] != source['requests'] or
             workload['acceptance']['question_count'] != source['questions'] or
             len(workload['cases']) != source['requests'] * len(workload['acceptance']['batch_sizes']) or
             any(not case['passed'] for case in workload['cases'])):
         raise ValueError('A passing workload parity report for this stratum is required')
+    for batch_size in workload['acceptance']['batch_sizes']:
+        ids = [case['request_id'] for case in workload['cases'] if case['batch_size'] == batch_size]
+        if len(ids) != source['requests'] or set(ids) != workload_ids:
+            raise ValueError('Workload report has missing or duplicate request IDs')
     if sweep['cases_sha256'] != source['sha256']:
         raise ValueError('Sweep workload does not match the manifest stratum')
     for key in ('variant', 'precision', 'backend', 'weights_sha256', 'candidate_sha256'):

@@ -21,6 +21,8 @@ class ReportV1Tests(unittest.TestCase):
         })
 
     def test_numeric_tolerance_is_a_strict_upper_bound(self):
+        _, differences = compare_public({'score': 0.625}, {'score': 0.6251})
+        self.assertEqual(differences, [])
         _, differences = compare_public({'score': 0.0}, {'score': 0.00010000001})
         self.assertEqual(differences[0]['reason'], 'numeric')
 
