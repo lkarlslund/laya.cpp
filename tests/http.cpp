@@ -57,13 +57,19 @@ int main() {
         fixture service(options, predict);
         httplib::Client client("127.0.0.1", service.port);
         client.set_keep_alive(true);
-        const json request = {{"model", "jev-latest"}, {"state", "hello"},
+        json request = {{"state", "hello"},
             {"questions", {{"test", {{"type", "noul"}, {"instructions", "Is this a greeting?"}}}}}};
         check(body(client.Get("/health"), 200)["model"] == "laya", "health model");
-        check(body(client.Get("/v1/models"), 200)["models"][0]["name"] == "laya", "model discovery");
+        const auto models = body(client.Get("/v1/models"), 200)["models"];
+        check(models.size() == 1 && models[0]["name"] == "laya", "model discovery");
+        check(models[0]["release_date"] == "2026-09-20", "service release date");
+        request["model"] = models[0]["name"];
         auto response = client.Post("/v1/systemone", request.dump(), "application/json");
         auto result = body(response, 200);
-        check(result["answers"]["echo"] == "hello" && !result.contains("results"), "JEV response envelope");
+        check(result["model"] == models[0]["name"] && result["answers"]["echo"] == "hello" && !result.contains("results"), "discovered model request");
+        auto without_model = request;
+        without_model.erase("model");
+        check(body(client.Post("/v1/systemone", without_model.dump(), "application/json"), 200)["model"] == models[0]["name"], "omitted model uses loaded checkpoint");
         check(response->has_header("x-typesafe-request-id"), "request ID missing");
         check(body(client.Post("/predict", json::array({request, request}).dump(), "application/json"), 200)["results"].size() == 2, "batch route");
         body(client.Post("/v1/systemone", "[", "application/json"), 400);
@@ -74,6 +80,10 @@ int main() {
         auto bad = request;
         bad["model"] = "laya-multilingual";
         body(client.Post("/v1/systemone", bad.dump(), "application/json"), 422);
+        for (const char* alias : {"jev-latest", "laya-latest", "laya-rl-agent", "english"}) {
+            bad["model"] = alias;
+            body(client.Post("/v1/systemone", bad.dump(), "application/json"), 422);
+        }
         bad = request; bad["state"] = nullptr;
         body(client.Post("/v1/systemone", bad.dump(), "application/json"), 422);
         bad = request; bad["questions"]["test"]["type"] = "chat";
@@ -110,8 +120,13 @@ int main() {
             body(remote.Post("/v1/systemone", request.dump(), "application/json"), 401);
             body(remote.Get("/v1/models"), 401);
             check(calls == before, "unauthenticated inference executed");
-            auto reply = remote.Post("/v1/systemone", {{"Authorization", "Bearer test-key"}}, request.dump(), "application/json");
-            check(body(reply, 200)["model"] == "laya-" + variant, "variant identity");
+            const auto discovered = body(remote.Get("/v1/models", {{"Authorization", "Bearer test-key"}}), 200)["models"];
+            check(discovered.size() == 1 && discovered[0]["name"] == "laya-" + variant, "variant discovery");
+            auto selected = request;
+            selected["model"] = discovered[0]["name"];
+            auto reply = remote.Post("/v1/systemone", {{"Authorization", "Bearer test-key"}}, selected.dump(), "application/json");
+            check(body(reply, 200)["model"] == discovered[0]["name"], "discovered variant identity");
+            body(remote.Post("/v1/systemone", {{"Authorization", "Bearer test-key"}}, request.dump(), "application/json"), 422);
         }
         // Pack whole calls by question count, preserving array offsets across routes.
         auto packed_options = options;
