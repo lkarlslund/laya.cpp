@@ -87,8 +87,11 @@ def validate(args, variant, cases):
                         raise AssertionError(f'{variant}: HTTP/CLI mismatch at batch {size}')
                 print(f'{variant}: {question_count} questions, HTTP batch {size}: exact CLI parity', flush=True)
             canonical = 'laya' if variant == 'english' else f'laya-{variant}'
+            discovered = exchange(port, '/v1/models')['models']
+            if len(discovered) != 1 or discovered[0]['name'] != canonical:
+                raise AssertionError(f'{variant}: HTTP discovery does not identify the loaded checkpoint')
             def jev(index):
-                request = {**cases[index], 'model': 'jev-latest'}
+                request = {**cases[index], 'model': discovered[0]['name']}
                 started = time.perf_counter()
                 got, batch_id, offset = exchange(port, '/v1/systemone', request, metadata=True)
                 return batch_id, offset, request, got, (time.perf_counter() - started) * 1000

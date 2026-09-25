@@ -23,7 +23,7 @@ objects or arrays; questions can mix `choice`, `score`, and `noul`.
 ```sh
 curl --fail-with-body http://127.0.0.1:8080/v1/systemone \
   -H 'Content-Type: application/json' \
-  -d '{"model":"jev-latest","state":"Please refund the duplicate charge.",
+  -d '{"model":"laya","state":"Please refund the duplicate charge.",
        "questions":{"refund":{"type":"noul",
        "instructions":"Does the customer ask for a refund?"}}}'
 ```
@@ -34,17 +34,25 @@ metadata and Noul confidence. Probabilities and scores use the same native
 calibration and rounding as the CLI. This is protocol compatibility: inference
 uses Laya weights, context limits and token accounting.
 
-`jev-latest`, `laya-latest`, and `laya-rl-agent` are aliases for the selected
-checkpoint. Its canonical name (`laya`, `laya-multilingual`, or
-`laya-typed-decisions`) and variant name are also accepted. An omitted model uses
-the selected checkpoint. Other names return HTTP 422, including a different
-checkpoint that is not loaded. The response identifies the canonical Laya name;
-an alias does not claim that Jev weights were executed.
+`GET /v1/models` lists the one loaded checkpoint. Its `name` (`laya`,
+`laya-multilingual`, or `laya-typed-decisions`) can be used unchanged as the
+`model` in a subsequent request. An omitted `model` uses that checkpoint.
+All other names return HTTP 422, including `jev-latest`, variant-only names,
+and a different Laya checkpoint. The response identifies the canonical Laya
+name; the JEV-compatible route does not execute Jev weights.
+
+The listed name identifies a checkpoint *variant*, not an immutable weights
+revision. It stays the same across restarts with the same variant, but an
+operator can replace the weights without changing the name. Clients requiring
+reproducibility should pin and verify the checkpoint separately. The
+`release_date` value (`2026-09-20`) records the native HTTP service's initial
+release; it is not the checkpoint publication date or revision and does not
+change on restart. Discovery after a restart reflects the checkpoint variant
+actually loaded by that process.
 
 Existing TypeSafe clients can point their base URL at `http://127.0.0.1:8080`.
 The evaluation route and response structure follow the System One API.
-`GET /v1/models` lists the loaded checkpoint, with the native service release
-date. Responses include `x-typesafe-request-id`.
+Discovery and evaluation responses include `x-typesafe-request-id`.
 
 For example, with `typesafe-sdk` (verified with version 0.7.0):
 
@@ -53,7 +61,7 @@ from typesafe_sdk import TypeSafeClient
 
 with TypeSafeClient(base_url="http://127.0.0.1:8080", api_key="local") as client:
     result = client.system_one(
-        model="jev-latest",
+        model="laya",
         state="Please refund the duplicate charge.",
         questions={"refund": {"type": "noul", "instructions": "Is a refund requested?"}},
     )
