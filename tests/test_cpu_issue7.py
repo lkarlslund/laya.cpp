@@ -7,6 +7,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'benchmarks'))
 from cpu_process import CPUProcess, peak_rss_bytes, physical_cpu_ids, thread_environment
+from make_quick_corpus import OUTPUT as QUICK_CORPUS, build as build_quick_corpus
 from publish_issue7 import verify
 from run_cpu_quick import CORPUS, SAMPLE_INDICES, sample_stratum
 
@@ -36,6 +37,8 @@ class CPUProcessTests(unittest.TestCase):
             self.assertEqual(env[name], '16')
 
     def test_quick_selection_is_fixed_and_covers_every_output_type(self):
+        for name, data in build_quick_corpus().items():
+            self.assertEqual((QUICK_CORPUS / name).read_bytes(), data)
         manifest = json.loads(CORPUS.read_text())
         self.assertEqual(SAMPLE_INDICES, (0, 8, 16, 24, 32, 40, 48, 56))
         for item in manifest['strata']:

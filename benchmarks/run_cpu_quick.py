@@ -3,7 +3,6 @@
 import argparse
 from contextlib import ExitStack
 from datetime import datetime, timezone
-import hashlib
 import json
 from pathlib import Path
 import statistics
@@ -15,11 +14,13 @@ from jsonschema import Draft202012Validator, FormatChecker
 from cpu_process import CPUProcess, peak_rss_bytes, physical_cpu_ids, thread_environment
 from format_benchmark_v1 import build_flags, host
 from identity import file_hash, native_hash
+from make_quick_corpus import OUTPUT as QUICK_CORPUS, SELECTION_INDICES
 from report_v1 import compare_public, revision
 from run import percentile
-from run_cpu_issue7 import ACCEPTANCE, CORPUS, ROOT, SIZES, VARIANTS, accepted, prewarm_weights, save
+from run_cpu_issue7 import ACCEPTANCE, ROOT, SIZES, VARIANTS, accepted, prewarm_weights, save
 
-SAMPLE_INDICES = tuple(range(0, 64, 8))
+SAMPLE_INDICES = SELECTION_INDICES
+CORPUS = QUICK_CORPUS / 'manifest.json'
 SCHEMA = ROOT / 'benchmarks/schema/cpu-quick-v1.schema.json'
 
 
@@ -27,19 +28,16 @@ def sample_stratum(manifest, stratum):
     entry = next((row for row in manifest['strata'] if row['file'] == stratum), None)
     if entry is None:
         raise ValueError(f'Unknown stratum: {stratum}')
-    path = CORPUS.parent / stratum
+    path = QUICK_CORPUS / stratum
     if file_hash(path) != entry['sha256']:
         raise ValueError(f'Stratum hash changed: {stratum}')
     cases = json.loads(path.read_text())
-    if len(cases) != 64 or entry['requests'] != 64:
-        raise ValueError('Quick selection requires the fixed 64-request stratum')
-    chosen = [cases[i] for i in SAMPLE_INDICES]
-    kinds = {q['type'] for case in chosen for q in case['questions'].values()}
+    if len(cases) != 8 or entry['requests'] != 8:
+        raise ValueError('Quick selection requires the fixed eight-request stratum')
+    kinds = {q['type'] for case in cases for q in case['questions'].values()}
     if kinds != {'choice', 'score', 'noul'}:
         raise ValueError(f'Selection lost an output type: {kinds}')
-    selected_hash = hashlib.sha256(json.dumps(chosen, sort_keys=True, ensure_ascii=False,
-                                            separators=(',', ':')).encode()).hexdigest()
-    return entry, chosen, selected_hash
+    return entry, cases, file_hash(path)
 
 
 def acceptance_identity(path, model, executable, variant, threads, source):

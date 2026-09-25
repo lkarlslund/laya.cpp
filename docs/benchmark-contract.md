@@ -64,8 +64,11 @@ shapes. The selected requests are unchanged entries from `performance-v1`;
 the subset manifest records its parent hash and selection rule. CPU report
 numbers must name this subset, not the full 8,192-request corpus.
 
-A separate bounded CPU quick profile selects request indices
-`0, 8, 16, 24, 32, 40, 48, 56` from one 64-request stratum. It times one
+A separate bounded CPU quick profile uses the committed
+[`performance-quick-v1`](../benchmarks/cases/performance-quick-v1/manifest.json)
+corpus. It selects request indices `0, 8, 16, 24, 32, 40, 48, 56` from each
+64-request stratum, giving eight fixed requests per stratum. GPU comparisons
+may use the same committed case files. The CPU quick profile times one
 paired pass after one small warmup per runtime. Every selected public answer is
 compared during the timed pass. The quick profile requires a previously passing
 250-case acceptance report for the exact build, checkpoint, and thread budget;

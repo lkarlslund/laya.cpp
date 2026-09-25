@@ -135,14 +135,33 @@ must not be presented as results for the fixed 8,192-request corpus.
 
 ## Issue #7 CPU campaign
 
-For routine comparisons, use the bounded CPU benchmark. It selects eight fixed
-requests from one length/output-shape stratum, compares the public answers from
+For routine comparisons, use the bounded CPU benchmark. It uses eight fixed
+requests from one length/output-shape stratum in the committed
+[`performance-quick-v1`](../benchmarks/cases/performance-quick-v1/manifest.json)
+corpus, compares the public answers from
 both processes during the timed pass, and records every selected answer and raw
 timing sample. The 250-case acceptance report is a separate correctness gate;
 the quick command requires a passing report for the exact build, checkpoint,
 and thread setting. It does not rerun acceptance for every timing measurement.
 The default batch size is 4. Run other batch sizes as distinct, identified
-measurements when needed.
+measurements when needed. The same committed case files can be passed to
+`validate.py` and `sweep.py` for CUDA and Vulkan measurements; keep their
+matching-precision acceptance gate separate as well. The sample was sized on
+the slow one-thread CPU case, so GPU timing can use it unchanged.
+
+For example, after a separate passing CUDA acceptance-250 run for this build,
+use the same quick case file with the existing GPU tools:
+
+```sh
+python benchmarks/validate.py --backend cuda \
+  --cases benchmarks/cases/performance-quick-v1/short-q1.json \
+  --output results/cuda-quick-validation.json
+python benchmarks/sweep.py --backend cuda \
+  --cases benchmarks/cases/performance-quick-v1/short-q1.json \
+  --validation results/cuda-quick-validation.json \
+  --batch-sizes 4 --warmup 1 --iterations 1 \
+  --output results/cuda-quick-sweep.json
+```
 
 ```sh
 python benchmarks/run_cpu_quick.py --variant english --threads 16 \
