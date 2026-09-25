@@ -135,6 +135,35 @@ must not be presented as results for the fixed 8,192-request corpus.
 
 ## Issue #7 CPU campaign
 
+For routine comparisons, use the bounded CPU benchmark. It selects eight fixed
+requests from one length/output-shape stratum, compares the public answers from
+both processes during the timed pass, and records every selected answer and raw
+timing sample. The 250-case acceptance report is a separate correctness gate;
+the quick command requires a passing report for the exact build, checkpoint,
+and thread setting. It does not rerun acceptance for every timing measurement.
+The default batch size is 4. Run other batch sizes as distinct, identified
+measurements when needed.
+
+```sh
+python benchmarks/run_cpu_quick.py --variant english --threads 16 \
+  --stratum short-q1.json
+python benchmarks/run_cpu_quick.py --variant english --threads 16 \
+  --stratum limit-q8.json
+```
+
+A short or medium stratum has a **five-minute wall-clock limit**; a long or
+limit stratum has **fifteen minutes**. The limit includes model loading and
+warmup. A timeout produces an `incomplete` JSON report without a speedup.
+Parity failures produce a `failed` report without a speedup. The fixed eight
+requests span choice, score, and noul outputs. Quick reports have their own
+[`cpu-quick-v1`](../benchmarks/schema/cpu-quick-v1.schema.json) format and are
+not interchangeable with exhaustive reports. They are diagnostic comparisons
+on a small sample, with too few calls for stable tail-latency estimates.
+
+The following exhaustive campaign is optional research work; it is unsuitable
+for routine iteration because its 1,024-request matrix can take days on one
+CPU thread. Existing partial results remain separate from quick reports.
+
 The issue #7 runner uses the fixed 1,024-request subset documented in the
 [benchmark contract](benchmark-contract.md). It runs all three FP32 checkpoints
 at one thread and the available physical-core count (16 on the local Ryzen AI

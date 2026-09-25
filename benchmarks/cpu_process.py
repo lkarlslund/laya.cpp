@@ -60,6 +60,9 @@ class CPUProcess:
         except Exception:
             self.process.terminate()
             self.process.wait(timeout=20)
+            self.process.stdin.close()
+            self.process.stdout.close()
+            self.process.stderr.close()
             raise
 
     def _readline(self, stream, timeout):
@@ -72,10 +75,10 @@ class CPUProcess:
             raise RuntimeError(f'Process exited before responding: {self.command}; exit={self.process.poll()}; {error}')
         return line.strip()
 
-    def call(self, requests):
+    def call(self, requests, *, timeout=600):
         self.process.stdin.write(json.dumps(requests, ensure_ascii=False) + '\n')
         self.process.stdin.flush()
-        response = json.loads(self._readline(self.process.stdout, 600))
+        response = json.loads(self._readline(self.process.stdout, timeout))
         if 'error' in response:
             raise RuntimeError(f'{self.command}: {response["error"]}')
         return response
@@ -105,4 +108,11 @@ class CPUProcess:
             self.close()
         else:
             self.process.terminate()
-            self.process.wait(timeout=20)
+            try:
+                self.process.wait(timeout=20)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait(timeout=20)
+            self.process.stdin.close()
+            self.process.stdout.close()
+            self.process.stderr.close()
