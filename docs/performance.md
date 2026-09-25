@@ -6,15 +6,42 @@ the 250 fixed questions at batches 1, 2, 4 and 8. Rates are questions/second.
 NVIDIA: RTX PRO 6000 Blackwell (96 GB), capped at **450 W**.
 AMD: Radeon 8060S, with same-GPU Python ROCm baselines.
 
-Each comparison alternates execution order, with three warmups and five timed
-iterations per request group. Timing includes preprocessing, inference and output
-formatting; model loading and native JSON transport are excluded. Background
-services retained GPU allocations. All recorded public-answer checks pass exact
-categories and numeric absolute tolerance **0.0001** at matching precision.
+The full-corpus comparisons below alternate execution order, with three warmups
+and five timed iterations per request group. Timing includes preprocessing,
+inference and output formatting; model loading and native JSON transport are
+excluded. Background services retained GPU allocations for those measurements.
+All recorded public-answer checks pass exact categories and numeric absolute
+tolerance **0.0001** at matching precision.
 
 These are separate measured runs, not one simultaneous benchmark. Compare speeds
 within a table row. Build, weights, corpus and environment identities are linked
 below each table. Historical optimization experiments are omitted.
+
+## CPU-calibrated CUDA quick corpus (2026-09-25)
+
+This is a **small-sample diagnostic**, separate from the 250-question matrix
+below. It uses eight fixed requests in each of 16 length/output-shape strata,
+batch size 4, one warmup and one timed pass. Each row has only two timed batch
+calls, so the rates are useful for spotting broad regressions, not for stable
+tail-latency claims. Full acceptance-250 passed at batch sizes 1, 2, 4 and 8
+for all three checkpoints; every selected quick answer also passed exact
+categories and numeric absolute error at most 0.0001.
+
+NVIDIA RTX PRO 6000 Blackwell, 450 W limit, driver 615.71.09. The NInfer server
+was stopped during measurement; the Laya server retained its GPU allocation.
+Optimized FP32 CUDA used `--tensor-core-fp32 --flash-fp32` on the same binary.
+
+| Model | Short q1 speedup | Limit q8 speedup | Range over all 16 strata |
+| --- | ---: | ---: | ---: |
+| english | 2.36× | 1.46× | 1.42–2.36× |
+| multilingual | 2.44× | 1.01× | 1.01–2.55× |
+| typed-decisions | 2.36× | 1.29× | 1.22–2.36× |
+
+The [quick-run manifest](measurements/cuda-quick-2026-09-25/manifest.json)
+links all 48 timed reports, their per-request parity JSON, three full acceptance
+reports, and the fixed corpus hash. Within each stratum, compare the paired
+baseline and native rates rather than combining different lengths into one
+throughput number.
 
 ## CUDA versus Python
 

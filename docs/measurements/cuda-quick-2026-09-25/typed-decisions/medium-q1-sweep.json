@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "backend": "cuda",
+  "cases_sha256": "62bde26c8d293dead6ffd614d25a93036566cd308c18a811120724c2926b802f",
+  "model_revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+  "torch": "2.11.0+cu130",
+  "precision": "fp32",
+  "iterations": 1,
+  "python_runtime": "cuda",
+  "python_runtime_version": "13.0",
+  "fused_attention": true,
+  "tensor_core_fp32": true,
+  "threads": null,
+  "native_build_sha256": "4a0d855d4eb8db69837ee7f43417c3073bf647a02fe3dbdce23fca8d7ac1af11",
+  "weights_sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e",
+  "warmup": 1,
+  "batch_sizes": [
+    4
+  ],
+  "rows": [
+    {
+      "batch_size": 4,
+      "baseline": {
+        "p50_ms": 12.68555699789431,
+        "p95_ms": 12.728765996871516,
+        "questions_per_second": 315.31922489993656,
+        "samples_ms": [
+          12.733566996757872,
+          12.637546999030747
+        ]
+      },
+      "native": {
+        "p50_ms": 6.573348,
+        "p95_ms": 6.6114405000000005,
+        "questions_per_second": 608.5179120289995,
+        "samples_ms": [
+          6.531023,
+          6.615673
+        ]
+      },
+      "failures": [],
+      "speedup": 1.9298471643208772
+    }
+  ],
+  "passed": true,
+  "project_revision": "70d0cf59c4fe0f16c7c6309ec7f9b1a7b7c1eab8",
+  "ggml_revision": "456172ec733a135778adcd32d00e576a58232e45",
+  "baseline_revision": "d113dca2512fb3eaca313534bc54c7162d87c1d4",
+  "native_device": null
+}
