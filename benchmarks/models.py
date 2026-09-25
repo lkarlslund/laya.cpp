@@ -36,6 +36,7 @@ def main():
     for variant in a.variants:
         directory=a.model_root if variant=='english' else a.model_root/variant
         common=['--backend',a.backend,'--model',str(directory),'--executable',a.executable,'--source',a.source,'--cases',a.cases,
+                '--allow-truncation',
                 '--batch-sizes',*map(str,a.batch_sizes)]
         if a.no_flash: common+=['--no-flash']
         if a.fp16: common+=['--fp16']

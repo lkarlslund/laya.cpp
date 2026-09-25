@@ -31,6 +31,8 @@ def main():
     precision.add_argument('--fp16', action='store_true')
     p.add_argument('--no-flash', action='store_true')
     p.add_argument('--tensor-core-fp32', action='store_true')
+    p.add_argument('--allow-truncation', action='store_true',
+                   help='Use the same legacy truncation policy as the validation report')
     p.add_argument('--output', type=Path, default=Path('results/sweep.json'))
     p.add_argument('--validation', type=Path, default=Path('results/validation-250-fp32.json'))
     a = p.parse_args()
@@ -51,6 +53,7 @@ def main():
             or validation['gpu'] != torch.cuda.get_device_name() or validation['torch'] != torch.__version__
             or validation['fused_attention'] != (not a.no_flash) or validation['tensor_core_fp32'] != a.tensor_core_fp32
             or validation['precision'] != ('fp32' if a.fp32 else 'fp16' if a.fp16 else 'bf16')
+            or validation.get('allow_truncation', False) != a.allow_truncation
             or not set(a.batch_sizes).issubset({b['batch_size'] for b in validation['batches']})):
         p.error('A passing validation report for this corpus, binary, weights, precision and batch sizes is required')
     oracle = Oracle(a.source, a.model, a.fp32, a.fp16)
@@ -60,11 +63,12 @@ def main():
                   python_runtime='rocm' if torch.version.hip else 'cuda',
                   python_runtime_version=torch.version.hip or torch.version.cuda,
                   fused_attention=not a.no_flash, tensor_core_fp32=a.tensor_core_fp32,
+                  allow_truncation=a.allow_truncation,
                   native_build_sha256=binary_hash, weights_sha256=weights_hash,
                   warmup=a.warmup, batch_sizes=a.batch_sizes, rows=[], passed=True)
     for label,path in [('project_revision','.'),('ggml_revision','third_party/ggml'),('baseline_revision',a.source)]:
         report[label] = subprocess.check_output(['git','-C',path,'rev-parse','HEAD'],text=True).strip()
-    with Native(a.executable, a.model, fp32=a.fp32, fp16=a.fp16, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
+    with Native(a.executable, a.model, allow_truncation=a.allow_truncation, fp32=a.fp32, fp16=a.fp16, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend) as native:
         report['native_device'] = matching_device(native.call(cases[:1]), a.backend, report['gpu'])
         if (a.backend == 'vulkan' and not report['native_device']) or report['native_device'] != validation.get('native_device'):
             p.error('Validation must identify the same native GPU used for timing')

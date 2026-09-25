@@ -96,7 +96,7 @@ def study(args, variant):
     if oracle.agent.dtype != torch.bfloat16:
         raise RuntimeError('This study requires a BF16 default CUDA baseline')
     report = dict(schema_version=1, variant=variant, complete=False,
-                  acceptance='exact_categories_absolute_numeric_0.0001_at_matching_precision',
+                  acceptance='exact_categories_absolute_numeric_0.0001_at_matching_precision', allow_truncation=True,
                   native_build_sha256=native_hash(args.executable),
                   cases_sha256=file_hash(args.cases), weights_sha256=file_hash(model/'model.safetensors'),
                   model_revision=(model/'REVISION').read_text().strip(),
@@ -114,7 +114,7 @@ def study(args, variant):
     # One additional native checkpoint at a time; the same baseline stays resident.
     for mode in args.modes:
         fp32 = mode == 'fp32'
-        with Native(args.executable, model, fp32=fp32, flash=True, tensor_core=fp32) as native:
+        with Native(args.executable, model, allow_truncation=True, fp32=fp32, flash=True, tensor_core=fp32) as native:
             for size in args.batch_sizes:
                 paired, cross = agreement(), agreement()
                 replay_failures = 0

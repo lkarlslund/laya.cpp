@@ -78,6 +78,8 @@ def validated_variant(validation, *, variant, cases_hash, build_hash, model,
                       model_revision, precision, weights_hash, manifest_hash, batch_sizes):
     if validation.get('schema_version') != 2:
         raise ValueError('Core ML validation schema 2 is required; rerun validate_coreml.py')
+    if validation.get('allow_truncation') is not True:
+        raise ValueError('Core ML validation must use legacy truncation for the fixed corpus')
     if validation.get('backend') != 'coreml' or not validation.get('passed') or not validation.get('complete'):
         raise ValueError('A complete passing Core ML validation report is required')
     expected = {
@@ -148,6 +150,7 @@ def main(argv=None):
 
     report = dict(
         schema_version=2, backend='coreml', baseline_backend='pytorch-cpu',
+        allow_truncation=True,
         variant=args.variant, cases_sha256=cases_hash,
         model=str(reference_model), model_revision=model_revision,
         precision=validation_variant['precision'], baseline_precision='fp32',
@@ -181,7 +184,7 @@ def main(argv=None):
     # scheduled together. This avoids both model switching and repeated reopen.
     for bucket, bucket_tasks in tasks_by_bucket.items():
         environment = coreml_environment(args.cache_root, bucket)
-        with Native(args.executable, reference_model, backend='coreml', env=environment) as native:
+        with Native(args.executable, reference_model, allow_truncation=True, backend='coreml', env=environment) as native:
             for state, start, requests, _questions in bucket_tasks:
                 inputs = oracle.prepare(requests)
                 expected = oracle.format(requests, oracle.forward(inputs))
