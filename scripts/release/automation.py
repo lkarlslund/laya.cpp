@@ -9,8 +9,26 @@ import re
 import shutil
 import subprocess
 
-TARGETS = {(system, backend) for system in ('linux', 'windows') for backend in ('cuda', 'vulkan')}
-TARGETS.add(('macos', 'coreml'))
+CUDA_PROFILES = {
+    '12': {'toolkit': '12.9.1', 'cublas': '12.9.1.4',
+           'architectures': '70;75;80;86;89;90;120'},
+    '13': {'toolkit': '13.0.2', 'cublas': '13.1.0.3',
+           'architectures': '75;80;86;89;90;120'},
+}
+TARGETS = {(system, 'cuda', profile) for system in ('linux', 'windows') for profile in CUDA_PROFILES}
+TARGETS.update({('linux', 'vulkan', None), ('windows', 'vulkan', None), ('macos', 'coreml', None)})
+
+
+def artifact_backend(backend, cuda_profile=None):
+    if backend == 'cuda':
+        if cuda_profile not in CUDA_PROFILES:
+            raise ValueError('An explicit CUDA 12 or 13 profile is required')
+        return backend + cuda_profile
+    if cuda_profile is not None:
+        raise ValueError('CUDA profile applies only to CUDA builds')
+    return backend
+
+
 SYSTEM_DLLS = {
     'kernel32.dll', 'advapi32.dll', 'bcrypt.dll', 'crypt32.dll', 'iphlpapi.dll',
     'ntdll.dll', 'ole32.dll', 'oleaut32.dll', 'secur32.dll', 'shell32.dll',
@@ -23,6 +41,7 @@ RELEASE_FILES = {
     'CMakeLists.txt', 'LICENSE', 'docs/releases.md',
     '.github/workflows/binary-build.yml', '.github/workflows/rolling-release.yml',
     'scripts/release/build.py', 'scripts/release/package.py',
+    'scripts/release/automation.py',
 }
 RELEASE_PREFIXES = ('cmake/', 'include/', 'src/', 'third_party/', 'scripts/release/licenses/')
 
@@ -56,7 +75,7 @@ def dependencies(executable, system):
     return sorted(set(re.findall(r'\(NEEDED\).*\[([^]]+)\]', output)))
 
 
-def audit(deps, system, backend):
+def audit(deps, system, backend, cuda_profile='13'):
     if not deps:
         raise ValueError('Dependency inspection returned no libraries')
     if system == 'macos':
@@ -70,7 +89,9 @@ def audit(deps, system, backend):
         return
     allowed = set(SYSTEM_DLLS if system == 'windows' else SYSTEM_SOS)
     if system == 'windows':
-        allowed |= {'nvcuda.dll', 'cublas64_13.dll', 'cublaslt64_13.dll'} if backend == 'cuda' else {'vulkan-1.dll'}
+        if backend == 'cuda':
+            artifact_backend(backend, cuda_profile)
+        allowed |= {'nvcuda.dll', f'cublas64_{cuda_profile}.dll', f'cublaslt64_{cuda_profile}.dll'} if backend == 'cuda' else {'vulkan-1.dll'}
     else:
         allowed.add('libcuda.so.1' if backend == 'cuda' else 'libvulkan.so.1')
     unexpected = [dep for dep in deps if dep.lower() not in allowed and not
@@ -80,7 +101,7 @@ def audit(deps, system, backend):
     if system == 'windows' and backend == 'cuda':
         # CUDA 13's Windows cuda.lib loads nvcuda.dll via LoadLibraryExA;
         # the driver is required at runtime but need not be a PE import.
-        required = {'cublas64_13.dll', 'cublaslt64_13.dll'}
+        required = {f'cublas64_{cuda_profile}.dll', f'cublaslt64_{cuda_profile}.dll'}
     else:
         required = {'vulkan-1.dll' if system == 'windows' else
                     ('libcuda.so.1' if backend == 'cuda' else 'libvulkan.so.1')}
@@ -111,20 +132,24 @@ def gate(mode):
 def package(args):
     if not re.fullmatch(r'r\d+', args.tag):
         raise ValueError('Invalid release tag')
+    label = artifact_backend(args.backend, args.cuda_profile)
+    profile = CUDA_PROFILES[args.cuda_profile] if args.backend == 'cuda' else None
     deps = dependencies(args.executable, args.system)
     print('External libraries: ' + json.dumps(deps), flush=True)
-    audit(deps, args.system, args.backend)
+    audit(deps, args.system, args.backend, args.cuda_profile)
     args.output.mkdir(parents=True, exist_ok=True)
     suffix = '.exe' if args.system == 'windows' else ''
     arch = 'arm64' if args.system == 'macos' else 'amd64'
-    name = f'laya-{args.tag}-{args.system}-{arch}-{args.backend}{suffix}'
+    name = f'laya-{args.tag}-{args.system}-{arch}-{label}{suffix}'
     target = args.output / name
     shutil.copy2(args.executable, target)
-    manifest = {'schema_version': 1, 'name': name, 'tag': args.tag, 'commit': args.commit,
+    manifest = {'schema_version': 2, 'name': name, 'tag': args.tag, 'commit': args.commit,
                 'system': args.system, 'backend': args.backend, 'sha256': digest(target),
                 'external_libraries': deps, 'gpu_validation': 'Not performed on hosted build runners',
-                'cuda_toolkit': '13.0.2' if args.backend == 'cuda' else None,
-                'cublas': '13.1.0.3' if args.backend == 'cuda' else None,
+                'cuda_profile': args.cuda_profile,
+                'cuda_toolkit': profile['toolkit'] if profile else None,
+                'cuda_architectures': profile['architectures'].split(';') if profile else None,
+                'cublas': profile['cublas'] if profile else None,
                 'vulkan_sdk': args.sdk if args.backend == 'vulkan' else None}
     (args.output / (name + '.json')).write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(manifest, indent=2))
@@ -134,23 +159,29 @@ def verify(directory, tag, commit):
     manifests = [json.loads(p.read_text(encoding='utf-8')) for p in directory.glob('laya-*.json')]
     seen = set()
     for item in manifests:
-        pair = (item['system'], item['backend'])
+        pair = (item['system'], item['backend'], item.get('cuda_profile'))
         if pair not in TARGETS or pair in seen:
             raise ValueError('Duplicate or unknown release target')
         seen.add(pair)
         suffix = '.exe' if item['system'] == 'windows' else ''
         arch = 'arm64' if item['system'] == 'macos' else 'amd64'
-        name = f'laya-{tag}-{item["system"]}-{arch}-{item["backend"]}{suffix}'
+        label = artifact_backend(item['backend'], item.get('cuda_profile'))
+        name = f'laya-{tag}-{item["system"]}-{arch}-{label}{suffix}'
         if item['name'] != name or item['tag'] != tag or item['commit'] != commit:
             raise ValueError('Mixed release identities')
         if digest(directory / name) != item['sha256']:
             raise ValueError('Binary checksum mismatch')
-        notices = directory / f'NOTICES-{item["system"]}-{item["backend"]}.txt'
+        if item['backend'] == 'cuda':
+            profile = CUDA_PROFILES[item['cuda_profile']]
+            if (item.get('cuda_toolkit') != profile['toolkit'] or item.get('cublas') != profile['cublas']
+                    or item.get('cuda_architectures') != profile['architectures'].split(';')):
+                raise ValueError('CUDA profile metadata mismatch')
+        notices = directory / f'NOTICES-{item["system"]}-{label}.txt'
         if not notices.is_file() or not notices.stat().st_size:
             raise ValueError('Missing third-party notices')
         audit(item['external_libraries'], *pair)
     if seen != TARGETS:
-        raise ValueError('The complete Windows/Linux CUDA/Vulkan and macOS Core ML set is required')
+        raise ValueError('The complete Windows/Linux CUDA 12/13, Vulkan and macOS Core ML set is required')
     return manifests
 
 
@@ -166,7 +197,7 @@ def publish(args):
     history = run('git', 'log', '--no-merges', '--format=- %s (%h)',
                   f'{args.previous}..{args.commit}' if args.previous else args.commit, '-n', '50')
     notes.write_text(f'Raw Linux and Windows x64 plus macOS arm64 binaries; no installer.\n\nCommit: `{args.commit}`\n\n'
-                     'Choose CUDA, Vulkan or Core ML. See RUNTIME-REQUIREMENTS.md for external libraries.\n'
+                     'Choose CUDA 12, CUDA 13, Vulkan or Core ML. See RUNTIME-REQUIREMENTS.md for external libraries.\n'
                      'Automated build/host tests passed; these rolling prereleases are not GPU correctness certifications.\n\n'
                      f'## Changes\n\n{history}\n', encoding='utf-8')
     subprocess.run(['gh', 'release', 'create', args.tag, '--target', args.commit,
@@ -183,6 +214,7 @@ def main():
     p.add_argument('--executable', type=Path, required=True)
     p.add_argument('--system', choices=['linux', 'windows', 'macos'], required=True)
     p.add_argument('--backend', choices=['cuda', 'vulkan', 'coreml'], required=True)
+    p.add_argument('--cuda-profile', choices=CUDA_PROFILES)
     p.add_argument('--sdk', default='')
     for p in [p, commands.add_parser('publish')]:
         p.add_argument('--tag', required=True); p.add_argument('--commit', required=True)

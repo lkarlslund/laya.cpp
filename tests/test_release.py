@@ -55,24 +55,29 @@ class ReleaseTests(unittest.TestCase):
             release.audit(deps + ['cudart64_13.dll'], 'windows', 'cuda')
 
     def fixture(self, directory):
-        for system, backend in release.TARGETS:
+        for system, backend, profile in release.TARGETS:
             suffix = '.exe' if system == 'windows' else ''
             arch = 'arm64' if system == 'macos' else 'amd64'
-            name = f'laya-r0001-{system}-{arch}-{backend}{suffix}'
+            label = release.artifact_backend(backend, profile)
+            name = f'laya-r0001-{system}-{arch}-{label}{suffix}'
             (directory / name).write_bytes(b'fixture executable')
             deps = (['/System/Library/Frameworks/CoreML.framework/Versions/A/CoreML'] if system == 'macos' else
-                    (['cublas64_13.dll', 'cublasLt64_13.dll'] if backend == 'cuda' else ['vulkan-1.dll']) if system == 'windows' else
+                    ([f'cublas64_{profile}.dll', f'cublasLt64_{profile}.dll'] if backend == 'cuda' else ['vulkan-1.dll']) if system == 'windows' else
                     (['libcuda.so.1'] if backend == 'cuda' else ['libvulkan.so.1']))
             data = dict(name=name, tag='r0001', commit='abc', system=system, backend=backend,
-                        external_libraries=deps, sha256=release.digest(directory / name))
+                        external_libraries=deps, sha256=release.digest(directory / name), cuda_profile=profile)
+            if profile:
+                data.update(cuda_toolkit=release.CUDA_PROFILES[profile]['toolkit'],
+                            cublas=release.CUDA_PROFILES[profile]['cublas'],
+                            cuda_architectures=release.CUDA_PROFILES[profile]['architectures'].split(';'))
             (directory / (name + '.json')).write_text(json.dumps(data))
-            (directory / f'NOTICES-{system}-{backend}.txt').write_text('Fixture notices')
+            (directory / f'NOTICES-{system}-{label}.txt').write_text('Fixture notices')
 
     def test_complete_matrix_and_hashes(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp); self.fixture(path)
-            self.assertEqual(len(release.verify(path, 'r0001', 'abc')), 5)
-            binary = path / 'laya-r0001-linux-amd64-cuda'
+            self.assertEqual(len(release.verify(path, 'r0001', 'abc')), 7)
+            binary = path / 'laya-r0001-linux-amd64-cuda13'
             binary.write_bytes(b'changed')
             with self.assertRaisesRegex(ValueError, 'checksum'):
                 release.verify(path, 'r0001', 'abc')
@@ -92,6 +97,35 @@ class ReleaseTests(unittest.TestCase):
             next(path.glob('NOTICES-*.txt')).unlink()
             with self.assertRaisesRegex(ValueError, 'notices'):
                 release.verify(path, 'r0001', 'abc')
+
+    def test_cuda_profiles_reject_wrong_dll_major(self):
+        for profile in ('12', '13'):
+            deps = ['KERNEL32.dll', f'cublas64_{profile}.dll', f'cublasLt64_{profile}.dll']
+            release.audit(deps, 'windows', 'cuda', profile)
+            other = '13' if profile == '12' else '12'
+            with self.assertRaisesRegex(ValueError, 'Unexpected'):
+                release.audit(deps, 'windows', 'cuda', other)
+            with self.assertRaisesRegex(ValueError, 'Missing expected'):
+                release.audit(deps[:-1], 'windows', 'cuda', profile)
+
+    def test_cuda_profile_metadata_cannot_be_mixed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            self.fixture(directory)
+            manifest = directory / 'laya-r0001-linux-amd64-cuda12.json'
+            data = json.loads(manifest.read_text())
+            data['cuda_toolkit'] = '13.0.2'
+            manifest.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError, 'metadata mismatch'):
+                release.verify(directory, 'r0001', 'abc')
+
+    def test_profiles_have_unique_artifact_names(self):
+        self.assertEqual(release.artifact_backend('cuda', '12'), 'cuda12')
+        self.assertEqual(release.artifact_backend('cuda', '13'), 'cuda13')
+        with self.assertRaises(ValueError):
+            release.artifact_backend('cuda')
+        with self.assertRaises(ValueError):
+            release.artifact_backend('vulkan', '12')
 
     def test_gate_skips_nonrelease_changes_but_allows_validation(self):
         changed = ''
