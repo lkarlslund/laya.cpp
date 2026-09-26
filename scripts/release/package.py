@@ -5,7 +5,8 @@ from pathlib import Path
 import shutil
 import sys
 
-from build import ROOT, BUILD, BACKEND, WINDOWS, run
+from build import ROOT, BUILD, BACKEND, CUDA_PROFILE, WINDOWS, run
+from automation import artifact_backend
 
 
 def cuda_license_source():
@@ -56,12 +57,14 @@ def package():
     # CUDA hosted runners have no driver. Dependency inspection does not load it.
     if BACKEND in ('vulkan', 'coreml'):
         run(executable, '--help')
+    cuda_options = ['--cuda-profile', CUDA_PROFILE] if BACKEND == 'cuda' else []
     run(sys.executable, ROOT / 'scripts/release/automation.py', 'package',
         '--executable', executable, '--system', os.environ['RELEASE_SYSTEM'],
         '--backend', BACKEND, '--tag', os.environ['RELEASE_TAG'],
         '--commit', os.environ['RELEASE_COMMIT'], '--sdk', os.environ.get('RELEASE_SDK', ''),
-        '--output', ROOT / 'dist')
-    notices(ROOT / 'dist' / f'NOTICES-{os.environ["RELEASE_SYSTEM"]}-{BACKEND}.txt')
+        '--output', ROOT / 'dist', *cuda_options)
+    label = artifact_backend(BACKEND, CUDA_PROFILE)
+    notices(ROOT / 'dist' / f'NOTICES-{os.environ["RELEASE_SYSTEM"]}-{label}.txt')
 
 
 if __name__ == "__main__":

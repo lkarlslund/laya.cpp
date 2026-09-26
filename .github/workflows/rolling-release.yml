@@ -39,12 +39,21 @@ jobs:
           RELEASE_MODE: ${{ inputs.mode || 'release' }}
         run: python scripts/release/automation.py gate --mode "$RELEASE_MODE"
 
-  linux_cuda:
+  linux_cuda12:
     needs: gate
     if: needs.gate.outputs.build == 'true'
     uses: ./.github/workflows/binary-build.yml
     with:
-      target: linux-cuda
+      target: linux-cuda12
+      commit: ${{ needs.gate.outputs.commit }}
+      tag: ${{ needs.gate.outputs.tag }}
+
+  linux_cuda13:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    uses: ./.github/workflows/binary-build.yml
+    with:
+      target: linux-cuda13
       commit: ${{ needs.gate.outputs.commit }}
       tag: ${{ needs.gate.outputs.tag }}
 
@@ -57,12 +66,21 @@ jobs:
       commit: ${{ needs.gate.outputs.commit }}
       tag: ${{ needs.gate.outputs.tag }}
 
-  windows_cuda:
+  windows_cuda12:
     needs: gate
     if: needs.gate.outputs.build == 'true'
     uses: ./.github/workflows/binary-build.yml
     with:
-      target: windows-cuda
+      target: windows-cuda12
+      commit: ${{ needs.gate.outputs.commit }}
+      tag: ${{ needs.gate.outputs.tag }}
+
+  windows_cuda13:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    uses: ./.github/workflows/binary-build.yml
+    with:
+      target: windows-cuda13
       commit: ${{ needs.gate.outputs.commit }}
       tag: ${{ needs.gate.outputs.tag }}
 
@@ -85,8 +103,8 @@ jobs:
       tag: ${{ needs.gate.outputs.tag }}
 
   publish:
-    needs: [gate, linux_cuda, linux_vulkan, windows_cuda, windows_vulkan, macos_coreml]
-    if: needs.linux_cuda.result == 'success' && needs.linux_vulkan.result == 'success' && needs.windows_cuda.result == 'success' && needs.windows_vulkan.result == 'success' && needs.macos_coreml.result == 'success' && (github.event_name == 'schedule' || inputs.mode == 'release')
+    needs: [gate, linux_cuda12, linux_cuda13, linux_vulkan, windows_cuda12, windows_cuda13, windows_vulkan, macos_coreml]
+    if: needs.linux_cuda12.result == 'success' && needs.linux_cuda13.result == 'success' && needs.linux_vulkan.result == 'success' && needs.windows_cuda12.result == 'success' && needs.windows_cuda13.result == 'success' && needs.windows_vulkan.result == 'success' && needs.macos_coreml.result == 'success' && (github.event_name == 'schedule' || inputs.mode == 'release')
     runs-on: ubuntu-24.04
     permissions:
       contents: write

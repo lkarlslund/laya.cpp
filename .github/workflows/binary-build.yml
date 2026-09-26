@@ -18,7 +18,7 @@ on:
         description: Build and validate one platform binary
         type: choice
         required: true
-        options: [linux-cuda, linux-vulkan, windows-cuda, windows-vulkan, macos-coreml]
+        options: [linux-cuda12, linux-cuda13, linux-vulkan, windows-cuda12, windows-cuda13, windows-vulkan, macos-coreml]
       commit:
         description: Source commit; empty uses main
         type: string
@@ -38,7 +38,8 @@ jobs:
     env:
       RELEASE_TAG: ${{ inputs.tag || 'r0000' }}
       RELEASE_COMMIT: ${{ inputs.commit || github.sha }}
-      RELEASE_BACKEND: ${{ inputs.target == 'macos-coreml' && 'coreml' || endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
+      RELEASE_BACKEND: ${{ inputs.target == 'macos-coreml' && 'coreml' || contains(inputs.target, '-cuda') && 'cuda' || 'vulkan' }}
+      RELEASE_CUDA_PROFILE: ${{ endsWith(inputs.target, 'cuda12') && '12' || endsWith(inputs.target, 'cuda13') && '13' || '' }}
       RELEASE_SYSTEM: ${{ inputs.target == 'macos-coreml' && 'macos' || startsWith(inputs.target, 'linux') && 'linux' || 'windows' }}
     steps:
       - uses: actions/checkout@v4
@@ -55,7 +56,7 @@ jobs:
           path: |
             build-release/bin/laya-cli${{ runner.os == 'Windows' && '.exe' || '' }}
             build-release/cuda-eula.txt
-          key: portable-v1-${{ inputs.target }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'include/**', 'third_party/**', 'scripts/release/build.py') }}
+          key: portable-v2-${{ inputs.target }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'include/**', 'third_party/**', 'scripts/release/build.py', 'scripts/release/automation.py', '.github/workflows/binary-build.yml') }}
       - name: Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -103,14 +104,14 @@ jobs:
           path: release-vcpkg/installed
           key: release-vcpkg-static-398e9a716997ec84676dc7c7afdd51afcede2269-windows-2022
       - name: CUDA toolkit
-        if: endsWith(inputs.target, 'cuda') && steps.executable-cache.outputs.cache-hit != 'true'
+        if: contains(inputs.target, '-cuda') && steps.executable-cache.outputs.cache-hit != 'true'
         uses: Jimver/cuda-toolkit@b8bf9c6c28f8a92fbb04dcfcaee872e60c57462d
         with:
-          cuda: '13.0.2'
+          cuda: ${{ endsWith(inputs.target, 'cuda12') && '12.9.1' || '13.0.2' }}
           linux-local-args: '["--toolkit"]'
           log-file-suffix: '${{ inputs.target }}-cuda.txt'
       - name: Cache CUDA redistribution notice
-        if: endsWith(inputs.target, 'cuda') && steps.executable-cache.outputs.cache-hit != 'true'
+        if: contains(inputs.target, '-cuda') && steps.executable-cache.outputs.cache-hit != 'true'
         run: python scripts/release/package.py cache-cuda-license
       - name: Linux Vulkan SDK
         if: endsWith(inputs.target, 'vulkan') && runner.os == 'Linux'
@@ -136,7 +137,7 @@ jobs:
       - name: Configure
         if: steps.executable-cache.outputs.cache-hit != 'true'
         env:
-          RELEASE_BACKEND: ${{ inputs.target == 'macos-coreml' && 'coreml' || endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
+          RELEASE_BACKEND: ${{ inputs.target == 'macos-coreml' && 'coreml' || contains(inputs.target, '-cuda') && 'cuda' || 'vulkan' }}
         run: python scripts/release/build.py configure
       - name: Build
         if: steps.executable-cache.outputs.cache-hit != 'true'
@@ -151,12 +152,12 @@ jobs:
           path: |
             build-release/bin/laya-cli${{ runner.os == 'Windows' && '.exe' || '' }}
             build-release/cuda-eula.txt
-          key: portable-v1-${{ inputs.target }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'include/**', 'third_party/**', 'scripts/release/build.py') }}
+          key: portable-v2-${{ inputs.target }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'include/**', 'third_party/**', 'scripts/release/build.py', 'scripts/release/automation.py', '.github/workflows/binary-build.yml') }}
       - name: Python release tests
         run: python -m unittest discover -s tests -p test_release.py
       - name: Audit and stage raw binary
         env:
-          RELEASE_BACKEND: ${{ inputs.target == 'macos-coreml' && 'coreml' || endsWith(inputs.target, 'cuda') && 'cuda' || 'vulkan' }}
+          RELEASE_BACKEND: ${{ inputs.target == 'macos-coreml' && 'coreml' || contains(inputs.target, '-cuda') && 'cuda' || 'vulkan' }}
           RELEASE_SYSTEM: ${{ inputs.target == 'macos-coreml' && 'macos' || startsWith(inputs.target, 'linux') && 'linux' || 'windows' }}
           RELEASE_SDK: ${{ inputs.target == 'linux-vulkan' && '1.4.357.1' || inputs.target == 'windows-vulkan' && '1.4.357.0' || '' }}
         run: python scripts/release/package.py package
