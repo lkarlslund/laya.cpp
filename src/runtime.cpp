@@ -139,7 +139,18 @@ struct runtime::impl {
 #else
         if (vulkan) throw std::runtime_error("This build has no Vulkan backend");
 #endif
-        if (selected == backend_type::cpu) backend = ggml_backend_cpu_init();
+        if (selected == backend_type::cpu) {
+            backend = ggml_backend_cpu_init();
+            if (backend) {
+                if (const char* setting = std::getenv("LAYA_CPU_THREADS")) {
+                    char* end = nullptr;
+                    const long count = std::strtol(setting, &end, 10);
+                    if (setting == end || *end != '\0' || count < 1 || count > 256)
+                        throw std::invalid_argument("LAYA_CPU_THREADS must be an integer from 1 to 256");
+                    ggml_backend_cpu_set_n_threads(backend, int(count));
+                }
+            }
+        }
         if (!backend) throw std::runtime_error("Cannot initialize requested backend");
         const std::string device=ggml_backend_dev_description(ggml_backend_get_device(backend));
         vulkan_nvidia=vulkan && device.find("NVIDIA")!=std::string::npos;

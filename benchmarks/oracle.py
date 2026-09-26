@@ -5,20 +5,23 @@ import torch
 
 
 class Oracle:
-    def __init__(self, source, model, fp32=False, fp16=False):
+    def __init__(self, source, model, fp32=False, fp16=False, device='cuda'):
         if fp32 and fp16: raise ValueError('Choose one baseline precision')
+        if device not in ('cuda', 'cpu'): raise ValueError('Unknown baseline device')
+        if device == 'cpu' and not fp32: raise ValueError('CPU baseline currently requires FP32')
         sys.path.insert(0, str(Path(source).resolve()))
         import laya
         from laya.common import build_sequence, collate_items, QTYPES
         self.build_sequence, self.collate, self.types = build_sequence, collate_items, QTYPES
-        self.agent = laya.load(str(Path(model).resolve()), device='cuda')
-        if self.agent.device.type != 'cuda':
-            raise RuntimeError('Baseline did not load on the CUDA/ROCm GPU')
+        self.agent = laya.load(str(Path(model).resolve()), device=device)
+        if self.agent.device.type != device:
+            raise RuntimeError(f'Baseline did not load on {device}')
+        self.device = device
         self.fp32 = fp32
         if fp16: self.agent.dtype = torch.float16
         if not fp32 and self.agent.dtype != (torch.float16 if fp16 else torch.bfloat16):
             raise RuntimeError('Baseline selected a different autocast dtype')
-        if fp32:
+        if fp32 and device == 'cuda':
             torch.backends.cuda.matmul.allow_tf32 = False
             torch.backends.cudnn.allow_tf32 = False
 
@@ -36,8 +39,8 @@ class Oracle:
 
     @torch.inference_mode()
     def forward(self, inputs):
-        with torch.autocast('cuda', dtype=self.agent.dtype, enabled=not self.fp32):
-            return self.agent.model(*(t.cuda() for t in inputs))
+        with torch.autocast(self.device, dtype=self.agent.dtype, enabled=not self.fp32):
+            return self.agent.model(*(t.to(self.device) for t in inputs))
 
     def expected_inputs(self, tensors):
         ids, mask, markers, valid, types = tensors

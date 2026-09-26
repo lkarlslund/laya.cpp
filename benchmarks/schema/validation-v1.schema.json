@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lkarlslund/laya.cpp/blob/main/benchmarks/schema/validation-v1.schema.json",
+  "title": "Laya public-answer validation report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "status", "identity", "acceptance", "cases"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "validation"},
+    "status": {"enum": ["passed", "failed", "incomplete"]},
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["created_at_utc", "variant", "precision", "backend", "corpus_id", "corpus_sha256", "weights_sha256", "baseline_commit", "candidate_commit", "candidate_sha256", "baseline_device", "candidate_device", "baseline_flags", "candidate_flags"],
+      "properties": {
+        "created_at_utc": {"type": "string", "format": "date-time"},
+        "variant": {"enum": ["english", "multilingual", "typed-decisions"]},
+        "precision": {"enum": ["fp32", "bf16", "fp16"]},
+        "backend": {"enum": ["cpu", "cuda", "vulkan", "coreml"]},
+        "corpus_id": {"type": "string", "minLength": 1},
+        "corpus_sha256": {"$ref": "#/$defs/sha256"},
+        "weights_sha256": {"$ref": "#/$defs/sha256"},
+        "baseline_commit": {"type": "string", "minLength": 1},
+        "candidate_commit": {"type": "string", "minLength": 1},
+        "candidate_sha256": {"$ref": "#/$defs/sha256"},
+        "baseline_device": {"type": "string", "minLength": 1},
+        "candidate_device": {"type": "string", "minLength": 1},
+        "baseline_flags": {"type": "array", "items": {"type": "string"}},
+        "candidate_flags": {"type": "array", "items": {"type": "string"}},
+        "baseline_threads": {"type": ["integer", "null"], "minimum": 1},
+        "candidate_threads": {"type": ["integer", "null"], "minimum": 1}
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category_rule", "numeric_absolute_tolerance", "batch_sizes", "request_count", "question_count"],
+      "properties": {
+        "category_rule": {"const": "exact"},
+        "numeric_absolute_tolerance": {"const": 0.0001},
+        "batch_sizes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "integer", "minimum": 1}},
+        "request_count": {"type": "integer", "minimum": 1},
+        "question_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["batch_size", "request_id", "expected", "actual", "passed", "max_numeric_absolute_error", "differences"],
+        "properties": {
+          "batch_size": {"type": "integer", "minimum": 1},
+          "request_id": {"type": "string", "minLength": 1},
+          "expected": {"type": "object", "description": "Complete public answer from the matching-precision baseline, including every categorical and numeric field."},
+          "actual": {"type": "object", "description": "Complete native public answer for the same request."},
+          "passed": {"type": "boolean"},
+          "max_numeric_absolute_error": {"type": ["number", "null"], "minimum": 0},
+          "differences": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "reason", "expected", "actual"],
+              "properties": {
+                "path": {"type": "string"},
+                "reason": {"enum": ["category", "numeric", "structure", "missing", "nonfinite"]},
+                "expected": {},
+                "actual": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {"sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+}

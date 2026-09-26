@@ -1,0 +1,179 @@
+{
+  "corpus_id": "performance-quick-v1",
+  "parent_corpus_id": "performance-issue7-v1",
+  "parent_manifest_sha256": "356c3e65e61021c0f0fc448180274bb51285daa45872fceff27912bfc55ef66b",
+  "selection_indices": [
+    0,
+    8,
+    16,
+    24,
+    32,
+    40,
+    48,
+    56
+  ],
+  "requests": 128,
+  "questions": 480,
+  "strata": [
+    {
+      "file": "short-q1.json",
+      "sha256": "791efcd4586bc4505737d9a76a936c36d5c917a5ca464cba214654060f0695f8",
+      "parent_sha256": "9d47597134b638d2e8be0ce940d5318964a116d965caad27e99147bc0fcced43",
+      "requests": 8,
+      "questions": 8,
+      "length_band": "short",
+      "outcome_variant": 0,
+      "questions_per_request": 1
+    },
+    {
+      "file": "short-q2.json",
+      "sha256": "b78e36d88ac32593709147ffe87f0231c4814c4711fd96a5e45a756257dba72b",
+      "parent_sha256": "083102fa578a22059b53a4708f117543b2d2b3a198b8c6aae00640ee49464af2",
+      "requests": 8,
+      "questions": 16,
+      "length_band": "short",
+      "outcome_variant": 1,
+      "questions_per_request": 2
+    },
+    {
+      "file": "short-q4.json",
+      "sha256": "3b8ccd03c938d3af948d68aa65ab4a084db606d91677c9bca10cfcf8c9c7aa0d",
+      "parent_sha256": "ba0cae1d226cb4a206b2f2ddd6c951729332e07f47d9e2ca852567c88e6e5fbe",
+      "requests": 8,
+      "questions": 32,
+      "length_band": "short",
+      "outcome_variant": 2,
+      "questions_per_request": 4
+    },
+    {
+      "file": "short-q8.json",
+      "sha256": "473e51b0533105f25950e8fb46129ee478882940aead16bcc1eedfcc3517657c",
+      "parent_sha256": "a874ae3591a45d56865175c00aed42328a7edd16696adef187733c12d7646d77",
+      "requests": 8,
+      "questions": 64,
+      "length_band": "short",
+      "outcome_variant": 3,
+      "questions_per_request": 8
+    },
+    {
+      "file": "medium-q1.json",
+      "sha256": "62bde26c8d293dead6ffd614d25a93036566cd308c18a811120724c2926b802f",
+      "parent_sha256": "9f02eca400077848edb7aee249838918c937766903cf086f0d2bf7d227e220af",
+      "requests": 8,
+      "questions": 8,
+      "length_band": "medium",
+      "outcome_variant": 4,
+      "questions_per_request": 1
+    },
+    {
+      "file": "medium-q2.json",
+      "sha256": "5f9a4cc6d47c11b53c4657f0b4a0a096a5e6829305c7c7d9434aa1e0aa139f90",
+      "parent_sha256": "7eb2df2882da62780416b9223123e28c6bdb3f23955fc35c1c912d9fc9150043",
+      "requests": 8,
+      "questions": 16,
+      "length_band": "medium",
+      "outcome_variant": 5,
+      "questions_per_request": 2
+    },
+    {
+      "file": "medium-q4.json",
+      "sha256": "68ad390a0bed200493ef1837d40206aea1568109d923af44fcd0db940e824a6e",
+      "parent_sha256": "e2a33032b95782a1b51600fa6efbb5b9d2b4e852f8229b2e16919ad76fce4db4",
+      "requests": 8,
+      "questions": 32,
+      "length_band": "medium",
+      "outcome_variant": 6,
+      "questions_per_request": 4
+    },
+    {
+      "file": "medium-q8.json",
+      "sha256": "ddd80b8827d6794bf8260cfbf4ca11c53cd725c30a24e665b5fe3d0ad9ddeed4",
+      "parent_sha256": "30f0c8818418760550df67efce13943a2beade7b265757fa645f9d0f4ba797bc",
+      "requests": 8,
+      "questions": 64,
+      "length_band": "medium",
+      "outcome_variant": 7,
+      "questions_per_request": 8
+    },
+    {
+      "file": "long-q1.json",
+      "sha256": "16340b85ae94ff230ae05f2cc38a5c7f5fb2278d3502f6b345736b9143c1b8db",
+      "parent_sha256": "aa12e1ec2a1d35d00c284025384ea1fe91631a1b387fa21bd21a1e80560f4513",
+      "requests": 8,
+      "questions": 8,
+      "length_band": "long",
+      "outcome_variant": 8,
+      "questions_per_request": 1
+    },
+    {
+      "file": "long-q2.json",
+      "sha256": "e391120daacf9a4e1da66304b247a7444937dcb8205c44253298e7492c24d7d9",
+      "parent_sha256": "3df0c2fe31242305d135377ec558b64f76207308d04cfd3046611bea29017389",
+      "requests": 8,
+      "questions": 16,
+      "length_band": "long",
+      "outcome_variant": 9,
+      "questions_per_request": 2
+    },
+    {
+      "file": "long-q4.json",
+      "sha256": "5bf27a8201339f093a2c4d5ecf52077e4dc0aff919d2dd0d7a0b905f8fb3a66a",
+      "parent_sha256": "3fec726aa2a3665e52112cebf032952a466d38ea1dc8df376553591061e7f403",
+      "requests": 8,
+      "questions": 32,
+      "length_band": "long",
+      "outcome_variant": 10,
+      "questions_per_request": 4
+    },
+    {
+      "file": "long-q8.json",
+      "sha256": "8c0ed8976a2dc60a36e56b5d3d1192bf0770a19eacc3053352f3aaabf43e2d6a",
+      "parent_sha256": "9c4c1f45f2df876fc7ae18ae4c42ff44b5ca63dc80a4fcfa730762aac3238691",
+      "requests": 8,
+      "questions": 64,
+      "length_band": "long",
+      "outcome_variant": 11,
+      "questions_per_request": 8
+    },
+    {
+      "file": "limit-q1.json",
+      "sha256": "c3d11180b1817db55fdad81507fb4759285c0d7fbe1aa8113b20baeacc0b4995",
+      "parent_sha256": "707077bd82f76a49e25c5d768f0dfb08a5f743d40e69c20d71fe4868a70c54d2",
+      "requests": 8,
+      "questions": 8,
+      "length_band": "limit",
+      "outcome_variant": 12,
+      "questions_per_request": 1
+    },
+    {
+      "file": "limit-q2.json",
+      "sha256": "ccdce7bd70b971235b1130377482bfefa941d47259f09df2b9ce47b14e22d962",
+      "parent_sha256": "ca87637dc0075b2a02adb07d047300edfb92dc258ac1d0499db7254d27c08972",
+      "requests": 8,
+      "questions": 16,
+      "length_band": "limit",
+      "outcome_variant": 13,
+      "questions_per_request": 2
+    },
+    {
+      "file": "limit-q4.json",
+      "sha256": "dc5ef7064dccf1cdfcd92e4dbaa8856c811b67863d512dedaa4dfb2ae203718a",
+      "parent_sha256": "65cfe608d613f5a9ccbc2f490a81895faa0331108e9ff9430d9115eb1ec8b809",
+      "requests": 8,
+      "questions": 32,
+      "length_band": "limit",
+      "outcome_variant": 14,
+      "questions_per_request": 4
+    },
+    {
+      "file": "limit-q8.json",
+      "sha256": "67b99e892f4c4a295da8400e52eec340225d286abe697911bd1425cdf110a9aa",
+      "parent_sha256": "906d0a3536955aae5fe7d2eb8706f3428c6e3bf62b6400764d2f8443f6486dc4",
+      "requests": 8,
+      "questions": 64,
+      "length_band": "limit",
+      "outcome_variant": 15,
+      "questions_per_request": 8
+    }
+  ]
+}

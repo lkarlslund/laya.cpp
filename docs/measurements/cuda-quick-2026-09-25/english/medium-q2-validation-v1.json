@@ -1,0 +1,720 @@
+{
+  "schema_version": 1,
+  "kind": "validation",
+  "status": "passed",
+  "identity": {
+    "created_at_utc": "2026-09-25T08:13:17.526929+00:00",
+    "variant": "english",
+    "precision": "fp32",
+    "backend": "cuda",
+    "corpus_id": "medium-q2",
+    "corpus_sha256": "5f9a4cc6d47c11b53c4657f0b4a0a096a5e6829305c7c7d9434aa1e0aa139f90",
+    "weights_sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+    "baseline_commit": "d113dca2512fb3eaca313534bc54c7162d87c1d4",
+    "candidate_commit": "70d0cf59c4fe0f16c7c6309ec7f9b1a7b7c1eab8",
+    "candidate_sha256": "4a0d855d4eb8db69837ee7f43417c3073bf647a02fe3dbdce23fca8d7ac1af11",
+    "baseline_device": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+    "candidate_device": "None",
+    "baseline_flags": [
+      "fp32"
+    ],
+    "candidate_flags": [
+      "--cuda",
+      "--fp32",
+      "--tensor-core-fp32"
+    ],
+    "baseline_threads": null,
+    "candidate_threads": null
+  },
+  "acceptance": {
+    "category_rule": "exact",
+    "numeric_absolute_tolerance": 0.0001,
+    "batch_sizes": [
+      4
+    ],
+    "request_count": 8,
+    "question_count": 16
+  },
+  "cases": [
+    {
+      "batch_size": 4,
+      "request_id": "perf-medium-2-005",
+      "expected": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-005-0": {
+            "type": "choice",
+            "choice": "review record",
+            "probabilities": {
+              "review record": 0.6383,
+              "request details": 0.3617
+            },
+            "confidence": 0.0559,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "perf-medium-2-005-1": {
+            "type": "score",
+            "score": 2.9152,
+            "legend": {
+              "0": "none",
+              "1": "low",
+              "2": "moderate",
+              "3": "high",
+              "4": "very high"
+            },
+            "probabilities": {
+              "0": 0.0088,
+              "1": 0.0856,
+              "2": 0.2141,
+              "3": 0.3644,
+              "4": 0.327
+            },
+            "confidence": 0.1826,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 235,
+          "output_tokens": 0
+        }
+      },
+      "actual": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-005-0": {
+            "type": "choice",
+            "confidence": 0.0559,
+            "action": {
+              "act_probability": 1.0
+            },
+            "choice": "review record",
+            "probabilities": {
+              "review record": 0.6383,
+              "request details": 0.3617
+            }
+          },
+          "perf-medium-2-005-1": {
+            "type": "score",
+            "confidence": 0.1826,
+            "action": {
+              "act_probability": 1.0
+            },
+            "score": 2.9152,
+            "probabilities": {
+              "0": 0.0088,
+              "1": 0.0856,
+              "2": 0.2141,
+              "3": 0.3644,
+              "4": 0.327
+            },
+            "legend": {
+              "0": "none",
+              "1": "low",
+              "2": "moderate",
+              "3": "high",
+              "4": "very high"
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 235,
+          "output_tokens": 0
+        }
+      },
+      "passed": true,
+      "max_numeric_absolute_error": 0.0,
+      "differences": []
+    },
+    {
+      "batch_size": 4,
+      "request_id": "perf-medium-2-069",
+      "expected": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-069-0": {
+            "type": "noul",
+            "noul": 0.1397,
+            "confidence": 0.8603,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "perf-medium-2-069-1": {
+            "type": "choice",
+            "choice": "review record",
+            "probabilities": {
+              "review record": 0.6994,
+              "request details": 0.3006
+            },
+            "confidence": 0.118,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 228,
+          "output_tokens": 0
+        }
+      },
+      "actual": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-069-0": {
+            "type": "noul",
+            "confidence": 0.8603,
+            "action": {
+              "act_probability": 1.0
+            },
+            "noul": 0.1397
+          },
+          "perf-medium-2-069-1": {
+            "type": "choice",
+            "confidence": 0.118,
+            "action": {
+              "act_probability": 1.0
+            },
+            "choice": "review record",
+            "probabilities": {
+              "review record": 0.6994,
+              "request details": 0.3006
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 228,
+          "output_tokens": 0
+        }
+      },
+      "passed": true,
+      "max_numeric_absolute_error": 0.0,
+      "differences": []
+    },
+    {
+      "batch_size": 4,
+      "request_id": "perf-medium-2-133",
+      "expected": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-133-0": {
+            "type": "score",
+            "score": 1.5674,
+            "legend": {
+              "0": "none",
+              "1": "low",
+              "2": "moderate"
+            },
+            "probabilities": {
+              "0": 0.0761,
+              "1": 0.2804,
+              "2": 0.6435
+            },
+            "confidence": 0.2388,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "perf-medium-2-133-1": {
+            "type": "noul",
+            "noul": 0.0963,
+            "confidence": 0.9037,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 266,
+          "output_tokens": 0
+        }
+      },
+      "actual": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-133-0": {
+            "type": "score",
+            "confidence": 0.2388,
+            "action": {
+              "act_probability": 1.0
+            },
+            "score": 1.5674,
+            "probabilities": {
+              "0": 0.0761,
+              "1": 0.2804,
+              "2": 0.6435
+            },
+            "legend": {
+              "0": "none",
+              "1": "low",
+              "2": "moderate"
+            }
+          },
+          "perf-medium-2-133-1": {
+            "type": "noul",
+            "confidence": 0.9037,
+            "action": {
+              "act_probability": 1.0
+            },
+            "noul": 0.0963
+          }
+        },
+        "usage": {
+          "input_tokens": 266,
+          "output_tokens": 0
+        }
+      },
+      "passed": true,
+      "max_numeric_absolute_error": 0.0,
+      "differences": []
+    },
+    {
+      "batch_size": 4,
+      "request_id": "perf-medium-2-197",
+      "expected": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-197-0": {
+            "type": "choice",
+            "choice": "review record",
+            "probabilities": {
+              "review record": 0.3542,
+              "request details": 0.1039,
+              "close record": 0.1173,
+              "escalate to owner": 0.2684,
+              "defer review": 0.1562
+            },
+            "confidence": 0.0696,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "perf-medium-2-197-1": {
+            "type": "score",
+            "score": 2.0546,
+            "legend": {
+              "0": "none",
+              "1": "low",
+              "2": "moderate",
+              "3": "high",
+              "4": "very high"
+            },
+            "probabilities": {
+              "0": 0.0097,
+              "1": 0.1298,
+              "2": 0.6649,
+              "3": 0.1875,
+              "4": 0.0081
+            },
+            "confidence": 0.4195,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 232,
+          "output_tokens": 0
+        }
+      },
+      "actual": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-197-0": {
+            "type": "choice",
+            "confidence": 0.0696,
+            "action": {
+              "act_probability": 1.0
+            },
+            "choice": "review record",
+            "probabilities": {
+              "review record": 0.3542,
+              "request details": 0.1039,
+              "close record": 0.1173,
+              "escalate to owner": 0.2684,
+              "defer review": 0.1562
+            }
+          },
+          "perf-medium-2-197-1": {
+            "type": "score",
+            "confidence": 0.4195,
+            "action": {
+              "act_probability": 1.0
+            },
+            "score": 2.0546,
+            "probabilities": {
+              "0": 0.0097,
+              "1": 0.1298,
+              "2": 0.6649,
+              "3": 0.1875,
+              "4": 0.0081
+            },
+            "legend": {
+              "0": "none",
+              "1": "low",
+              "2": "moderate",
+              "3": "high",
+              "4": "very high"
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 232,
+          "output_tokens": 0
+        }
+      },
+      "passed": true,
+      "max_numeric_absolute_error": 0.0,
+      "differences": []
+    },
+    {
+      "batch_size": 4,
+      "request_id": "perf-medium-2-261",
+      "expected": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-261-0": {
+            "type": "noul",
+            "noul": 0.1641,
+            "confidence": 0.8359,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "perf-medium-2-261-1": {
+            "type": "choice",
+            "choice": "close record",
+            "probabilities": {
+              "review record": 0.2362,
+              "request details": 0.1016,
+              "close record": 0.2738,
+              "escalate to owner": 0.2359,
+              "defer review": 0.1525
+            },
+            "confidence": 0.0336,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 245,
+          "output_tokens": 0
+        }
+      },
+      "actual": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-261-0": {
+            "type": "noul",
+            "confidence": 0.8359,
+            "action": {
+              "act_probability": 1.0
+            },
+            "noul": 0.1641
+          },
+          "perf-medium-2-261-1": {
+            "type": "choice",
+            "confidence": 0.0336,
+            "action": {
+              "act_probability": 1.0
+            },
+            "choice": "close record",
+            "probabilities": {
+              "review record": 0.2362,
+              "request details": 0.1016,
+              "close record": 0.2738,
+              "escalate to owner": 0.2359,
+              "defer review": 0.1525
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 245,
+          "output_tokens": 0
+        }
+      },
+      "passed": true,
+      "max_numeric_absolute_error": 0.0,
+      "differences": []
+    },
+    {
+      "batch_size": 4,
+      "request_id": "perf-medium-2-325",
+      "expected": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-325-0": {
+            "type": "score",
+            "score": 1.6934,
+            "legend": {
+              "0": "none",
+              "1": "low",
+              "2": "moderate"
+            },
+            "probabilities": {
+              "0": 0.0252,
+              "1": 0.2562,
+              "2": 0.7186
+            },
+            "confidence": 0.3818,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "perf-medium-2-325-1": {
+            "type": "noul",
+            "noul": 0.2294,
+            "confidence": 0.7706,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 234,
+          "output_tokens": 0
+        }
+      },
+      "actual": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-325-0": {
+            "type": "score",
+            "confidence": 0.3818,
+            "action": {
+              "act_probability": 1.0
+            },
+            "score": 1.6934,
+            "probabilities": {
+              "0": 0.0252,
+              "1": 0.2562,
+              "2": 0.7186
+            },
+            "legend": {
+              "0": "none",
+              "1": "low",
+              "2": "moderate"
+            }
+          },
+          "perf-medium-2-325-1": {
+            "type": "noul",
+            "confidence": 0.7706,
+            "action": {
+              "act_probability": 1.0
+            },
+            "noul": 0.2294
+          }
+        },
+        "usage": {
+          "input_tokens": 234,
+          "output_tokens": 0
+        }
+      },
+      "passed": true,
+      "max_numeric_absolute_error": 0.0,
+      "differences": []
+    },
+    {
+      "batch_size": 4,
+      "request_id": "perf-medium-2-389",
+      "expected": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-389-0": {
+            "type": "choice",
+            "choice": "keep pending",
+            "probabilities": {
+              "review record": 0.0,
+              "request details": 0.0,
+              "close record": 0.0,
+              "escalate to owner": 0.0,
+              "defer review": 0.0,
+              "assign support": 0.0,
+              "assign operations": 0.0,
+              "keep pending": 1.0,
+              "approve update": 0.0,
+              "reject update": 0.0,
+              "archive record": 0.0,
+              "reopen record": 0.0
+            },
+            "confidence": 1.0,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "perf-medium-2-389-1": {
+            "type": "score",
+            "score": 2.0558,
+            "legend": {
+              "0": "none",
+              "1": "low",
+              "2": "moderate",
+              "3": "high",
+              "4": "very high"
+            },
+            "probabilities": {
+              "0": 0.0169,
+              "1": 0.1895,
+              "2": 0.5562,
+              "3": 0.1956,
+              "4": 0.0418
+            },
+            "confidence": 0.2778,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 251,
+          "output_tokens": 0
+        }
+      },
+      "actual": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-389-0": {
+            "type": "choice",
+            "confidence": 1.0,
+            "action": {
+              "act_probability": 1.0
+            },
+            "choice": "keep pending",
+            "probabilities": {
+              "review record": 0.0,
+              "request details": 0.0,
+              "close record": 0.0,
+              "escalate to owner": 0.0,
+              "defer review": 0.0,
+              "assign support": 0.0,
+              "assign operations": 0.0,
+              "keep pending": 1.0,
+              "approve update": 0.0,
+              "reject update": 0.0,
+              "archive record": 0.0,
+              "reopen record": 0.0
+            }
+          },
+          "perf-medium-2-389-1": {
+            "type": "score",
+            "confidence": 0.2778,
+            "action": {
+              "act_probability": 1.0
+            },
+            "score": 2.0558,
+            "probabilities": {
+              "0": 0.0169,
+              "1": 0.1895,
+              "2": 0.5562,
+              "3": 0.1956,
+              "4": 0.0418
+            },
+            "legend": {
+              "0": "none",
+              "1": "low",
+              "2": "moderate",
+              "3": "high",
+              "4": "very high"
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 251,
+          "output_tokens": 0
+        }
+      },
+      "passed": true,
+      "max_numeric_absolute_error": 0.0,
+      "differences": []
+    },
+    {
+      "batch_size": 4,
+      "request_id": "perf-medium-2-453",
+      "expected": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-453-0": {
+            "type": "noul",
+            "noul": 0.2936,
+            "confidence": 0.7064,
+            "action": {
+              "act_probability": 1.0
+            }
+          },
+          "perf-medium-2-453-1": {
+            "type": "choice",
+            "choice": "assign support",
+            "probabilities": {
+              "review record": 0.0,
+              "request details": 0.0,
+              "close record": 0.0,
+              "escalate to owner": 0.0012,
+              "defer review": 0.0,
+              "assign support": 0.997,
+              "assign operations": 0.0,
+              "keep pending": 0.0003,
+              "approve update": 0.0015,
+              "reject update": 0.0,
+              "archive record": 0.0,
+              "reopen record": 0.0
+            },
+            "confidence": 0.9907,
+            "action": {
+              "act_probability": 1.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 254,
+          "output_tokens": 0
+        }
+      },
+      "actual": {
+        "model": "laya-rl-agent",
+        "answers": {
+          "perf-medium-2-453-0": {
+            "type": "noul",
+            "confidence": 0.7064,
+            "action": {
+              "act_probability": 1.0
+            },
+            "noul": 0.2936
+          },
+          "perf-medium-2-453-1": {
+            "type": "choice",
+            "confidence": 0.9907,
+            "action": {
+              "act_probability": 1.0
+            },
+            "choice": "assign support",
+            "probabilities": {
+              "review record": 0.0,
+              "request details": 0.0,
+              "close record": 0.0,
+              "escalate to owner": 0.0012,
+              "defer review": 0.0,
+              "assign support": 0.997,
+              "assign operations": 0.0,
+              "keep pending": 0.0003,
+              "approve update": 0.0015,
+              "reject update": 0.0,
+              "archive record": 0.0,
+              "reopen record": 0.0
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": 254,
+          "output_tokens": 0
+        }
+      },
+      "passed": true,
+      "max_numeric_absolute_error": 0.0,
+      "differences": []
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lkarlslund/laya.cpp/blob/main/benchmarks/schema/cpu-quick-v1.schema.json",
+  "title": "Bounded paired CPU comparison v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "status", "reason", "identity", "host", "settings", "startup", "selected_request_ids", "questions", "answers", "samples", "baseline", "candidate", "speedup"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "cpu-quick-benchmark"},
+    "status": {"enum": ["passed", "failed", "incomplete"]},
+    "reason": {"type": ["string", "null"]},
+    "identity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["created_at_utc", "variant", "backend", "precision", "source_commit", "candidate_commit", "candidate_sha256", "weights_sha256", "acceptance_report_sha256", "corpus_manifest_sha256", "stratum", "stratum_sha256", "selected_sha256"],
+      "properties": {
+        "created_at_utc": {"type": "string", "format": "date-time"},
+        "variant": {"enum": ["english", "multilingual", "typed-decisions"]},
+        "backend": {"const": "cpu"}, "precision": {"const": "fp32"},
+        "source_commit": {"type": "string", "minLength": 1},
+        "candidate_commit": {"type": "string", "minLength": 1},
+        "candidate_sha256": {"$ref": "#/$defs/sha256"},
+        "weights_sha256": {"$ref": "#/$defs/sha256"},
+        "acceptance_report_sha256": {"$ref": "#/$defs/sha256"},
+        "corpus_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "stratum": {"type": "string", "minLength": 1},
+        "stratum_sha256": {"$ref": "#/$defs/sha256"},
+        "selected_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "host": {"type": "object"},
+    "settings": {
+      "type": "object", "additionalProperties": false,
+      "required": ["threads", "affinity", "batch_size", "wall_budget_seconds", "wall_elapsed_seconds", "selection_indices", "warmup_calls_per_runtime", "timed_passes", "candidate_build_flags", "includes_transport", "includes_queue", "page_cache_state"],
+      "properties": {
+        "threads": {"type": "integer", "minimum": 1},
+        "affinity": {"type": "array", "items": {"type": "integer"}, "minItems": 1},
+        "batch_size": {"enum": [1, 2, 4, 8]},
+        "wall_budget_seconds": {"enum": [300, 900]},
+        "wall_elapsed_seconds": {"type": "number", "minimum": 0},
+        "selection_indices": {"type": "array", "items": {"type": "integer"}, "minItems": 8, "maxItems": 8},
+        "warmup_calls_per_runtime": {"const": 1},
+        "timed_passes": {"const": 1},
+        "candidate_build_flags": {"type": "array", "items": {"type": "string"}},
+        "includes_transport": {"const": false}, "includes_queue": {"const": false},
+        "page_cache_state": {"const": "warm"}
+      }
+    },
+    "startup": {"type": ["object", "null"]},
+    "selected_request_ids": {"type": "array", "items": {"type": "string"}, "minItems": 8, "maxItems": 8},
+    "questions": {"type": "integer", "minimum": 8},
+    "answers": {"type": "array", "items": {"type": "object", "required": ["request_id", "expected", "actual", "max_numeric_absolute_error", "differences"]}},
+    "samples": {"type": "array", "items": {"type": "object", "required": ["request_ids", "baseline", "candidate"]}},
+    "baseline": {"anyOf": [{"$ref": "#/$defs/measurement"}, {"type": "null"}]},
+    "candidate": {"anyOf": [{"$ref": "#/$defs/measurement"}, {"type": "null"}]},
+    "speedup": {"type": ["number", "null"], "exclusiveMinimum": 0}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "passed"}}},
+     "then": {"properties": {"reason": {"type": "null"}, "baseline": {"$ref": "#/$defs/measurement"}, "candidate": {"$ref": "#/$defs/measurement"}, "speedup": {"type": "number", "exclusiveMinimum": 0}, "startup": {"type": "object"}}}},
+    {"if": {"properties": {"status": {"enum": ["failed", "incomplete"]}}},
+     "then": {"properties": {"reason": {"type": "string"}, "baseline": {"type": "null"}, "candidate": {"type": "null"}, "speedup": {"type": "null"}}}}
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "measurement": {
+      "type": "object", "additionalProperties": false,
+      "required": ["samples_ms", "total_wall_ms", "questions_per_second", "p50_ms", "p95_ms"],
+      "properties": {
+        "samples_ms": {"type": "array", "items": {"type": "number", "exclusiveMinimum": 0}, "minItems": 1},
+        "total_wall_ms": {"type": "number", "exclusiveMinimum": 0},
+        "questions_per_second": {"type": "number", "exclusiveMinimum": 0},
+        "p50_ms": {"type": "number", "exclusiveMinimum": 0},
+        "p95_ms": {"type": "number", "exclusiveMinimum": 0}
+      }
+    }
+  }
+}

@@ -1,5 +1,10 @@
 # Validation and performance
 
+The versioned corpus and JSON report contract for issue #7 is in
+[benchmark contract](benchmark-contract.md). The commands below describe the
+current runners. They still write their historical summary JSON, and can also
+produce the versioned reports.
+
 `benchmarks/cases/acceptance-250.json` is a fixed, committed corpus containing
 100 choice, 75 ordinal score, and 75 boolean questions across 25 scenarios.
 Every question has a distinct instruction. Cases include 2–12 options, long
@@ -88,6 +93,144 @@ operating points and must not be presented as interchangeable.
 The smaller `smoke.json` corpus and `benchmarks/run.py` remain useful for quick
 single-request baseline measurements. Detailed reports are stored in ignored
 `results/`.
+
+## Versioned local reports
+
+Run `validate.py` with `--v1-output` to preserve the complete expected and
+actual public answer for every request and batch size. It validates the output
+against `benchmarks/schema/validation-v1.schema.json`. Run it once on the fixed
+acceptance corpus and again on each performance stratum. The acceptance report
+must contain 250 requests at each of batch sizes 1, 2, 4, and 8. The workload
+parity report must cover every batch size to be timed.
+
+```sh
+python benchmarks/validate.py --backend cpu --executable build-cpu/bin/laya-cli \
+  --model models/laya --threads 4 --batch-sizes 1 2 4 8 \
+  --output results/cpu-acceptance.json \
+  --v1-output results/cpu-acceptance-v1.json
+```
+
+CPU validation and timing use the CPU baseline and set the same explicit thread
+budget in PyTorch and the native process through `LAYA_CPU_THREADS`. `sweep.py`
+rejects a validation report from a different thread budget. For a full CPU
+comparison, repeat acceptance and timing with `--threads 1` and a stated
+physical-core count. GPU runs omit `--threads`.
+
+For each performance stratum, use its path from
+`benchmarks/cases/performance-v1/manifest.json` with `--cases` in both
+`validate.py` and `sweep.py`. Then convert the passing sweep and its two parity
+reports to the benchmark-v1 JSON:
+
+```sh
+python benchmarks/format_benchmark_v1.py \
+  --sweep results/cpu-short-q1-sweep.json \
+  --acceptance results/cpu-acceptance-v1.json \
+  --workload results/cpu-short-q1-validation-v1.json \
+  --manifest benchmarks/cases/performance-v1/manifest.json \
+  --stratum short-q1.json --executable build-cpu/bin/laya-cli \
+  --output results/cpu-short-q1-benchmark-v1.json
+```
+
+The converter checks corpus and build hashes, all acceptance cases, workload
+parity, batch coverage, warmup and timed-pass counts, and the number of raw
+samples. It validates the result against `benchmark-v1.schema.json`. The
+current sweep does not measure startup time or peak process RSS, so those fields
+are `null` with a reason. Record those separately before presenting a complete
+hardware comparison. Reports from a small local sample are format checks and
+must not be presented as results for the fixed 8,192-request corpus.
+
+## Issue #7 CPU campaign
+
+For routine comparisons, use the bounded CPU benchmark. It uses eight fixed
+requests from one length/output-shape stratum in the committed
+[`performance-quick-v1`](../benchmarks/cases/performance-quick-v1/manifest.json)
+corpus, compares the public answers from
+both processes during the timed pass, and records every selected answer and raw
+timing sample. The 250-case acceptance report is a separate correctness gate;
+the quick command requires a passing report for the exact build, checkpoint,
+and thread setting. It does not rerun acceptance for every timing measurement.
+The default batch size is 4. Run other batch sizes as distinct, identified
+measurements when needed. The same committed case files can be passed to
+`validate.py` and `sweep.py` for CUDA and Vulkan measurements; keep their
+matching-precision acceptance gate separate as well. The sample was sized on
+the slow one-thread CPU case, so GPU timing can use it unchanged.
+
+For example, after a separate passing CUDA acceptance-250 run for this build,
+use the same quick case file with the existing GPU tools:
+
+```sh
+python benchmarks/validate.py --backend cuda \
+  --cases benchmarks/cases/performance-quick-v1/short-q1.json \
+  --output results/cuda-quick-validation.json
+python benchmarks/sweep.py --backend cuda \
+  --cases benchmarks/cases/performance-quick-v1/short-q1.json \
+  --validation results/cuda-quick-validation.json \
+  --batch-sizes 4 --warmup 1 --iterations 1 \
+  --output results/cuda-quick-sweep.json
+```
+
+```sh
+python benchmarks/run_cpu_quick.py --variant english --threads 16 \
+  --stratum short-q1.json
+python benchmarks/run_cpu_quick.py --variant english --threads 16 \
+  --stratum limit-q8.json
+```
+
+A short or medium stratum has a **five-minute wall-clock limit**; a long or
+limit stratum has **fifteen minutes**. The limit includes model loading and
+warmup. A timeout produces an `incomplete` JSON report without a speedup.
+Parity failures produce a `failed` report without a speedup. The fixed eight
+requests span choice, score, and noul outputs. Quick reports have their own
+[`cpu-quick-v1`](../benchmarks/schema/cpu-quick-v1.schema.json) format and are
+not interchangeable with exhaustive reports. They are diagnostic comparisons
+on a small sample, with too few calls for stable tail-latency estimates.
+
+The following exhaustive campaign is optional research work; it is unsuitable
+for routine iteration because its 1,024-request matrix can take days on one
+CPU thread. Existing partial results remain separate from quick reports.
+
+The issue #7 runner uses the fixed 1,024-request subset documented in the
+[benchmark contract](benchmark-contract.md). It runs all three FP32 checkpoints
+at one thread and the available physical-core count (16 on the local Ryzen AI
+MAX+ 395). Each checkpoint/thread setting gets full 250-case acceptance,
+per-stratum workload parity, then three warmups and five alternating timed
+passes at batch sizes 1, 2, 4, and 8. Runs are serial, checkpointed after each
+stratum, and may take multiple days. Run on an otherwise idle host.
+
+```sh
+python benchmarks/run_cpu_issue7.py --executable build-cpu/bin/laya-cli \
+  --model-root models/laya --source research/laya \
+  --output results/issue7
+```
+
+The runner requires a clean source tree and freezes the code, harness, binary,
+weights, baseline, and corpus identities in `results/issue7/identity.json`.
+Rerunning the same command resumes only reports whose identities and parity
+still match. `run-index.json` stays `incomplete` until all six
+checkpoint/thread combinations and all 16 strata have passed. `--variants`,
+`--threads`, and `--strata` can narrow development runs, but they cannot make
+the full index pass.
+
+For timing, a persistent CPU baseline worker and the native executable each
+keep one checkpoint resident. Both use the same affinity and explicit PyTorch,
+ggml, OpenMP, MKL, OpenBLAS, and NumExpr thread budget. Each worker measures its
+own inference call internally, excluding JSON serialization, transport, and
+queue time. Process start to readiness and Linux `VmHWM` peak RSS are recorded
+for each worker. Checkpoint weights are read before each process pair starts,
+so startup times are labeled page-cache-warm. CPU frequency and governor are
+sampled where the host exposes them.
+
+After `run-index.json` says `passed`, stage only the verified JSON evidence:
+
+```sh
+python benchmarks/publish_issue7.py --source results/issue7 \
+  --destination docs/measurements/issue7
+```
+
+The staging command rejects missing rows, parity failures, changed hashes,
+missing load or RSS data, and an incomplete matrix. Link the staged index and
+derive human-readable tables from its reports; do not substitute a table for
+the raw samples.
 
 ## Apple Core ML sweep
 
