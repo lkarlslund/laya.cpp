@@ -23,8 +23,10 @@ All tokenization runs in C++; tokenizer vocabulary parsing uses a map-based JSON
 representation, while request objects preserve insertion order for choice ordering.
 
 Input formatting uses the checkpoint's question/option budget (192 or 256 tokens)
-and serving sequence limit, with right truncation of state text. Literal mask
-tokens in user text are neutralized before encoding.
+and serving sequence limit. Requests that exceed any option, instruction, or
+state/context token budget are rejected before inference by default. The explicit
+`--allow-truncation` compatibility setting restores the prior right-truncation
+behavior. Literal mask tokens in user text are neutralized before encoding.
 
 ## Computation
 

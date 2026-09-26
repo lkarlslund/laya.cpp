@@ -59,6 +59,7 @@ def validation_header(*, args, cases, oracle, candidate_device):
     precision = 'fp32' if args.fp32 else 'fp16' if args.fp16 else 'bf16'
     variant = model.name if model.name in ('multilingual', 'typed-decisions') else 'english'
     candidate_flags = [f'--{args.backend}', f'--{precision}']
+    if getattr(args, 'allow_truncation', False): candidate_flags.append('--allow-truncation')
     if args.no_flash: candidate_flags.append('--no-flash')
     if args.tensor_core_fp32: candidate_flags.append('--tensor-core-fp32')
     threads = getattr(args, 'threads', None)

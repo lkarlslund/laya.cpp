@@ -44,9 +44,9 @@ private:
 };
 class agent {
 public:
-    agent(const std::filesystem::path& directory, bool cuda = true, bool bf16 = false, bool flash = false, bool tensor_core = false);
-    agent(const std::filesystem::path& directory, backend_type backend, bool bf16 = false, bool flash = false, bool tensor_core = false);
-    agent(const std::filesystem::path& directory, backend_type backend, precision_type precision, bool flash = false, bool tensor_core = false);
+    agent(const std::filesystem::path& directory, bool cuda = true, bool bf16 = false, bool flash = false, bool tensor_core = false, bool allow_truncation = false);
+    agent(const std::filesystem::path& directory, backend_type backend, bool bf16 = false, bool flash = false, bool tensor_core = false, bool allow_truncation = false);
+    agent(const std::filesystem::path& directory, backend_type backend, precision_type precision, bool flash = false, bool tensor_core = false, bool allow_truncation = false);
     json predict(const json& requests, bool raw = false);
     json prepare_json(const json& requests) const;
     std::string backend_name() const;
@@ -54,6 +54,7 @@ public:
 private:
     runtime model;
     tokenizer tok;
+    bool allow_truncation;
     json settings;
     batch prepare(const json& requests, json& metadata) const;
 };

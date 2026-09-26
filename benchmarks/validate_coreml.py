@@ -194,7 +194,7 @@ def validate_variant(args, cases, variant, report):
     # models and no large bucket is repeatedly reopened after another bucket.
     for bucket, bucket_tasks in tasks_by_bucket.items():
         environment = coreml_environment(args.cache_root, bucket)
-        with Native(args.executable, reference_model, raw=True, backend='coreml', env=environment) as raw_native:
+        with Native(args.executable, reference_model, raw=True, allow_truncation=True, backend='coreml', env=environment) as raw_native:
             for summary, start, requests, questions in bucket_tasks:
                 probe = raw_native.call(requests)
                 if re.sub(r'[^a-z0-9]', '', str(probe.get('backend', '')).casefold()) != 'coreml':
@@ -221,7 +221,7 @@ def validate_variant(args, cases, variant, report):
                                 ids=[request['id'] for request in requests])
                 summary['questions'] += questions
 
-        with Native(args.executable, reference_model, raw=False, backend='coreml', env=environment) as public_native:
+        with Native(args.executable, reference_model, raw=False, allow_truncation=True, backend='coreml', env=environment) as public_native:
             for summary, start, requests, _questions in bucket_tasks:
                 inputs = oracle.prepare(requests)
                 expected_raw = oracle.forward(inputs)
@@ -279,6 +279,7 @@ def main():
             raise ValueError('Cases must be nonempty')
         report = dict(schema_version=2, backend='coreml', passed=True, complete=False,
                       acceptance='exact_categories_absolute_numeric_0.0001',
+                      allow_truncation=True,
                       cases_sha256=sha256(args.cases),
                       native_build_sha256=native_hash(args.executable),
                       raw_atol=args.raw_atol, raw_action_atol=args.raw_action_atol,

@@ -28,6 +28,8 @@ def main():
     precision.add_argument('--fp16', action='store_true')
     p.add_argument('--no-flash', action='store_true')
     p.add_argument('--tensor-core-fp32', action='store_true')
+    p.add_argument('--allow-truncation', action='store_true',
+                   help='Use legacy truncation for corpora that intentionally exercise over-budget inputs')
     # Unnormalized action logits can exceed 4000. A scale-aware FP32 bound
     # avoids treating a few ULPs there like the same error near zero.
     p.add_argument('--raw-atol', type=float, default=0.001)
@@ -67,10 +69,10 @@ def main():
                   python_runtime='cpu' if a.backend == 'cpu' else 'rocm' if torch.version.hip else 'cuda',
                   python_runtime_version=None if a.backend == 'cpu' else torch.version.hip or torch.version.cuda,
                   fused_attention=not a.no_flash, tensor_core_fp32=a.tensor_core_fp32,
-                  threads=a.threads,
+                  threads=a.threads, allow_truncation=a.allow_truncation,
                   acceptance='exact_categories_absolute_numeric_0.0001', raw_atol=a.raw_atol, raw_rtol=a.raw_rtol, answer_atol=a.answer_atol, passed=True, batches=[])
     # Run one native process at a time to avoid unnecessary duplicate device weights.
-    with Native(a.executable, a.model, raw=True, fp32=a.fp32, fp16=a.fp16, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend, env=native_env) as native:
+    with Native(a.executable, a.model, allow_truncation=a.allow_truncation, raw=True, fp32=a.fp32, fp16=a.fp16, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend, env=native_env) as native:
         report['native_device'] = matching_device(native.call(cases[:1]), a.backend, report['gpu'])
         for batch_size in a.batch_sizes:
             summary = dict(batch_size=batch_size, questions=0, max_logit_error=0., max_action_error=0., failures=[], raw_diagnostics=[])
@@ -102,7 +104,7 @@ def main():
             if summary['failures']: report['passed'] = False
     # Independently compare the actual native public API against baseline formatting.
     v1 = None
-    with Native(a.executable, a.model, fp32=a.fp32, fp16=a.fp16, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend, env=native_env) as native:
+    with Native(a.executable, a.model, allow_truncation=a.allow_truncation, fp32=a.fp32, fp16=a.fp16, flash=not a.no_flash, tensor_core=a.tensor_core_fp32, backend=a.backend, env=native_env) as native:
         if a.v1_output:
             v1 = validation_header(args=a, cases=cases, oracle=oracle, candidate_device=report['native_device'])
         for batch_size, summary in zip(a.batch_sizes, report['batches']):

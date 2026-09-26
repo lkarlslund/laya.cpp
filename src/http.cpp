@@ -225,7 +225,7 @@ struct http_server::impl {
             throw std::invalid_argument("state must be a string, object or array");
         if (request.contains("model")) {
             auto name = request.at("model").get<std::string>();
-            if (name != model && name != options.variant && name != "jev-latest" && name != "laya-latest" && name != "laya-rl-agent")
+            if (name != model)
                 throw std::invalid_argument("Requested model is not loaded; this server serves " + model);
         }
         const auto& definitions = request.at("questions");

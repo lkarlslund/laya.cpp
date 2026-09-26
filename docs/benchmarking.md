@@ -20,9 +20,15 @@ invalidates previous acceptance reports.
 ## Correctness gate
 
 ```sh
-python benchmarks/validate.py --tensor-core-fp32 --batch-sizes 1 2 4 8 \
+python benchmarks/validate.py --allow-truncation --tensor-core-fp32 --batch-sizes 1 2 4 8 \
   --output results/validation.json
 ```
+
+The fixed corpus includes long states and over-budget input designed to exercise
+the historical preprocessing limits. Validation commands therefore pass
+`--allow-truncation` explicitly; its report records this policy, and the sweep
+requires an exact policy match. Remove that option to validate strict rejection
+on corpora that fit within the model budgets.
 
 The validation tool accepts a local baseline package with `--source`, a checkpoint
 with `--model`, and the executable with `--executable`. Select `--backend vulkan`
@@ -55,7 +61,7 @@ They run through CTest when the local tokenizer model is present.
 ## Batch sweep
 
 ```sh
-python benchmarks/sweep.py --tensor-core-fp32 --validation results/validation.json \
+python benchmarks/sweep.py --allow-truncation --tensor-core-fp32 --validation results/validation.json \
   --batch-sizes 1 2 4 8 --warmup 3 --iterations 5
 ```
 
@@ -263,6 +269,11 @@ reported. The report records both build fingerprints and requires a matching
 acceptance report for the new build. This separates incremental native improvements
 from changes in hardware contention between measurements.
 
+The preserved `--before` executable runs without the new truncation switch, so
+its built-in legacy shortening remains active. The current `--after` executable
+receives `--allow-truncation`; the comparison report records this flag asymmetry
+and the legacy truncation policy used on both sides.
+
 ## Comparing native precision modes
 
 ```sh
@@ -290,7 +301,9 @@ on English, multilingual, and typed-decisions, sequentially to avoid unnecessary
 GPU memory pressure. It writes separate validation and timing reports under
 `results/models/`. Use `--variants multilingual`, `--batch-sizes`, or `--strict-fp32`
 to narrow a run. Use `--bf16` for BF16 validation and timing across all three models.
-The optimized FP32 CUDA path is selected by default in this matrix.
+The optimized FP32 CUDA path is selected by default in this matrix. The matrix
+opts into legacy truncation for both validation and sweep because the committed
+corpus deliberately includes over-budget inputs.
 Each checkpoint has its own weight fingerprint and independent correctness gate;
 a passing report for one checkpoint cannot authorize timing another.
 
